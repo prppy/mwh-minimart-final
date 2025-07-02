@@ -19,10 +19,11 @@ import { Stack } from "expo-router";
 import "@/global.css";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GluestackUIProvider } from "@gluestack-ui/themed";
+import { config } from '@gluestack-ui/config';
 
 export default function RootLayout() {
   return (
-    <GluestackUIProvider>
+<GluestackUIProvider config={config}>
       <SafeAreaProvider>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" />
