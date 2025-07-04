@@ -33,7 +33,7 @@ export default function ProductRequestPage() {
         shadowRadius={4}
         elevation={3}
       >
-        <VStack space={4}>
+        <VStack space="md">
           {/* vertical stack with spacing */}
           <Box paddingVertical={15}>
             <Text mb={20} fontSize="$xl">
