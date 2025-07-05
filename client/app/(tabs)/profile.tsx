@@ -152,23 +152,6 @@ const Profile: React.FC = () => {
         onLoadEnd={() => setLoading(false)}
       />
 
-      {/* Loading Spinner */}
-      {loading && (
-        <Box
-          position="absolute"
-          top={0}
-          left={0}
-          right={0}
-          bottom={0}
-          justifyContent="center"
-          alignItems="center"
-          bg="transparent"
-          zIndex={10}
-        >
-          <ActivityIndicator size="large" color="#fff" />
-        </Box>
-      )}
-
       {/* Profile Content */}
       <Box flex={1} p="$20">
         <HStack space="2xl" alignItems="center" p="$4">
