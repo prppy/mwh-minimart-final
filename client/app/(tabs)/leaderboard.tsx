@@ -323,14 +323,14 @@ const residents = [
     name: "Resident Name #3",
     profilePic: null,
     points: 4000,
-    style: "🌳",
+    style: "📖",
     color: "hsl(101, 67%, 50%)",
   },
   {
     name: "Resident Name #4",
     profilePic: null,
     points: 4000,
-    style: "📖",
+    style: "🌳",
     color: "hsl(2, 67%, 50%)",
   },
   {
@@ -528,7 +528,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 25,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-around",
+    justifyContent: "space-between",
   },
 
   monthText: {
