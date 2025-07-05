@@ -1,24 +1,18 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { ImageSourcePropType, StyleSheet } from "react-native";
+import { ImageBackground, ActivityIndicator } from "react-native";
 import {
   Box,
   HStack,
   VStack,
   Text,
-  Image,
+  Image as GSImage,
   Pressable,
 } from "@gluestack-ui/themed";
-import { ActivityIndicator } from "react-native";
-import { ImageSourcePropType, StyleSheet } from "react-native";
 
+import { hslToHSLA } from "@/utils/styleUtils";
+import { setHSLlightness } from "@/utils/styleUtils";
 // helper functions
-const hslToHSLA = (hsl: string, alpha: number): string =>
-  hsl.replace("hsl(", "hsla(").replace(")", `, ${alpha})`);
-
-const setHSLlightness = (hsl: string, newLightness: number): string => {
-  const parts = hsl.split(",");
-  parts[2] = ` ${Math.max(0, Math.min(100, newLightness)).toFixed(1)}%)`;
-  return parts.join(",");
-};
 
 // ColorSwatch component props
 type ColorSwatchProps = {
@@ -118,17 +112,44 @@ const Profile: React.FC = () => {
     "📖": require("../../assets/background/education.png"),
   };
 
+  useEffect(() => {
+    setLoading(true);
+    const timeout = setTimeout(() => setLoading(false), 500); // or 1000ms
+
+    return () => clearTimeout(timeout);
+  }, [style]);
+
+  const handleSetColorTheme = (newColor: string) => {
+    setColorTheme(newColor);
+    // in future: send to backend
+    // e.g. updateUserPreference({ colorTheme: newColor });
+  };
+
+  const handleSetStyle = (newStyle: string) => {
+    setStyle(newStyle);
+    // nm bvdfq `q1wdsefin future: send to backend
+    // e.g. updateUserPreference({ style: newStyle });
+  };
+
+  // TODO: need to save and update the user's bg choices
   return (
     <Box flex={1} bg={hslToHSLA(colorTheme, 0.5)}>
       {/* Background Image */}
-      <Image
+      <ImageBackground
         source={styleBgMappings[style]}
-        style={StyleSheet.absoluteFillObject}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: "100%",
+          height: "100%",
+          opacity: 0.55,
+        }}
         resizeMode="cover"
-        alt={`${style} background wallpaper`}
         onLoadStart={() => setLoading(true)}
         onLoadEnd={() => setLoading(false)}
-        opacity={0.55}
       />
 
       {/* Loading Spinner */}
@@ -159,7 +180,7 @@ const Profile: React.FC = () => {
             borderColor={colorTheme}
             backgroundColor="white"
           >
-            <Image
+            <GSImage
               source={{ uri: "placeholder" }}
               alt="Profile Picture"
               width={300}
@@ -199,7 +220,7 @@ const Profile: React.FC = () => {
                     key={index}
                     color={color}
                     selected={colorTheme === color}
-                    onPress={() => setColorTheme(color)}
+                    onPress={() => handleSetColorTheme(color)}
                   />
                 ))}
               </Selector>
@@ -210,7 +231,7 @@ const Profile: React.FC = () => {
                     key={icon}
                     icon={icon}
                     selected={style === icon}
-                    onPress={() => setStyle(icon)}
+                    onPress={() => handleSetStyle(icon)}
                   />
                 ))}
               </Selector>
