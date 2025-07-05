@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "white",
-    padding: 30, // add padding if you want space around leaderboardBox
+    padding: 30,
   },
   leaderboardBox: {
     flex: 1, // fill container vertically
