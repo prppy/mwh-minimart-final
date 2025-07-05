@@ -146,21 +146,21 @@ const LeaderboardPage: React.FC = () => {
     <Box style={styles.container}>
       <Box style={styles.leaderboardBox}>
         <Box style={styles.monthHeader}>
-          <TouchableOpacity
+          <MaterialIcons
+            name="arrow-back-ios"
+            size={28}
+            color="#333"
             onPress={prevMonth}
-            style={[styles.arrowButton, styles.arrowLeft]}
-          >
-            <MaterialIcons name="arrow-back-ios" size={28} color="#333" />
-          </TouchableOpacity>
+          />
 
           <Text style={styles.monthText}>{MONTHS[monthIndex]}</Text>
 
-          <TouchableOpacity
+          <MaterialIcons
+            name="arrow-forward-ios"
+            size={28}
+            color="#333"
             onPress={nextMonth}
-            style={[styles.arrowButton, styles.arrowRight]}
-          >
-            <MaterialIcons name="arrow-forward-ios" size={28} color="#333" />
-          </TouchableOpacity>
+          />
         </Box>
 
         <FlatList
@@ -258,23 +258,8 @@ const styles = StyleSheet.create({
     marginHorizontal: 25,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-  },
-
-  arrowButton: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    justifyContent: "center",
-    width: 50,
-  },
-
-  arrowLeft: {
-    left: 5,
-  },
-
-  arrowRight: {
-    right: 5,
+    justifyContent: "space-around",
+    flex: 1,
   },
 
   monthText: {
