@@ -525,7 +525,7 @@ const styles = StyleSheet.create({
     height: 65,
     borderBottomColor: "#d9d9d9",
     borderBottomWidth: 1,
-    marginHorizontal: 25,
+    marginHorizontal: 30,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
