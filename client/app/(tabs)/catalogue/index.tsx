@@ -3,22 +3,34 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-nati
 import { useRouter } from 'expo-router';
 
 interface Product {
-  id: string;
-  name: string;
-  price: string;
+  Product_ID: number;
+  Product_Name: string;
+  Product_Description: string;
+  Points: number;
+  Category: string;
 }
 
 const CataloguePage: React.FC = () => {
   const router = useRouter();
-
+  
   const products: Product[] = [
-    { id: '1', name: 'Product 1', price: '$29.99' },
-    { id: '2', name: 'Product 2', price: '$49.99' },
-    { id: '3', name: 'Product 3', price: '$19.99' },
+    { Product_ID: 1, Product_Name: 'Toothpaste', Product_Description: 'Let\'s practice good oral hygiene together!', Points: 10, Category: 'Hygiene' },
+    { Product_ID: 2, Product_Name: 'Shampoo', Product_Description: 'Revitalizing Shampoo for all hair types', Points: 3, Category: 'Toiletries' },
+    { Product_ID: 3, Product_Name: 'Conditioner', Product_Description: 'Moisturizing Conditioner for dry hair', Points: 3, Category: 'Toiletries' },
   ];
 
-  const handleProductPress = (productId: string) => {
-    router.push(`/catalogue/${productId}` as any);
+  const handleProductPress = (product: Product) => {
+    // Pass the entire product object as parameters
+    router.push({
+      pathname: `/catalogue/${product.Product_ID}`,
+      params: {
+        Product_ID: product.Product_ID.toString(),
+        Product_Name: product.Product_Name,
+        Product_Description: product.Product_Description,
+        Points: product.Points.toString(),
+        Category: product.Category,
+      }
+    });
   };
 
   return (
@@ -26,12 +38,12 @@ const CataloguePage: React.FC = () => {
       <Text style={styles.title}>Product Catalogue</Text>
       {products.map((product) => (
         <TouchableOpacity
-          key={product.id}
+          key={product.Product_ID}
           style={styles.productCard}
-          onPress={() => handleProductPress(product.id)}
+          onPress={() => handleProductPress(product)}
         >
-          <Text style={styles.productName}>{product.name}</Text>
-          <Text style={styles.productPrice}>{product.price}</Text>
+          <Text style={styles.productName}>{product.Product_Name}</Text>
+          <Text style={styles.productPrice}>{product.Points} Points</Text>
         </TouchableOpacity>
       ))}
     </ScrollView>
