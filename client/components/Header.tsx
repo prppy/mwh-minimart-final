@@ -1,5 +1,5 @@
-import React from 'react';
-import { useRouter, usePathname } from 'expo-router';
+import React from "react";
+import { useRouter, usePathname } from "expo-router";
 import {
   Box,
   HStack,
@@ -18,35 +18,35 @@ const Header: React.FC = () => {
 
   // Get current tab name from pathname
   const getCurrentTabName = () => {
-    if (pathname.startsWith('/catalogue')) return 'catalogue';
-    if (pathname.startsWith('/leaderboard')) return 'leaderboard';
-    if (pathname.startsWith('/feedback')) return 'feedback';
-    if (pathname.startsWith('/profile')) return 'profile';
-    return 'catalogue'; // default
+    if (pathname.startsWith("/catalogue")) return "catalogue";
+    if (pathname.startsWith("/leaderboard")) return "leaderboard";
+    if (pathname.startsWith("/feedback")) return "feedback";
+    if (pathname.startsWith("/profile")) return "profile";
+    return "catalogue"; // default
   };
 
   const currentTab = getCurrentTabName();
 
   const tabs = [
-    { 
-      name: 'Catalogue', 
-      route: '/catalogue',
-      icon: ShoppingBag
+    {
+      name: "Catalogue",
+      route: "/catalogue",
+      icon: ShoppingBag,
     },
-    { 
-      name: 'Leaderboard', 
-      route: '/leaderboard',
-      icon: Trophy
+    {
+      name: "Leaderboard",
+      route: "/leaderboard",
+      icon: Trophy,
     },
-    { 
-      name: 'Feedback', 
-      route: '/feedback',
-      icon: MessageSquare
+    {
+      name: "Feedback",
+      route: "/feedback",
+      icon: MessageSquare,
     },
-    { 
-      name: 'Profile', 
-      route: '/profile',
-      icon: User
+    {
+      name: "Profile",
+      route: "/profile",
+      icon: User,
     },
   ];
 
@@ -55,7 +55,7 @@ const Header: React.FC = () => {
   };
 
   const handleLogoPress = () => {
-    router.push('/catalogue');
+    router.push("/catalogue");
   };
 
   const handleTabPress = (route: string) => {
@@ -64,13 +64,13 @@ const Header: React.FC = () => {
 
   // Responsive text size
   const logoTextSize = useBreakpointValue({
-    base: 18,
-    sm: 20,
-    md: 24
+    base: 24,
+    sm: 28,
+    md: 32,
   });
 
   return (
-    <SafeAreaView edges={['top']}>
+    <SafeAreaView edges={["top"]}>
       <Box
         backgroundColor="#ffffff"
         borderBottomWidth={1}
@@ -85,18 +85,14 @@ const Header: React.FC = () => {
               <Image
                 source={require("../assets/logo.png")}
                 alt="MWH Logo"
-                style={{ width: 60, height: 60 }}
+                style={{ width: 100, height: 100 }}
               />
-              
+
               <VStack gap={4}>
-                <Text
-                  fontSize={logoTextSize}
-                  fontWeight="700"
-                  color="#1d4ed8"
-                >
+                <Text fontSize={logoTextSize} fontWeight="700" color="#273C73">
                   {currentTab.charAt(0).toUpperCase() + currentTab.slice(1)}
                 </Text>
-                <Text fontSize={12} color="#6b7280" lineHeight={12}>
+                <Text fontSize={15} color="#6b7280" lineHeight={12}>
                   MWH Minimart
                 </Text>
               </VStack>
@@ -108,7 +104,7 @@ const Header: React.FC = () => {
             {tabs.map((tab) => {
               const IconComponent = tab.icon;
               const isActive = isActiveTab(tab.route);
-              
+
               return (
                 <Pressable
                   key={tab.route}
@@ -127,11 +123,11 @@ const Header: React.FC = () => {
                 >
                   <HStack alignItems="center" gap={6}>
                     <IconComponent
-                      size={16}
+                      size={20}
                       color={isActive ? "#ffffff" : "#6b7280"}
                     />
                     <Text
-                      fontSize={14}
+                      fontSize={20}
                       fontWeight={isActive ? "600" : "500"}
                       color={isActive ? "#ffffff" : "#6b7280"}
                     >
@@ -149,4 +145,3 @@ const Header: React.FC = () => {
 };
 
 export default Header;
-

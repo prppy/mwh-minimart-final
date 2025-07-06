@@ -1,26 +1,37 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { HStack } from "@gluestack-ui/themed";
+import React from "react";
+import { View, Text, StyleSheet, Image } from "react-native";
 
 const Footer: React.FC = () => {
   return (
-    <View style={styles.container}>
-      <Text style={styles.text}>© 2025 My App. All rights reserved.</Text>
-    </View>
+    <HStack style={styles.container}>
+      <Image
+        source={require("../assets/logo.png")}
+        alt="MWH Logo"
+        style={{ width: 80, height: 80 }}
+      />
+
+      <Text style={styles.text}>
+        MUHAMMADIYAH WELFARE HOME © 2025 |  An institution of MUHAMMADIYAH
+        ASSOCIATION
+      </Text>
+    </HStack>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#f8f8f8',
+    backgroundColor: "white",
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-    alignItems: 'center',
+    borderTopColor: "#e0e0e0",
+    alignItems: "center",
+    justifyContent: "center",
   },
   text: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 20,
+    color: "#273C73",
   },
 });
 
