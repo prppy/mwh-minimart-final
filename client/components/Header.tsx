@@ -92,7 +92,7 @@ const Header: React.FC = () => {
                 <Text fontSize={logoTextSize} fontWeight="700" color="#273C73">
                   {currentTab.charAt(0).toUpperCase() + currentTab.slice(1)}
                 </Text>
-                <Text fontSize={15} color="#6b7280" lineHeight={12}>
+                <Text fontSize={15} color="#6b7280" lineHeight={15}>
                   MWH Minimart
                 </Text>
               </VStack>
