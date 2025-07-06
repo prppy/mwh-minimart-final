@@ -1,84 +1,152 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
+import {
+  Box,
+  HStack,
+  VStack,
+  Image,
+  Text,
+  Pressable,
+  useBreakpointValue,
+} from "@gluestack-ui/themed";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { ShoppingBag, Trophy, MessageSquare, User } from "lucide-react-native";
 
 const Header: React.FC = () => {
   const router = useRouter();
   const pathname = usePathname();
 
+  // Get current tab name from pathname
+  const getCurrentTabName = () => {
+    if (pathname.startsWith('/catalogue')) return 'catalogue';
+    if (pathname.startsWith('/leaderboard')) return 'leaderboard';
+    if (pathname.startsWith('/feedback')) return 'feedback';
+    if (pathname.startsWith('/profile')) return 'profile';
+    return 'catalogue'; // default
+  };
+
+  const currentTab = getCurrentTabName();
+
   const tabs = [
-    { name: 'Catalogue', route: '/catalogue' },
-    { name: 'Leaderboard', route: '/leaderboard' },
-    { name: 'Feedback', route: '/feedback' },
-    { name: 'Profile', route: '/profile' },
+    { 
+      name: 'Catalogue', 
+      route: '/catalogue',
+      icon: ShoppingBag
+    },
+    { 
+      name: 'Leaderboard', 
+      route: '/leaderboard',
+      icon: Trophy
+    },
+    { 
+      name: 'Feedback', 
+      route: '/feedback',
+      icon: MessageSquare
+    },
+    { 
+      name: 'Profile', 
+      route: '/profile',
+      icon: User
+    },
   ];
 
   const isActiveTab = (route: string) => {
     return pathname.startsWith(route);
   };
 
+  const handleLogoPress = () => {
+    router.push('/catalogue');
+  };
+
+  const handleTabPress = (route: string) => {
+    router.push(route as any);
+  };
+
+  // Responsive text size
+  const logoTextSize = useBreakpointValue({
+    base: 18,
+    sm: 20,
+    md: 24
+  });
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>My App</Text>
-      <View style={styles.tabContainer}>
-        {tabs.map((tab) => (
-          <TouchableOpacity
-            key={tab.route}
-            style={[
-              styles.tab,
-              isActiveTab(tab.route) && styles.activeTab,
-            ]}
-            onPress={() => router.push(tab.route as any)}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                isActiveTab(tab.route) && styles.activeTabText,
-              ]}
-            >
-              {tab.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
+    <SafeAreaView edges={['top']}>
+      <Box
+        backgroundColor="#ffffff"
+        borderBottomWidth={1}
+        borderBottomColor="#e5e7eb"
+        paddingHorizontal={16}
+        paddingVertical={12}
+      >
+        <HStack justifyContent="space-between" alignItems="center">
+          {/* Left: Logo and Title */}
+          <Pressable onPress={handleLogoPress}>
+            <HStack alignItems="center" gap={16}>
+              <Image
+                source={require("../assets/logo.png")}
+                alt="MWH Logo"
+                style={{ width: 60, height: 60 }}
+              />
+              
+              <VStack gap={4}>
+                <Text
+                  fontSize={logoTextSize}
+                  fontWeight="700"
+                  color="#1d4ed8"
+                >
+                  {currentTab.charAt(0).toUpperCase() + currentTab.slice(1)}
+                </Text>
+                <Text fontSize={12} color="#6b7280" lineHeight={12}>
+                  MWH Minimart
+                </Text>
+              </VStack>
+            </HStack>
+          </Pressable>
+
+          {/* Right: Navigation Tabs */}
+          <HStack gap={20} alignItems="center">
+            {tabs.map((tab) => {
+              const IconComponent = tab.icon;
+              const isActive = isActiveTab(tab.route);
+              
+              return (
+                <Pressable
+                  key={tab.route}
+                  onPress={() => handleTabPress(tab.route)}
+                  backgroundColor={isActive ? "#273C73" : "#f3f4f6"}
+                  paddingHorizontal={12}
+                  paddingVertical={8}
+                  borderRadius={8}
+                  style={{
+                    shadowColor: isActive ? "#000" : "transparent",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: isActive ? 0.1 : 0,
+                    shadowRadius: 2,
+                    elevation: isActive ? 2 : 0,
+                  }}
+                >
+                  <HStack alignItems="center" gap={6}>
+                    <IconComponent
+                      size={16}
+                      color={isActive ? "#ffffff" : "#6b7280"}
+                    />
+                    <Text
+                      fontSize={14}
+                      fontWeight={isActive ? "600" : "500"}
+                      color={isActive ? "#ffffff" : "#6b7280"}
+                    >
+                      {tab.name}
+                    </Text>
+                  </HStack>
+                </Pressable>
+              );
+            })}
+          </HStack>
+        </HStack>
+      </Box>
+    </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  tab: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-  },
-  activeTab: {
-    backgroundColor: '#007AFF',
-  },
-  tabText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  activeTabText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-});
-
 export default Header;
+
