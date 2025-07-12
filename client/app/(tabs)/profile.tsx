@@ -8,6 +8,7 @@ import {
   Text,
   Image as GSImage,
   Pressable,
+  ScrollView,
 } from "@gluestack-ui/themed";
 
 import { hslToHSLA } from "@/utils/styleUtils";
@@ -29,9 +30,9 @@ const ColorSwatch: React.FC<ColorSwatchProps> = ({
   <Pressable
     onPress={onPress}
     style={{
-      width: 50,
-      height: 50,
-      borderRadius: 25,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
       backgroundColor: color,
       borderWidth: selected ? 3 : 1,
       borderColor: selected ? "#D9E0F2" : "#ccc",
@@ -50,8 +51,8 @@ const StyleIcon: React.FC<StyleIconProps> = ({ icon, selected, onPress }) => (
   <Pressable
     onPress={onPress}
     style={{
-      width: 50,
-      height: 50,
+      width: 40,
+      height: 40,
       borderRadius: 10,
       justifyContent: "center",
       alignItems: "center",
@@ -59,7 +60,7 @@ const StyleIcon: React.FC<StyleIconProps> = ({ icon, selected, onPress }) => (
       borderColor: selected ? "#131E39" : "#ccc",
     }}
   >
-    <Text fontSize={40}>{icon}</Text>
+    <Text fontSize={30}>{icon}</Text>
   </Pressable>
 );
 
@@ -133,7 +134,7 @@ const Profile: React.FC = () => {
 
   // TODO: need to save and update the user's bg choices
   return (
-    <Box flex={1} bg={hslToHSLA(colorTheme, 0.5)}>
+    <ScrollView flex={1} bg={hslToHSLA(colorTheme, 0.5)}>
       {/* Background Image */}
       <ImageBackground
         source={styleBgMappings[style]}
@@ -153,7 +154,7 @@ const Profile: React.FC = () => {
       />
 
       {/* Profile Content */}
-      <Box flex={1} p="$20">
+      <Box flex={1} p={28}>
         <HStack space="2xl" alignItems="center" p="$4">
           {/* Profile Picture */}
           <Box
@@ -234,7 +235,7 @@ const Profile: React.FC = () => {
           </VStack>
         </HStack>
       </Box>
-    </Box>
+    </ScrollView>
   );
 };
 
@@ -244,7 +245,7 @@ export default Profile;
 const styles = StyleSheet.create({
   name: {
     fontWeight: "bold",
-    fontSize: 50,
+    fontSize: 45,
   },
   detailsLabel: {
     fontWeight: "500",
