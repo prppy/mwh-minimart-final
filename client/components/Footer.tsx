@@ -8,7 +8,7 @@ const Footer: React.FC = () => {
       <Image
         source={require("../assets/logo.png")}
         alt="MWH Logo"
-        style={{ width: 80, height: 80 }}
+        style={{ width: 80, height: 45 }}
       />
 
       <Text style={styles.text}>
@@ -22,7 +22,7 @@ const Footer: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: "white",
-    paddingVertical: 12,
+    paddingVertical: 8,
     paddingHorizontal: 16,
     borderTopWidth: 1,
     borderTopColor: "#e0e0e0",
@@ -30,7 +30,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   text: {
-    fontSize: 20,
+    fontSize: 18,
     color: "#273C73",
   },
 });
