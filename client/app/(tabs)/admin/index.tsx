@@ -1,12 +1,25 @@
 import React, { useState, useMemo } from "react";
 import { StyleSheet, Text } from "react-native";
-import { VStack, Box } from "@gluestack-ui/themed";
+import { VStack, Box, ScrollView } from "@gluestack-ui/themed";
 import { DataTable } from "react-native-paper";
 import { ADMIN_PURPLE, LIGHTEST_PURPLE } from "../../../constants/colors";
 import RoleOptions from "@/components/admin pages/RoleOptions";
+import RowsPerPageSelector from "@/components/admin pages/RowsPerPageSelector";
 import SearchBar from "@/components/Searchbar";
 import { renderHighlightedText } from "@/utils/searchUtils";
 import ProfileAvatar from "@/components/ProfileAvatar";
+import {
+  Select,
+  SelectTrigger,
+  SelectInput,
+  SelectIcon,
+  Icon,
+  ChevronDownIcon,
+  SelectPortal,
+  SelectContent,
+  SelectItem,
+} from "@gluestack-ui/themed";
+
 // dummy data for now
 const rawData = Array(23)
   .fill(0)
@@ -21,19 +34,19 @@ const officerColumns = [
   "Officer ID",
   "Full Name",
   "Email",
-  "Joined Date",
+  // "Joined Date",
   "Actions",
 ];
 
 const userColumns = [
-  "ID",
+  "Resident ID",
   "Full Name",
   "Date of Birth",
   "Date of Admission",
   "Last Abscondence",
   "Current Points",
   "Batch Number",
-  "Control No",
+  "Actions",
 ];
 
 const AdminUsers: React.FC = () => {
@@ -43,7 +56,9 @@ const AdminUsers: React.FC = () => {
   >("residents");
   const [searchText, setSearchText] = useState("");
   const [page, setPage] = useState(0);
-  const itemsPerPage = 5;
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+
+  const rowsPerPageOptions = [5, 10, 15];
 
   // to change columns
   const columns = useMemo(() => {
@@ -95,7 +110,6 @@ const AdminUsers: React.FC = () => {
             </Box>
           </DataTable.Cell>
           <DataTable.Cell>{item.email}</DataTable.Cell>
-          <DataTable.Cell>12 Jan 2024</DataTable.Cell>
           <DataTable.Cell>Actions</DataTable.Cell>
         </>
       ) : (
@@ -110,14 +124,17 @@ const AdminUsers: React.FC = () => {
           <DataTable.Cell>-</DataTable.Cell>
           <DataTable.Cell>100</DataTable.Cell>
           <DataTable.Cell>Batch 3</DataTable.Cell>
-          <DataTable.Cell>C-1234</DataTable.Cell>
+          <DataTable.Cell>Actions</DataTable.Cell>
         </>
       )}
     </DataTable.Row>
   );
 
   return (
-    <VStack style={styles.container} space="lg">
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ paddingBottom: 40 }}
+    >
       {/* ROLE OPTIONS */}
       <Box style={styles.roleOptionsContainer}>
         <RoleOptions selectedRole={selectedRole} onChange={setSelectedRole} />
@@ -149,21 +166,41 @@ const AdminUsers: React.FC = () => {
           {filteredData
             .slice(from, to)
             .map((item, index) => renderRow(item, index))}
+          {/* pagination + rows per page selector container */}
+          <Box
+            flexDirection="row"
+            justifyContent="space-between"
+            alignItems="center"
+            px="$4"
+            py="$2"
+            bg={LIGHTEST_PURPLE}
+          >
+            {/* rows per page selector */}
+            <Box flexDirection="row" alignItems="center">
+              <Text style={styles.rowsPerPageText}>Rows per page:</Text>
+              <RowsPerPageSelector
+                value={itemsPerPage}
+                options={rowsPerPageOptions}
+                onChange={(newValue) => {
+                  setItemsPerPage(newValue);
+                  setPage(0);
+                }}
+              />
+            </Box>
 
-          {/* pagination */}
-          <DataTable.Pagination
-            style={{ backgroundColor: LIGHTEST_PURPLE }}
-            page={page}
-            numberOfPages={Math.ceil(filteredData.length / itemsPerPage)}
-            onPageChange={(newPage: number) => setPage(newPage)}
-            label={`${from + 1}-${to} of ${filteredData.length}`}
-            showFastPaginationControls
-            numberOfItemsPerPage={itemsPerPage}
-            selectPageDropdownLabel={"Rows per page"}
-          />
+            {/* pagination */}
+            <DataTable.Pagination
+              page={page}
+              numberOfPages={Math.ceil(filteredData.length / itemsPerPage)}
+              onPageChange={(newPage: number) => setPage(newPage)}
+              label={`${from + 1}-${to} of ${filteredData.length}`}
+              showFastPaginationControls
+              numberOfItemsPerPage={itemsPerPage}
+            />
+          </Box>
         </DataTable>
       </Box>
-    </VStack>
+    </ScrollView>
   );
 };
 
@@ -185,6 +222,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     fontSize: 16,
   },
+  rowsPerPageText: { color: "black", marginRight: 8, fontSize: 12 },
 });
 
 export default AdminUsers;
