@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Box } from "@gluestack-ui/themed";
 import { MaterialIcons } from "@expo/vector-icons";
-
+import ProfileAvatar from "@/components/ProfileAvatar";
 // functions
 import { hslToHSLA } from "@/utils/styleUtils";
 import { setHSLlightness } from "@/utils/styleUtils";
@@ -99,14 +99,19 @@ const LeaderboardCard: React.FC<{ resident: Resident }> = ({ resident }) => {
         resizeMode="cover"
       >
         <Box style={styles.cardContent}>
-          {resident.profilePic ? (
+          {/* {resident.profilePic ? (
             <Image
               source={resident.profilePic}
               style={[styles.profilePic, { borderColor: resident.color }]}
             />
           ) : (
             <Box style={[styles.profilePic, { borderColor: resident.color }]} />
-          )}
+          )} */}
+          <ProfileAvatar
+            source={resident.profilePic}
+            borderColor={resident.color}
+            scale={3}
+          />
           <Box style={[styles.coloredBar, { backgroundColor: resident.color }]}>
             <Text style={styles.cardText}>{resident.name}</Text>
             <Text style={styles.cardText}>{resident.points}pts</Text>
