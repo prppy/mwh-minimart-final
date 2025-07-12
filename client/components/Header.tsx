@@ -10,7 +10,13 @@ import {
   useBreakpointValue,
 } from "@gluestack-ui/themed";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ShoppingBag, Trophy, MessageSquare, User } from "lucide-react-native";
+import {
+  ShoppingBag,
+  Trophy,
+  MessageSquare,
+  User,
+  Laugh,
+} from "lucide-react-native";
 
 const Header: React.FC = () => {
   const router = useRouter();
@@ -22,6 +28,7 @@ const Header: React.FC = () => {
     if (pathname.startsWith("/leaderboard")) return "leaderboard";
     if (pathname.startsWith("/feedback")) return "feedback";
     if (pathname.startsWith("/profile")) return "profile";
+    if (pathname.startsWith("/admin")) return "admin"; // TEMP: admin dashboard screen
     return "catalogue"; // default
   };
 
@@ -47,6 +54,11 @@ const Header: React.FC = () => {
       name: "Profile",
       route: "/profile",
       icon: User,
+    },
+    {
+      name: "Admin TEMP",
+      route: "/admin",
+      icon: Laugh,
     },
   ];
 
