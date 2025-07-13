@@ -1,5 +1,5 @@
 // models/Resident.js
-import { prisma } from '../lib/db';
+import { prisma } from '../lib/db.js';
 
 class ResidentModel {
   /**
@@ -139,6 +139,204 @@ class ResidentModel {
       }
     };
   }
+
+  // Add these methods to your existing ResidentModel class in residentModel.js
+
+  /**
+   * Get top performers by period
+   */
+  static async getTopPerformers(period = 'month', limit = 10) {
+    let dateFilter = {};
+    
+    if (period !== 'all') {
+      const now = new Date();
+      let startDate;
+      
+      switch (period) {
+        case 'week':
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case 'month':
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+        case 'year':
+          startDate = new Date(now.getFullYear(), 0, 1);
+          break;
+      }
+      
+      if (startDate) {
+        dateFilter = {
+          transactions: {
+            some: {
+              transactionType: 'completion',
+              transactionDate: {
+                gte: startDate
+              }
+            }
+          }
+        };
+      }
+    }
+
+    const residents = await prisma.resident.findMany({
+      where: dateFilter,
+      include: {
+        user: {
+          select: {
+            userName: true,
+            profilePicture: true
+          }
+        },
+        transactions: {
+          where: {
+            transactionType: 'completion',
+            ...(dateFilter.transactions?.some?.transactionDate && {
+              transactionDate: dateFilter.transactions.some.transactionDate
+            })
+          },
+          select: {
+            pointsChange: true
+          }
+        }
+      },
+      orderBy: {
+        currentPoints: 'desc'
+      },
+      take: parseInt(limit)
+    });
+
+    return residents.map((resident, index) => ({
+      rank: index + 1,
+      userId: resident.userId,
+      userName: resident.user.userName,
+      profilePicture: resident.user.profilePicture,
+      currentPoints: resident.currentPoints,
+      totalPoints: resident.totalPoints,
+      batchNumber: resident.batchNumber,
+      periodPoints: resident.transactions.reduce((sum, t) => sum + t.pointsChange, 0)
+    }));
+  }
+
+/**
+ * Get points history for a resident
+ */
+static async getPointsHistory(userId, options = {}) {
+  const { limit = 20, offset = 0 } = options;
+
+  const [transactions, totalCount] = await Promise.all([
+    prisma.transaction.findMany({
+      where: {
+        userId: parseInt(userId)
+      },
+      include: {
+        redemptions: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                productName: true,
+                points: true
+              }
+            }
+          }
+        },
+        completions: {
+          include: {
+            task: {
+              select: {
+                id: true,
+                taskName: true,
+                points: true
+              }
+            }
+          }
+        },
+        officer: {
+          select: {
+            userName: true
+          }
+        }
+      },
+      orderBy: {
+        transactionDate: 'desc'
+      },
+      take: parseInt(limit),
+      skip: parseInt(offset)
+    }),
+    prisma.transaction.count({
+      where: {
+        userId: parseInt(userId)
+      }
+    })
+  ]);
+
+  return {
+    transactions,
+    totalCount,
+    pagination: {
+      total: totalCount,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      pages: Math.ceil(totalCount / parseInt(limit))
+    }
+  };
+}
+
+/**
+ * Get recent leaderboard changes (residents who gained points recently)
+ */
+static async getRecentChanges(limit = 20) {
+  const recentTransactions = await prisma.transaction.findMany({
+    where: {
+      transactionType: 'completion',
+      pointsChange: {
+        gt: 0
+      }
+    },
+    include: {
+      user: {
+        select: {
+          userName: true,
+          resident: {
+            select: {
+              currentPoints: true,
+              batchNumber: true
+            }
+          }
+        }
+      },
+      completions: {
+        include: {
+          task: {
+            select: {
+              taskName: true,
+              points: true
+            }
+          }
+        }
+      }
+    },
+    orderBy: {
+      transactionDate: 'desc'
+    },
+    take: parseInt(limit)
+  });
+
+  // Format the data
+  return recentTransactions.map(transaction => ({
+    transactionId: transaction.id,
+    userId: transaction.userId,
+    userName: transaction.user.userName,
+    pointsEarned: transaction.pointsChange,
+    currentPoints: transaction.user.resident?.currentPoints || 0,
+    batchNumber: transaction.user.resident?.batchNumber,
+    tasksCompleted: transaction.completions.map(completion => ({
+      taskName: completion.task.taskName,
+      points: completion.task.points
+    })),
+    transactionDate: transaction.transactionDate
+  }));
+}
 
   /**
    * Get resident position in leaderboard

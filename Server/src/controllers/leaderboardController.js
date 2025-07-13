@@ -1,5 +1,6 @@
-// controllers/leaderboardController.js
-import { getLeaderboard as _getLeaderboard, getStatistics, getByBatch, getPosition, getTopPerformers as _getTopPerformers, findByUserId, getPointsHistory } from '../models/residentModel';
+// controllers/leaderboardController.js (Fixed)
+import { validationResult } from 'express-validator';
+import ResidentModel from '../models/residentModel.js';
 
 class LeaderboardController {
   // Get main leaderboard
@@ -12,7 +13,7 @@ class LeaderboardController {
         offset = 0
       } = req.query;
 
-      const result = await _getLeaderboard({
+      const result = await ResidentModel.getLeaderboard({
         batchNumber: batchNumber ? parseInt(batchNumber) : undefined,
         type,
         limit: parseInt(limit),
@@ -35,7 +36,7 @@ class LeaderboardController {
   // Get leaderboard statistics
   static async getLeaderboardStats(req, res) {
     try {
-      const statistics = await getStatistics();
+      const statistics = await ResidentModel.getStatistics();
 
       res.json({
         success: true,
@@ -56,7 +57,7 @@ class LeaderboardController {
       const { batchNumber } = req.params;
       const { limit = 50, offset = 0 } = req.query;
 
-      const result = await getByBatch(parseInt(batchNumber), {
+      const result = await ResidentModel.getByBatch(parseInt(batchNumber), {
         limit: parseInt(limit),
         offset: parseInt(offset)
       });
@@ -91,7 +92,7 @@ class LeaderboardController {
         });
       }
 
-      const result = await getPosition(requestedUserId, type);
+      const result = await ResidentModel.getPosition(requestedUserId, type);
 
       res.json({
         success: true,
@@ -116,7 +117,7 @@ class LeaderboardController {
     try {
       const { period = 'month', limit = 10 } = req.query;
 
-      const performers = await _getTopPerformers(period, parseInt(limit));
+      const performers = await ResidentModel.getTopPerformers(period, parseInt(limit));
 
       res.json({
         success: true,
@@ -140,9 +141,9 @@ class LeaderboardController {
       const { userId } = req.params;
 
       const [resident, position, recentHistory] = await Promise.all([
-        findByUserId(parseInt(userId)),
-        getPosition(parseInt(userId)),
-        getPointsHistory(parseInt(userId), { limit: 10 })
+        ResidentModel.findByUserId(parseInt(userId)),
+        ResidentModel.getPosition(parseInt(userId)),
+        ResidentModel.getPointsHistory(parseInt(userId), { limit: 10 })
       ]);
 
       if (!resident) {
@@ -176,7 +177,7 @@ class LeaderboardController {
   // Get batch statistics
   static async getBatchStatistics(req, res) {
     try {
-      const statistics = await getStatistics();
+      const statistics = await ResidentModel.getStatistics();
 
       // Extract batch-specific data
       const batchStats = statistics.byBatch;
@@ -235,8 +236,8 @@ class LeaderboardController {
       const residents = await Promise.all(
         userIdArray.map(async (userId) => {
           const [resident, position] = await Promise.all([
-            findByUserId(userId),
-            getPosition(userId)
+            ResidentModel.findByUserId(userId),
+            ResidentModel.getPosition(userId)
           ]);
           return { resident, position };
         })
@@ -291,63 +292,11 @@ class LeaderboardController {
     try {
       const { limit = 20 } = req.query;
 
-      // Get recent positive point transactions (completions)
-      const { prisma } = require('../lib/db');
-      
-      const recentChanges = await prisma.transaction.findMany({
-        where: {
-          transactionType: 'completion',
-          pointsChange: {
-            gt: 0
-          }
-        },
-        include: {
-          user: {
-            select: {
-              userName: true,
-              resident: {
-                select: {
-                  currentPoints: true,
-                  batchNumber: true
-                }
-              }
-            }
-          },
-          completions: {
-            include: {
-              task: {
-                select: {
-                  taskName: true,
-                  points: true
-                }
-              }
-            }
-          }
-        },
-        orderBy: {
-          transactionDate: 'desc'
-        },
-        take: parseInt(limit)
-      });
-
-      // Format the data
-      const formattedChanges = recentChanges.map(transaction => ({
-        transactionId: transaction.id,
-        userId: transaction.userId,
-        userName: transaction.user.userName,
-        pointsEarned: transaction.pointsChange,
-        currentPoints: transaction.user.resident?.currentPoints || 0,
-        batchNumber: transaction.user.resident?.batchNumber,
-        tasksCompleted: transaction.completions.map(completion => ({
-          taskName: completion.task.taskName,
-          points: completion.task.points
-        })),
-        transactionDate: transaction.transactionDate
-      }));
+      const recentChanges = await ResidentModel.getRecentChanges(parseInt(limit));
 
       res.json({
         success: true,
-        data: formattedChanges
+        data: recentChanges
       });
 
     } catch (error) {

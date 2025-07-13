@@ -1,8 +1,11 @@
-// routes/users.js
+// routes/UserRoutes.js
+import express from 'express';
 const userRouter = express.Router();
-import { getAllUsers, getUserById, updateUser, deleteUser } from '../controllers/usersController';
+import UserController from '../controllers/userController.js';
 
-userRouter.get('/', authenticateToken, requireOfficerOrAdmin, getAllUsers);
-userRouter.get('/:id', authenticateToken, requireOwnershipOrStaff, getUserById);
-userRouter.put('/:id', authenticateToken, requireOwnershipOrStaff, updateUser);
-userRouter.delete('/:id', authenticateToken, requireOfficerOrAdmin, deleteUser);
+userRouter.get('/', UserController.getAllUsers);
+userRouter.get('/:id', UserController.getUserById);
+userRouter.put('/:id', UserController.updateUser);
+userRouter.delete('/:id', UserController.deleteUser);
+
+export default userRouter;

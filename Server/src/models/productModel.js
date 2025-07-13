@@ -1,5 +1,5 @@
 // models/Product.js
-import { prisma } from '../lib/db';
+import { prisma } from '../lib/db.js';
 
 class ProductModel {
   /**
@@ -307,7 +307,7 @@ class ProductModel {
   }
 
   /**
-   * Delete or deactivate product
+   * Delete product (soft delete if has redemptions)
    */
   static async delete(id) {
     const product = await prisma.product.findUnique({
@@ -325,12 +325,26 @@ class ProductModel {
 
     if (redemptionCount > 0) {
       // Don't delete, just mark as unavailable
-      return this.update(id, { available: false });
+      await prisma.product.update({
+        where: { id: parseInt(id) },
+        data: { available: false }
+      });
+      
+      return { 
+        message: 'Product marked as unavailable due to existing redemptions',
+        softDeleted: true 
+      };
     }
 
-    return prisma.product.delete({
+    // Safe to hard delete
+    await prisma.product.delete({
       where: { id: parseInt(id) }
     });
+
+    return { 
+      message: 'Product deleted successfully',
+      softDeleted: false 
+    };
   }
 
   /**
