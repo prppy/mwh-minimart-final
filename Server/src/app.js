@@ -1,14 +1,17 @@
+// Server/src/app.js
 import express, { json, urlencoded } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
-require('dotenv').config();
+import dotenv from 'dotenv';
 
-import { connectDB } from './lib/db';
+// Load environment variables
+dotenv.config();
 
-import mainRoutes from './routes/mainRoutes';
+import { connectDB } from './lib/db.js';
+import mainRoutes from './routes/mainRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -43,7 +46,6 @@ app.use('/uploads', express.static('uploads'));
 
 // API Routes
 app.use('/api', mainRoutes);
-
 
 // Health check endpoint
 app.get('/health', (req, res) => {

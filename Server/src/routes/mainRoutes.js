@@ -1,18 +1,20 @@
 // Import routes
-import authRoutes from './routes/auth';
-import userRoutes from './routes/users';
-import productRoutes from './routes/products';
-import categoryRoutes from './routes/categories';
-import taskRoutes from './routes/tasks';
-import transactionRoutes from './routes/transactions';
-import leaderboardRoutes from './routes/leaderboard';
-import feedbackRoutes from './routes/feedback';
+import express from 'express';
+const router = express.Router();
+import userRoutes from './userRoutes.js';
+import productRoutes from './productRoutes.js';
+import categoryRoutes from './categoryRoutes.js';
+import taskRoutes from './taskRoutes.js';
+import transactionRoutes from './transactionRoutes.js';
+import leaderboardRoutes from './leaderboardRoutes.js';
+import feedbackRoutes from './feedbackRoutes.js';
 
-app.use('/users', userRoutes);
-app.use('/products', productRoutes);
-app.use('/categories', categoryRoutes);
-app.use('/tasks', taskRoutes);
-app.use('/transactions', transactionRoutes);
-app.use('/leaderboard', leaderboardRoutes);
-app.use('/feedback', feedbackRoutes);
-app.use('/auth', authRoutes);
+router.use('/users', userRoutes);
+router.use('/products', productRoutes);
+router.use('/categories', categoryRoutes);
+router.use('/tasks', taskRoutes);
+router.use('/transactions', transactionRoutes);
+router.use('/leaderboard', leaderboardRoutes);
+router.use('/feedback', feedbackRoutes);
+
+export default router;
