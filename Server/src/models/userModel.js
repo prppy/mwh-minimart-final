@@ -1,6 +1,5 @@
 // models/User.js
-import { genSalt, hash, compare } from 'bcryptjs';
-import { prisma } from '../lib/db';
+import { prisma } from '../lib/db.js';
 
 class UserModel {
   /**

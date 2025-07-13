@@ -1,6 +1,6 @@
-// controllers/tasksController.js
+// controllers/taskController.js (Fixed)
 import { validationResult } from 'express-validator';
-import { findMany, findById, create, update, delete, getPopular, getAnalytics, getStatistics } from '../models/taskModel';
+import TaskModel from '../models/taskModel.js';
 
 class TasksController {
   // Get all tasks with filtering
@@ -16,7 +16,7 @@ class TasksController {
         sortOrder
       } = req.query;
 
-      const result = await findMany({
+      const result = await TaskModel.findMany({
         active: active !== undefined ? active === 'true' : true,
         categoryId,
         search,
@@ -44,7 +44,7 @@ class TasksController {
     try {
       const { id } = req.params;
 
-      const task = await findById(id);
+      const task = await TaskModel.findById(id);
 
       if (!task) {
         return res.status(404).json({ 
@@ -75,7 +75,7 @@ class TasksController {
         });
       }
 
-      const task = await create(req.body);
+      const task = await TaskModel.create(req.body);
 
       res.status(201).json({
         success: true,
@@ -108,7 +108,7 @@ class TasksController {
       const { id } = req.params;
       const updates = req.body;
 
-      const task = await update(id, updates);
+      const task = await TaskModel.update(id, updates);
 
       res.json({
         success: true,
@@ -138,7 +138,7 @@ class TasksController {
     try {
       const { id } = req.params;
 
-      const result = await delete(id);
+      const result = await TaskModel.delete(id);
 
       res.json({
         success: true,
@@ -163,7 +163,7 @@ class TasksController {
     try {
       const { limit = 10, timeframe = 'month' } = req.query;
 
-      const tasks = await getPopular(limit, timeframe);
+      const tasks = await TaskModel.getPopular(limit, timeframe);
 
       res.json({
         success: true,
@@ -184,7 +184,7 @@ class TasksController {
       const { id } = req.params;
       const { period = 'month' } = req.query;
 
-      const analytics = await getAnalytics(id, period);
+      const analytics = await TaskModel.getAnalytics(id, period);
 
       res.json({
         success: true,
@@ -207,7 +207,7 @@ class TasksController {
   // Get task statistics
   static async getTaskStatistics(req, res) {
     try {
-      const statistics = await getStatistics();
+      const statistics = await TaskModel.getStatistics();
 
       res.json({
         success: true,
@@ -225,11 +225,7 @@ class TasksController {
   // Get task categories
   static async getTaskCategories(req, res) {
     try {
-      const { prisma } = require('../lib/db');
-      
-      const categories = await prisma.taskCategory.findMany({
-        orderBy: { taskCategoryName: 'asc' }
-      });
+      const categories = await TaskModel.getCategories();
 
       res.json({
         success: true,

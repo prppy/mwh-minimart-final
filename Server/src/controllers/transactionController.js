@@ -1,6 +1,6 @@
 // controllers/transactionController.js
 import { validationResult } from 'express-validator';
-import { prisma } from '../lib/db';
+import { prisma } from '../lib/db.js';
 
 class TransactionsController {
   // Get user's transaction history

@@ -1,6 +1,6 @@
-// controllers/feedbackController.js
+// controllers/feedbackController.js (Fixed)
 import { validationResult } from 'express-validator';
-import { submitProductRequest as _submitProductRequest, submitRating as _submitRating, getProductRequests as _getProductRequests, updateRequestStatus as _updateRequestStatus, getFeedbackStatistics as _getFeedbackStatistics } from '../models/feedbackModel';
+import FeedbackModel from '../models/feedbackModel.js';
 
 class FeedbackController {
   // Submit product request
@@ -16,7 +16,7 @@ class FeedbackController {
       const userId = req.user.userId;
       const { productName, description, category, urgency } = req.body;
 
-      const request = await _submitProductRequest(userId, {
+      const request = await FeedbackModel.submitProductRequest(userId, {
         productName,
         description,
         category,
@@ -56,7 +56,7 @@ class FeedbackController {
         });
       }
 
-      const ratingRecord = await _submitRating(userId, {
+      const ratingRecord = await FeedbackModel.submitRating(userId, {
         rating,
         feedback,
         category
@@ -85,7 +85,7 @@ class FeedbackController {
         userId
       } = req.query;
 
-      const result = await _getProductRequests({
+      const result = await FeedbackModel.getProductRequests({
         limit: parseInt(limit),
         offset: parseInt(offset),
         status,
@@ -127,7 +127,7 @@ class FeedbackController {
         });
       }
 
-      const updatedRequest = await _updateRequestStatus(
+      const updatedRequest = await FeedbackModel.updateRequestStatus(
         requestId,
         status,
         officerId,
@@ -152,7 +152,7 @@ class FeedbackController {
     try {
       const { period = 'month' } = req.query;
 
-      const statistics = await _getFeedbackStatistics(period);
+      const statistics = await FeedbackModel.getFeedbackStatistics(period);
 
       res.json({
         success: true,
@@ -184,7 +184,7 @@ class FeedbackController {
         });
       }
 
-      const result = await _getProductRequests({
+      const result = await FeedbackModel.getProductRequests({
         limit: parseInt(limit),
         offset: parseInt(offset),
         userId: requestedUserId
@@ -323,11 +323,11 @@ class FeedbackController {
 
       // Get all feedback data for the specified period
       const [productRequests, statistics] = await Promise.all([
-        _getProductRequests({
+        FeedbackModel.getProductRequests({
           limit: 1000, // Large limit for export
           offset: 0
         }),
-        _getFeedbackStatistics('all')
+        FeedbackModel.getFeedbackStatistics('all')
       ]);
 
       const exportData = {

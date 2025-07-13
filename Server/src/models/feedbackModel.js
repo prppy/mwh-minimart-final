@@ -1,3 +1,5 @@
+import { prisma } from '../lib/db.js';
+
 // models/Feedback.js
 class FeedbackModel {
   /**
@@ -158,3 +160,5 @@ class FeedbackModel {
     };
   }
 }
+
+export default FeedbackModel;

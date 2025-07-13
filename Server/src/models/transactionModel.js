@@ -1,6 +1,5 @@
 // models/Transaction.js
-import { prisma } from '../lib/db';
-import ResidentModel from './Resident';
+import { prisma } from '../lib/db.js';
 
 class TransactionModel {
   /**

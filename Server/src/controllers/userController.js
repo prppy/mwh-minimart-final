@@ -1,8 +1,8 @@
-// controllers/usersController.js
+// controllers/userController.js (Fixed)
 import { validationResult } from 'express-validator';
-import { findMany, sanitize, findById, updateProfile, softDelete, changePassword as _changePassword, getStatistics } from '../models/userModel';
+import UserModel from '../models/userModel.js';
 
-class UsersController {
+class UserController {
   // Get all users with filtering
   static async getAllUsers(req, res) {
     try {
@@ -16,7 +16,7 @@ class UsersController {
         sortOrder
       } = req.query;
 
-      const result = await findMany({
+      const result = await UserModel.findMany({
         role,
         batchNumber,
         limit,
@@ -27,7 +27,7 @@ class UsersController {
       });
 
       // Sanitize user data
-      const sanitizedUsers = result.users.map(user => sanitize(user));
+      const sanitizedUsers = result.users.map(user => UserModel.sanitize(user));
 
       res.json({
         success: true,
@@ -51,7 +51,7 @@ class UsersController {
       const { id } = req.params;
       const { includeTransactions = false } = req.query;
 
-      const user = await findById(parseInt(id), {
+      const user = await UserModel.findById(parseInt(id), {
         includeResident: true,
         includeOfficer: true,
         includeTransactions: includeTransactions === 'true'
@@ -63,7 +63,7 @@ class UsersController {
         });
       }
 
-      const sanitizedUser = sanitize(user);
+      const sanitizedUser = UserModel.sanitize(user);
 
       res.json({
         success: true,
@@ -91,9 +91,9 @@ class UsersController {
       const { id } = req.params;
       const updates = req.body;
 
-      const updatedUser = await updateProfile(parseInt(id), updates);
+      const updatedUser = await UserModel.updateProfile(parseInt(id), updates);
 
-      const sanitizedUser = sanitize(updatedUser);
+      const sanitizedUser = UserModel.sanitize(updatedUser);
 
       res.json({
         success: true,
@@ -118,7 +118,7 @@ class UsersController {
     try {
       const { id } = req.params;
 
-      await softDelete(parseInt(id));
+      await UserModel.softDelete(parseInt(id));
 
       res.json({
         success: true,
@@ -162,7 +162,7 @@ class UsersController {
         });
       }
 
-      await _changePassword(requestedUserId, currentPassword, newPassword);
+      await UserModel.changePassword(requestedUserId, currentPassword, newPassword);
 
       res.json({
         success: true,
@@ -190,7 +190,7 @@ class UsersController {
   // Get user statistics
   static async getUserStatistics(req, res) {
     try {
-      const statistics = await getStatistics();
+      const statistics = await UserModel.getStatistics();
 
       res.json({
         success: true,
@@ -210,7 +210,7 @@ class UsersController {
     try {
       const userId = req.user.userId;
 
-      const user = await findById(userId, {
+      const user = await UserModel.findById(userId, {
         includeResident: true,
         includeOfficer: true
       });
@@ -221,7 +221,7 @@ class UsersController {
         });
       }
 
-      const sanitizedUser = sanitize(user);
+      const sanitizedUser = UserModel.sanitize(user);
 
       res.json({
         success: true,
@@ -254,9 +254,9 @@ class UsersController {
       delete updates.passwordHash;
       delete updates.biometricHash;
 
-      const updatedUser = await updateProfile(userId, updates);
+      const updatedUser = await UserModel.updateProfile(userId, updates);
 
-      const sanitizedUser = sanitize(updatedUser);
+      const sanitizedUser = UserModel.sanitize(updatedUser);
 
       res.json({
         success: true,
@@ -288,11 +288,11 @@ class UsersController {
       }
 
       // Update user with profile picture
-      const updatedUser = await updateProfile(userId, {
+      const updatedUser = await UserModel.updateProfile(userId, {
         profilePicture: req.file.buffer
       });
 
-      const sanitizedUser = sanitize(updatedUser);
+      const sanitizedUser = UserModel.sanitize(updatedUser);
 
       res.json({
         success: true,
@@ -318,14 +318,14 @@ class UsersController {
         });
       }
 
-      const result = await findMany({
+      const result = await UserModel.findMany({
         search,
         role,
         limit,
         offset: 0
       });
 
-      const sanitizedUsers = result.users.map(user => sanitize(user));
+      const sanitizedUsers = result.users.map(user => UserModel.sanitize(user));
 
       res.json({
         success: true,
@@ -341,4 +341,4 @@ class UsersController {
   }
 }
 
-export default UsersController;
+export default UserController;

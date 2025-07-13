@@ -1,8 +1,7 @@
 // routes/transactions.js
 import { Router } from 'express';
 import { body, param, query } from 'express-validator';
-import { getAllTransactions, getUserTransactions, getPointsSummary, createRedemption, createCompletion } from '../controllers/transactionsController';
-import { authenticateToken, requireOfficerOrAdmin, requireOwnershipOrStaff } from '../middleware/auth';
+import TransactionsController from '../controllers/transactionController.js';
 
 const transactionRouter = Router();
 
@@ -35,8 +34,10 @@ const completionValidation = [
 ];
 
 // Routes
-transactionRouter.get('/', authenticateToken, requireOfficerOrAdmin, getAllTransactions);
-transactionRouter.get('/user/:userId', authenticateToken, requireOwnershipOrStaff, getUserTransactions);
-transactionRouter.get('/user/:userId/summary', authenticateToken, requireOwnershipOrStaff, getPointsSummary);
-transactionRouter.post('/redemption', authenticateToken, requireOfficerOrAdmin, redemptionValidation, createRedemption);
-transactionRouter.post('/completion', authenticateToken, requireOfficerOrAdmin, completionValidation, createCompletion);
+// transactionRouter.get('/', authenticateToken, requireOfficerOrAdmin, getAllTransactions);
+// transactionRouter.get('/user/:userId', authenticateToken, requireOwnershipOrStaff, getUserTransactions);
+transactionRouter.get('/user/:userId/summary', TransactionsController.getPointsSummary);
+transactionRouter.post('/redemption', redemptionValidation, TransactionsController.createRedemption);
+transactionRouter.post('/completion', completionValidation, TransactionsController.createCompletion);
+
+export default transactionRouter;

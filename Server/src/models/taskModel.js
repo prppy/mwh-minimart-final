@@ -1,5 +1,5 @@
 // models/Task.js
-import { prisma } from '../lib/db';
+import { prisma } from '../lib/db.js';
 
 class TaskModel {
   /**
@@ -460,3 +460,5 @@ class TaskModel {
     };
   }
 }
+
+export default TaskModel;
