@@ -7,16 +7,16 @@ const REFRESH_TOKEN_EXPIRES_IN = process.env.REFRESH_TOKEN_EXPIRES_IN
 
 export const generateAccessToken = async (req, res, next) => {
     try {
-        const { User_ID } = res.locals
+        const { userId } = res.locals
 
-        if (!User_ID) {
+        if (!userId) {
             return res.status(404).json({
                 "message": "User not found in request"
             })
         }
         
         // create jwt
-        const accessToken = jwt.sign({ User_ID }, ACCESS_TOKEN_SECRET, {
+        const accessToken = jwt.sign({ userId }, ACCESS_TOKEN_SECRET, {
             expiresIn: ACCESS_TOKEN_EXPIRES_IN
         })
 
@@ -33,15 +33,15 @@ export const generateAccessToken = async (req, res, next) => {
 
 export const generateRefreshToken = async (req, res, next) => {
     try {
-        const { User_ID } = res.locals
+        const { userId } = res.locals
 
-        if (!User_ID) {
+        if (!userId) {
             return res.status(404).json({
                 "message": "User not found in request"
             })
         }
 
-        const refreshToken = jwt.sign({ User_ID }, REFRESH_TOKEN_SECRET, {
+        const refreshToken = jwt.sign({ userId }, REFRESH_TOKEN_SECRET, {
             expiresIn: REFRESH_TOKEN_EXPIRES_IN,
         })
 

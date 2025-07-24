@@ -4,34 +4,77 @@ import * as userModel from "../models/userModel.js";
 export const createResident = async (req, res, next) => {
   try {
     // inserted into mwh_user table
-    const { User_Name } = req.body
-    const { Password_Hash } = res.locals
-    const User_Role = "resident"
+    const { userName } = req.body
+    const { hashedPassword } = res.locals
+    const userRole = "resident"
 
     // inserted into mwh_resident table
-    const { Date_Of_Birth, Date_Of_Admission, Last_Abscondence } = req.body
+    const { dateOfBirth, dateOfAdmission, lastAbscondence } = req.body
 
-    if (!User_Name || !Password_Hash || !Date_Of_Birth || !Date_Of_Admission || !Last_Abscondence) {
-      res.status(404).json({
+    if (!userName || !hashedPassword || !dateOfBirth || !dateOfAdmission) {
+      return res.status(400).json({
         "message": "missing required fields"
       })
     }
 
-    const User_ID = await userModel.insertResident(
-      User_Name, 
-      Password_Hash, 
-      User_Role, 
-      Date_Of_Birth, 
-      Date_Of_Admission, 
-      Last_Abscondence
+    const data = [
+      userName, 
+      hashedPassword, 
+      userRole, 
+      new Date(dateOfBirth), 
+      new Date(dateOfAdmission), 
+      lastAbscondence === null ? null : new Date(lastAbscondence)
+    ]
+
+    const userId = await userModel.insertResident(
+      ...data
     )
 
-    res.locals.User_ID = User_ID
+    res.locals.userId = userId
     next()
 
   } catch (e) {
     console.error(e.message)
-    res.status(400).json({
+    return res.status(400).json({
+      "message": "An error has occurred"
+    })
+  }
+}
+
+// create officer in system
+export const createOfficer = async (req, res, next) => {
+  try {
+    // inserted into mwh_user table
+    const { userName } = req.body
+    const { hashedPassword } = res.locals
+    const userRole = "officer"
+
+    // inserted into mwh_officer table
+    const { officerEmail } = req.body
+
+    if (!userName || !hashedPassword || !officerEmail) {
+      return res.status(400).json({
+        "message": "missing required fields"
+      })
+    }
+
+    const data = [
+      userName, 
+      hashedPassword, 
+      userRole, 
+      officerEmail
+    ]
+
+    const userId = await userModel.insertOfficer(
+      ...data
+    )
+
+    res.locals.userId = userId
+    next()
+
+  } catch (e) {
+    console.error(e.message)
+    return res.status(400).json({
       "message": "An error has occurred"
     })
   }
@@ -39,24 +82,24 @@ export const createResident = async (req, res, next) => {
 // create developer in system
 export const createDeveloper = async (req, res, next) => {
   try {
-    const { User_Name } = req.body
-    const { Password_Hash } = res.locals
-    const User_Role = "developer"
+    const { userName } = req.body
+    const { hashedPassword } = res.locals
+    const userRole = "developer"
 
-    if (!User_Name || !Password_Hash) {
-      res.status(404).json({
+    if (!userName || !hashedPassword) {
+      return res.status(404).json({
         "message": "missing required fields"
       })
     }
 
-    const User_ID = await userModel.insertDeveloper(User_Name, Password_Hash, User_Role)
+    const userId = await userModel.insertDeveloper(userName, hashedPassword, userRole)
 
-    res.locals.User_ID = User_ID
+    res.locals.userId = userId
     next()
 
   } catch (e) {
     console.error(e.message)
-    res.status(400).json({
+    return res.status(400).json({
       "message": "An error has occurred"
     })
   }
@@ -85,7 +128,7 @@ export const createDeveloper = async (req, res, next) => {
 
 //   } catch (e) {
 //     console.error(e.message)
-//     res.status(400).json({
+//     return res.status(400).json({
 //       "message": "An error has occurred"
 //     })
 //   }
@@ -116,7 +159,7 @@ export const validateUserCredentials = async (req, res, next) => {
 
   } catch (e) {
     console.error(e.message)
-    res.status(400).json({
+    return res.status(400).json({
       "message": "An error has occurred"
     })
   }
@@ -127,12 +170,12 @@ export const sendAuthResponse = async (req, res) => {
     const { accessToken, refreshToken } = res.locals
 
     if (!accessToken || !refreshToken) {
-      res.status(403).json({
+      return res.status(403).json({
         "message": "illegal entry"
       })
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       "message": "User can now access system",
       "accessToken": accessToken,
       "refreshToken": refreshToken,
@@ -140,7 +183,7 @@ export const sendAuthResponse = async (req, res) => {
 
   } catch (e) {
     console.error(e.message)
-    res.status(400).json({
+    return res.status(400).json({
       "message": "An error has occurred"
     })
   }

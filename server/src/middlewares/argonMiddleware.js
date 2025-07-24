@@ -14,18 +14,18 @@ import crypto from 'crypto'
  */
 export const generateHashedPassword = async (req, res, next) => {
     try {
-        const plainPassword = req.body.Password_Plain
+        const plainPassword = req.body.plainPassword
         const PEPPERED_SECRET = process.env.PEPPERED_SECRET   
 
         if (!plainPassword) {
-            res.status(404).json({
+            return res.status(400).json({
                 "message": "missing required fields"
             })
 
         }   
 
         if (!PEPPERED_SECRET) {
-            res.status(404).json({
+            return res.status(404).json({
                 "message": "internal server error"
             })
         }     
@@ -33,12 +33,12 @@ export const generateHashedPassword = async (req, res, next) => {
         const pepperedPassword = crypto.createHmac('sha256', PEPPERED_SECRET).update(plainPassword).digest('hex')
         const hashedPassword = await argon2.hash(pepperedPassword);
         
-        res.locals.Password_Hash = hashedPassword
+        res.locals.hashedPassword = hashedPassword
         next()
 
     } catch (e) {
         console.error(e.message)
-        res.status(400).json({
+        return res.status(400).json({
             message: "An error has occurred"
         })
     }
@@ -58,14 +58,14 @@ export const verifyHashedPassword = async (req, res, next) => {
         const PEPPERED_SECRET = process.env.PEPPERED_SECRET  
 
         if (!Password_Plain || !Password_Hash) {
-            res.status(404).json({
+            return res.status(404).json({
                 "message": "missing required fields"
             })
 
         } 
 
         if (!PEPPERED_SECRET) {
-            res.status(404).json({
+            return res.status(404).json({
                 "message": "internal server error"
             })
         }     
@@ -79,14 +79,14 @@ export const verifyHashedPassword = async (req, res, next) => {
 
         } else {
             // wrong password
-            res.status(401).json({
+            return res.status(401).json({
                 message: "Password Authentication Failed"
             })
         }
 
     } catch (e) {
         console.error(e.message)
-        res.status(400).json({
+        return res.status(400).json({
             message: "An error has occurred"
         })
     }
