@@ -2,57 +2,6 @@
 import { prisma } from '../lib/db.js';
 
 /**
- * Inserts resident to MWH_User and MWH_Officer tables
- * @param {*} username 
- * @param {*} hashedpassword 
- * @param {*} userRole 
- * @returns 
- */
-export const insertOfficer = async (
-    username, 
-    hashedpassword, 
-    userRole, 
-    officerEmail
-) => {
-    try {
-        const result = await prisma.$transaction(async (prisma) => {
-            // insert into mwh_user
-            const createdUser = await prisma.user.create({
-                data: {
-                    userName: username,
-                    passwordHash: hashedpassword,
-                    userRole: userRole,
-                }
-            });
-
-            // insert into mwh_resident
-            const createdOfficer = await prisma.officer.create({
-                data: {
-                    userId: createdUser.id,
-                    officerEmail: officerEmail,
-                }
-            });
-
-            return createdUser.id
-        });
-
-        return result;
-        
-    } catch (error) {
-        if (error.code === 'P2002') {
-            throw new Error('Username already exists');
-        }
-        if (error.code === 'P2003') {
-            throw new Error('Foreign key constraint failed');
-        }
-        
-        console.error('Transaction failed:', error);
-        
-        throw new Error('Failed to create resident account');
-    }
-}
-
-/**
  * Inserts resident to MWH_User and MWH_Resident tables
  * @param {*} username 
  * @param {*} hashedpassword 
@@ -96,6 +45,57 @@ export const insertResident = async (
 
         return result
 
+    } catch (error) {
+        if (error.code === 'P2002') {
+            throw new Error('Username already exists');
+        }
+        if (error.code === 'P2003') {
+            throw new Error('Foreign key constraint failed');
+        }
+        
+        console.error('Transaction failed:', error);
+        
+        throw new Error('Failed to create resident account');
+    }
+}
+
+/**
+ * Inserts officer to MWH_User and MWH_Officer tables
+ * @param {*} username 
+ * @param {*} hashedpassword 
+ * @param {*} userRole 
+ * @returns 
+ */
+export const insertOfficer = async (
+    username, 
+    hashedpassword, 
+    userRole, 
+    officerEmail
+) => {
+    try {
+        const result = await prisma.$transaction(async (prisma) => {
+            // insert into mwh_user
+            const createdUser = await prisma.user.create({
+                data: {
+                    userName: username,
+                    passwordHash: hashedpassword,
+                    userRole: userRole,
+                }
+            });
+
+            // insert into mwh_resident
+            const createdOfficer = await prisma.officer.create({
+                data: {
+                    userId: createdUser.id,
+                    officerEmail: officerEmail,
+                }
+            });
+
+            return createdUser.id
+        });
+
+        return result;
+        
     } catch (error) {
         if (error.code === 'P2002') {
             throw new Error('Username already exists');
