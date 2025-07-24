@@ -129,18 +129,18 @@ export const insertDeveloper = async (username, hashedPassword, userRole) => {
 
 /**
  * selects user from MWH_User table based on userid
- * @param {*} username 
+ * @param {*} userId 
  * @returns 
  */
-export const selectUserByUsername = async (username) => {
+export const selectUserByUserId = async (userId) => {
     const selectedUser = await prisma.user.findFirst({
         where: {
-            username: username
+            id: userId
         },
         select: {
             id: true,
-            username: true,
-            password: true
+            userName: true,
+            passwordHash: true
         }
     })
 
@@ -149,4 +149,33 @@ export const selectUserByUsername = async (username) => {
     };
 
     return selectedUser
+}
+
+/**
+ * selects user from MWH_Officer table based on officer email
+ * @param {*} officerEmail 
+ * @returns 
+ */
+export const selectOfficerByOfficerEmail = async (officerEmail) => {
+    const selectedOfficer = await prisma.officer.findFirst({
+        where: {
+            officerEmail: officerEmail
+        },
+        select: {
+            officerEmail: true,
+            user: {
+                select: {
+                    id: true,
+                    userName: true,
+                    passwordHash: true
+                }
+            }
+        }
+    })
+
+    if (!selectedOfficer) {
+        return null
+    };
+
+    return selectedOfficer
 }

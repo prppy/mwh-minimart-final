@@ -53,12 +53,12 @@ export const generateHashedPassword = async (req, res, next) => {
  */
 export const verifyHashedPassword = async (req, res, next) => {
     try {
-        const Password_Plain = req.body.Password_Plain
-        const { Password_Hash } = res.locals
+        const plainPassword = req.body.plainPassword
+        const { hashedPassword } = res.locals
         const PEPPERED_SECRET = process.env.PEPPERED_SECRET  
 
-        if (!Password_Plain || !Password_Hash) {
-            return res.status(404).json({
+        if (!plainPassword || !hashedPassword) {
+            return res.status(400).json({
                 "message": "missing required fields"
             })
 
@@ -70,7 +70,7 @@ export const verifyHashedPassword = async (req, res, next) => {
             })
         }     
 
-        const pepperedPassword = crypto.createHmac('sha256', PEPPERED_SECRET).update(inputPassword).digest('hex');
+        const pepperedPassword = crypto.createHmac('sha256', PEPPERED_SECRET).update(plainPassword).digest('hex');
         const isMatch = await argon2.verify(hashedPassword, pepperedPassword);
 
         if (isMatch) {

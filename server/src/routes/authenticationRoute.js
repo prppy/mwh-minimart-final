@@ -49,9 +49,18 @@ router.post("/register/developer",
     authenticationController.sendAuthResponse
 );
 
-// login user
-router.post("/login", 
-    authenticationController.validateUserCredentials, 
+// login resident
+router.post("/login/resident", 
+    authenticationController.validateResidentCredentials, 
+    argonMiddleware.verifyHashedPassword, 
+    jwtMiddleware.generateAccessToken, 
+    jwtMiddleware.generateRefreshToken, 
+    authenticationController.sendAuthResponse
+);
+
+// login officer
+router.post("/login/officer", 
+    authenticationController.validateOfficerCredentials, 
     argonMiddleware.verifyHashedPassword, 
     jwtMiddleware.generateAccessToken, 
     jwtMiddleware.generateRefreshToken, 

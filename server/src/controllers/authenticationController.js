@@ -87,7 +87,7 @@ export const createDeveloper = async (req, res, next) => {
     const userRole = "developer"
 
     if (!userName || !hashedPassword) {
-      return res.status(404).json({
+      return res.status(400).json({
         "message": "missing required fields"
       })
     }
@@ -134,26 +134,71 @@ export const createDeveloper = async (req, res, next) => {
 //   }
 // }
 
-export const validateUserCredentials = async (req, res, next) => {
+/**
+ * queries for resident information, passing it into res.locals
+ * @param {*} req 
+ * @param {*} res 
+ * @param {*} next 
+ * @returns 
+ */
+export const validateResidentCredentials = async (req, res, next) => {
   try {
-    const { User_Name } = req.body
+    const { userId } = req.body
 
-    if (!User_Name) {
-      return res.status(404).json({
+    if (!userId) {
+      return res.status(400).json({
         "message": "missing required fields"
       })
     }
 
-    const selectedUser = await userModel.selectUserByUsername(User_Name)
+    const selectedUser = await userModel.selectUserByUserId(userId)
 
     if (selectedUser == null) {
-      return res.status(404).json({
-        "message": "Wrong username or password"
+      return res.status(400).json({
+        "message": "User doesn't exist or wrong password"
       })
     }
 
-    res.locals.User_ID = selectedUser.User_ID
-    res.locals.Password_Hash = selectedUser.Password_Hash
+    res.locals.userId = selectedUser.id
+    res.locals.hashedPassword = selectedUser.passwordHash
+
+    next()
+
+  } catch (e) {
+    console.error(e.message)
+    return res.status(400).json({
+      "message": "An error has occurred"
+    })
+  }
+}
+
+/**
+ * queries for officer information, passing it into res.locals
+ * @param {*} req 
+ * @param {*} res 
+ * @param {*} next 
+ * @returns 
+ */
+export const validateOfficerCredentials = async (req, res, next) => {
+  try {
+    const { officerEmail } = req.body
+
+    if (!officerEmail) {
+      return res.status(400).json({
+        "message": "missing required fields"
+      })
+    }
+
+    const selectedOfficer = await userModel.selectOfficerByOfficerEmail(officerEmail)
+
+    if (selectedOfficer == null) {
+      return res.status(400).json({
+        "message": "Wrong email or password"
+      })
+    }
+
+    res.locals.userId = selectedOfficer.user.id
+    res.locals.hashedPassword = selectedOfficer.user.passwordHash
 
     next()
 
