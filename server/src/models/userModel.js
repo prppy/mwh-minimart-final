@@ -152,6 +152,26 @@ export const selectUserByUserId = async (userId) => {
 }
 
 /**
+ * selects user from MWH_User table based on role
+ * @param {*} role
+ * @returns 
+ */
+export const selectUsersByRole = async (role) => {
+    const selectedUsers = await prisma.user.findMany({
+        where: {
+            userRole: role
+        },
+        select: {
+            id: true,
+            userName: true,
+            profilePicture: true
+        }
+    })
+
+    return selectedUsers
+}
+
+/**
  * selects user from MWH_Officer table based on officer email
  * @param {*} officerEmail 
  * @returns 

@@ -14,7 +14,7 @@ import { connectDB } from './lib/db.js';
 import mainRoutes from './routes/mainRoutes.js';
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3000;
 
 // Rate limiting
 const limiter = rateLimit({
@@ -45,6 +45,24 @@ app.use(urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static('uploads'));
 
 // API Routes
+app.get('/', (req, res) => {
+  res.status(200).json({
+    message: 'Server is running',
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0'
+  });
+});
+
+app.get('/api/', (req, res) => {
+  res.status(200).json({
+    message: 'Server is running',
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0'
+  });
+});
+
 app.use('/api', mainRoutes);
 
 // Health check endpoint

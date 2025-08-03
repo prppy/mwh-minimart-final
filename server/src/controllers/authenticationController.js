@@ -79,6 +79,7 @@ export const createOfficer = async (req, res, next) => {
     })
   }
 }
+
 // create developer in system
 export const createDeveloper = async (req, res, next) => {
   try {

@@ -1,11 +1,11 @@
-// temporarily deprecated
-// import express from 'express';
-// const userRouter = express.Router();
-// import UserController from '../controllers/userController.js';
+import express from 'express';
+const userRouter = express.Router();
+import * as userController from '../controllers/userController.js';
 
-// userRouter.get('/', UserController.getAllUsers);
-// userRouter.get('/:id', UserController.getUserById);
-// userRouter.put('/:id', UserController.updateUser);
-// userRouter.delete('/:id', UserController.deleteUser);
+// userRouter.get('/', userController.getAllUsers);
+userRouter.get('/role', userController.readUsersByRole);
+// userRouter.get('/id/:id', userController.getUserById);
+// userRouter.put('/:id', userController.updateUser);
+// userRouter.delete('/:id', userController.deleteUser);
 
-// export default userRouter;
+export default userRouter;

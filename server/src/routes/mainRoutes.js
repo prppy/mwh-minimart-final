@@ -1,7 +1,7 @@
 // Import routes
 import express from 'express';
 const router = express.Router();
-// import userRoutes from './userRoutes.js';
+import userRoutes from './userRoutes.js';
 import authenticationRoute from './authenticationRoute.js';
 import productRoutes from './productRoutes.js';
 import categoryRoutes from './categoryRoutes.js';
@@ -10,7 +10,7 @@ import transactionRoutes from './transactionRoutes.js';
 import leaderboardRoutes from './leaderboardRoutes.js';
 import feedbackRoutes from './feedbackRoutes.js';
 
-// router.use('/users', userRoutes);
+router.use('/users', userRoutes);
 router.use('/authentication', authenticationRoute);
 router.use('/products', productRoutes);
 router.use('/categories', categoryRoutes);
