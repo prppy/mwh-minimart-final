@@ -1,5 +1,7 @@
 // models/User.js
 import { prisma } from '../lib/db.js';
+import bcryptjs from 'bcryptjs';
+const { genSalt, hash, compare } = bcryptjs;
 
 class UserModel {
   /**
@@ -189,35 +191,103 @@ class UserModel {
       orderBy.createdAt = sortOrder;
     }
 
-    const [users, totalCount] = await Promise.all([
-      prisma.user.findMany({
-        where,
-        include,
-        orderBy,
-        take: parseInt(limit),
-        skip: parseInt(offset)
-      }),
-      prisma.user.count({ where })
-    ]);
+    // Use raw query to handle null values properly
+    try {
+      // Build the WHERE clause dynamically
+      let whereClause = 'WHERE 1=1';
+      let params = [];
+      let paramIndex = 1;
 
-    // Filter by batch number if specified (post-query filtering)
-    let filteredUsers = users;
-    if (batchNumber) {
-      filteredUsers = users.filter(user => 
-        user.resident && user.resident.batchNumber === parseInt(batchNumber)
-      );
-    }
-
-    return {
-      users: filteredUsers,
-      totalCount,
-      pagination: {
-        total: totalCount,
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-        pages: Math.ceil(totalCount / parseInt(limit))
+      if (role) {
+        whereClause += ` AND u."User_Role" = $${paramIndex}`;
+        params.push(role);
+        paramIndex++;
       }
-    };
+
+      if (search) {
+        whereClause += ` AND u."User_Name" ILIKE $${paramIndex}`;
+        params.push(`%${search}%`);
+        paramIndex++;
+      }
+
+      // Main query
+      const rawUsers = await prisma.$queryRawUnsafe(`
+        SELECT 
+          u."User_ID" as id,
+          u."User_Name" as "userName",
+          u."User_Role" as "userRole",
+          u."Profile_Picture" as "profilePicture",
+          u."Created_At" as "createdAt",
+          u."Updated_At" as "updatedAt",
+          r."Date_Of_Birth" as "resident_dateOfBirth",
+          r."Date_Of_Admission" as "resident_dateOfAdmission",
+          r."Last_Abscondence" as "resident_lastAbscondence",
+          COALESCE(r."Current_Points", 0) as "resident_currentPoints",
+          COALESCE(r."Total_Points", 0) as "resident_totalPoints",
+          r."Batch_Number" as "resident_batchNumber",
+          o."Officer_Email" as "officer_officerEmail"
+        FROM "public"."MWH_User" u
+        LEFT JOIN "public"."MWH_Resident" r ON u."User_ID" = r."User_ID"
+        LEFT JOIN "public"."MWH_Officer" o ON u."User_ID" = o."User_ID"
+        ${whereClause}
+        ORDER BY u."User_Name" ${sortOrder.toUpperCase()}
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      `, ...params, parseInt(limit), parseInt(offset));
+
+      // Count query
+      const totalCountResult = await prisma.$queryRawUnsafe(`
+        SELECT COUNT(*) as count
+        FROM "public"."MWH_User" u
+        ${whereClause}
+      `, ...params);
+
+      // Transform raw query results to match expected format
+      const transformedUsers = rawUsers.map(user => ({
+        id: user.id,
+        userName: user.userName,
+        userRole: user.userRole,
+        profilePicture: user.profilePicture,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        resident: user.resident_currentPoints !== null || user.resident_dateOfBirth !== null ? {
+          userId: user.id,
+          dateOfBirth: user.resident_dateOfBirth,
+          dateOfAdmission: user.resident_dateOfAdmission,
+          lastAbscondence: user.resident_lastAbscondence,
+          currentPoints: parseInt(user.resident_currentPoints) || 0,
+          totalPoints: parseInt(user.resident_totalPoints) || 0,
+          batchNumber: user.resident_batchNumber
+        } : null,
+        officer: user.officer_officerEmail ? {
+          userId: user.id,
+          officerEmail: user.officer_officerEmail
+        } : null
+      }));
+
+      // Filter by batch number if specified (post-query filtering)
+      let filteredUsers = transformedUsers;
+      if (batchNumber) {
+        filteredUsers = transformedUsers.filter(user => 
+          user.resident && user.resident.batchNumber === parseInt(batchNumber)
+        );
+      }
+
+      const totalCount = parseInt(totalCountResult[0].count);
+
+      return {
+        users: filteredUsers,
+        totalCount,
+        pagination: {
+          total: totalCount,
+          limit: parseInt(limit),
+          offset: parseInt(offset),
+          pages: Math.ceil(totalCount / parseInt(limit))
+        }
+      };
+    } catch (error) {
+      console.error('Error in findMany:', error);
+      throw error;
+    }
   }
 
   /**
@@ -297,6 +367,15 @@ class UserModel {
     const sanitized = { ...user };
     delete sanitized.passwordHash;
     delete sanitized.biometricHash;
+    
+    // Handle null values in resident data
+    if (sanitized.resident) {
+      sanitized.resident = {
+        ...sanitized.resident,
+        currentPoints: sanitized.resident.currentPoints ?? 0,
+        totalPoints: sanitized.resident.totalPoints ?? 0
+      };
+    }
     
     return sanitized;
   }
