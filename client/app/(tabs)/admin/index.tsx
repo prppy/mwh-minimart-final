@@ -158,11 +158,11 @@ const AdminUsers: React.FC = () => {
               searchText
             )}
           </DataTable.Cell>
-          <DataTable.Cell>12/12/1990</DataTable.Cell>
-          <DataTable.Cell>01/01/2020</DataTable.Cell>
           <DataTable.Cell>-</DataTable.Cell>
-          <DataTable.Cell>100</DataTable.Cell>
-          <DataTable.Cell>Batch 3</DataTable.Cell>
+          <DataTable.Cell>-</DataTable.Cell>
+          <DataTable.Cell>-</DataTable.Cell>
+          <DataTable.Cell>-</DataTable.Cell>
+          <DataTable.Cell>-</DataTable.Cell>
           <DataTable.Cell>Actions</DataTable.Cell>
         </>
       )}
