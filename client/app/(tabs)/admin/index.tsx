@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from "react";
-import { StyleSheet, Text } from "react-native";
+import React, { useState, useMemo, useEffect } from "react";
+import { StyleSheet, Text, Alert } from "react-native";
 import { VStack, Box, ScrollView } from "@gluestack-ui/themed";
 import { DataTable } from "react-native-paper";
 import { ADMIN_PURPLE, LIGHTEST_PURPLE } from "../../../constants/colors";
@@ -8,6 +8,8 @@ import RowsPerPageSelector from "@/components/admin pages/RowsPerPageSelector";
 import SearchBar from "@/components/Searchbar";
 import { renderHighlightedText } from "@/utils/searchUtils";
 import ProfileAvatar from "@/components/ProfileAvatar";
+import api from "@/components/utility/api";
+import { authAPI } from "../login/api";
 import {
   Select,
   SelectTrigger,
@@ -60,6 +62,30 @@ const AdminUsers: React.FC = () => {
 
   const rowsPerPageOptions = [5, 10, 15];
 
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoading(true);
+        const response = await authAPI.getUsersByRole("resident");
+
+        if (response && response.data) {
+          setUsers(response.data);
+        }
+      } catch (error: any) {
+        console.error("Failed to fetch users:", error);
+        Alert.alert("Error", "Failed to load users. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
   // to change columns
   const columns = useMemo(() => {
     if (selectedRole === "officers") {
@@ -71,10 +97,13 @@ const AdminUsers: React.FC = () => {
 
   // filter data by search text
   const filteredData = useMemo(() => {
-    return rawData.filter((item) =>
-      item.name.toLowerCase().includes(searchText.toLowerCase())
-    );
-  }, [searchText, rawData]);
+    return users.filter((item) => {
+      const fullName = `${item.userName || item.firstName || ""} ${
+        item.lastName || ""
+      }`.toLowerCase();
+      return fullName.includes(searchText.toLowerCase());
+    });
+  }, [searchText, users]);
 
   // pagination
   const from = page * itemsPerPage;
@@ -106,7 +135,15 @@ const AdminUsers: React.FC = () => {
                 borderColor={item.color}
                 scale={0.9} // or 1.2 if you want it bigger
               />
-              <Text>{renderHighlightedText(item.name, searchText)}</Text>
+
+              <DataTable.Cell>
+                {renderHighlightedText(
+                  `${item.firstName || ""} ${
+                    item.lastName || item.userName || ""
+                  }`,
+                  searchText
+                )}
+              </DataTable.Cell>
             </Box>
           </DataTable.Cell>
           <DataTable.Cell>{item.email}</DataTable.Cell>
@@ -116,8 +153,10 @@ const AdminUsers: React.FC = () => {
         <>
           <DataTable.Cell>{item.id}</DataTable.Cell>
           <DataTable.Cell>
-            {" "}
-            {renderHighlightedText(item.name, searchText)}
+            {renderHighlightedText(
+              `${item.firstName || ""} ${item.lastName || item.userName || ""}`,
+              searchText
+            )}
           </DataTable.Cell>
           <DataTable.Cell>12/12/1990</DataTable.Cell>
           <DataTable.Cell>01/01/2020</DataTable.Cell>
