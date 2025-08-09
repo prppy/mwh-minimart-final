@@ -4,12 +4,13 @@ import { VStack, Box, ScrollView } from "@gluestack-ui/themed";
 import { DataTable } from "react-native-paper";
 import { ADMIN_PURPLE, LIGHTEST_PURPLE } from "../../../constants/colors";
 import RoleOptions from "@/components/admin pages/RoleOptions";
-import RowsPerPageSelector from "@/components/admin pages/RowsPerPageSelector";
+import RowsPerPageSelector from "@/components/RowsPerPageSelector";
 import SearchBar from "@/components/Searchbar";
 import { renderHighlightedText } from "@/utils/searchUtils";
 import ProfileAvatar from "@/components/ProfileAvatar";
 import api from "@/components/utility/api";
 import { User } from "@/constants/types";
+import CustomDataTable from "@/components/CustomDataTable";
 
 const officerColumns = [
   "Officer ID",
@@ -165,58 +166,17 @@ const AdminUsers: React.FC = () => {
       />
 
       <Box borderRadius={12} overflow="hidden" mt={20}>
-        <DataTable>
-          <DataTable.Header style={{ backgroundColor: LIGHTEST_PURPLE }}>
-            {columns.map((col, index) => (
-              <DataTable.Title
-                textStyle={{ color: "black", fontWeight: "bold" }}
-                key={index}
-              >
-                {col}
-              </DataTable.Title>
-            ))}
-          </DataTable.Header>
-
-          {loading ? (
-            <DataTable.Row>
-              <DataTable.Cell>Loading...</DataTable.Cell>
-            </DataTable.Row>
-          ) : (
-            filteredData
-              .slice(from, to)
-              .map((item, index) => renderRow(item, index))
-          )}
-
-          <Box
-            flexDirection="row"
-            justifyContent="space-between"
-            alignItems="center"
-            px="$4"
-            py="$2"
-            bg={LIGHTEST_PURPLE}
-          >
-            <Box flexDirection="row" alignItems="center">
-              <Text style={styles.rowsPerPageText}>Rows per page:</Text>
-              <RowsPerPageSelector
-                value={itemsPerPage}
-                options={rowsPerPageOptions}
-                onChange={(newValue) => {
-                  setItemsPerPage(newValue);
-                  setPage(0);
-                }}
-              />
-            </Box>
-
-            <DataTable.Pagination
-              page={page}
-              numberOfPages={Math.ceil(filteredData.length / itemsPerPage)}
-              onPageChange={(newPage: number) => setPage(newPage)}
-              label={`${from + 1}-${to} of ${filteredData.length}`}
-              showFastPaginationControls
-              numberOfItemsPerPage={itemsPerPage}
-            />
-          </Box>
-        </DataTable>
+        <CustomDataTable
+          columns={columns}
+          data={filteredData.slice(from, to)}
+          loading={loading}
+          page={page}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setPage}
+          onItemsPerPageChange={setItemsPerPage}
+          totalCount={filteredData.length}
+          renderRow={renderRow}
+        />
       </Box>
     </ScrollView>
   );
