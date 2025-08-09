@@ -29,6 +29,8 @@ const Header: React.FC = () => {
     if (pathname.startsWith("/feedback")) return "feedback";
     if (pathname.startsWith("/profile")) return "profile";
     if (pathname.startsWith("/admin")) return "admin"; // TEMP: admin dashboard screen
+
+    if (pathname.startsWith("/login")) return "login"; //login system
     return "catalogue"; // default
   };
 
@@ -53,12 +55,17 @@ const Header: React.FC = () => {
     {
       name: "Profile",
       route: "/profile",
-      icon: User,
+      icon: Laugh,
     },
     {
       name: "Admin TEMP",
       route: "/admin",
       icon: Laugh,
+    },
+    {
+      name: "Login",
+      route: "/login",
+      icon: User,
     },
   ];
 
@@ -116,12 +123,15 @@ const Header: React.FC = () => {
             {tabs.map((tab) => {
               const IconComponent = tab.icon;
               const isActive = isActiveTab(tab.route);
+              const isLoginTab = tab.name.toLowerCase() === "login";
 
               return (
                 <Pressable
                   key={tab.route}
                   onPress={() => handleTabPress(tab.route)}
-                  backgroundColor={isActive ? "#273C73" : "#f3f4f6"}
+                  backgroundColor={
+                    isLoginTab ? "#b91c1c" : isActive ? "#273C73" : "#f3f4f6"
+                  }
                   paddingHorizontal={12}
                   paddingVertical={8}
                   borderRadius={8}
@@ -136,12 +146,24 @@ const Header: React.FC = () => {
                   <HStack alignItems="center" gap={6}>
                     <IconComponent
                       size={20}
-                      color={isActive ? "#ffffff" : "#6b7280"}
+                      color={
+                        isLoginTab
+                          ? "#ffffff"
+                          : isActive
+                          ? "#ffffff"
+                          : "#6b7280"
+                      }
                     />
                     <Text
                       fontSize={20}
                       fontWeight={isActive ? "600" : "500"}
-                      color={isActive ? "#ffffff" : "#6b7280"}
+                      color={
+                        isLoginTab
+                          ? "#ffffff"
+                          : isActive
+                          ? "#ffffff"
+                          : "#6b7280"
+                      }
                     >
                       {tab.name}
                     </Text>
