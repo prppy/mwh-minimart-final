@@ -1,7 +1,7 @@
 // routes/feedbackRoutes.js
 import { Router } from 'express';
 import { body, param, query } from 'express-validator';
-import FeedbackController from '../controllers/feedbackController.js';
+import * as FeedbackController from '../controllers/feedbackController.js';
 
 const feedbackRouter = Router();
 

@@ -1,7 +1,7 @@
 // routes/leaderboard.js// routes/productRoutes.js
 import { Router } from 'express';
 import { body, param, query } from 'express-validator';
-import ProductController from '../controllers/productController.js';
+import * as ProductController from '../controllers/productController.js';
 
 const productRouter = Router();
 
