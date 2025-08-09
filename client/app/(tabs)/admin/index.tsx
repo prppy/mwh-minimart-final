@@ -38,8 +38,8 @@ const AdminUsers: React.FC = () => {
   const [page, setPage] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(5);
 
-  const [officers, setOfficers] = useState<any[]>([]);
-  const [residents, setResidents] = useState<any[]>([]);
+  const [officers, setOfficers] = useState<User[]>([]);
+  const [residents, setResidents] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
 
   const rowsPerPageOptions = [5, 10, 15];
@@ -157,7 +157,10 @@ const AdminUsers: React.FC = () => {
 
       <SearchBar
         value={searchText}
-        onChangeText={setSearchText}
+        onChangeText={(text) => {
+          setSearchText(text);
+          setPage(0);
+        }}
         placeholder="Search by name"
       />
 

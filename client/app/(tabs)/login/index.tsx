@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,54 +8,84 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
-} from 'react-native';
-import styles from './styles';
-import { authAPI, type User } from './api';
+} from "react-native";
+import styles from "./styles";
+import { authAPI } from "./api";
+
+// mya's edit
+import { User } from "@/constants/types";
+import api from "@/components/utility/api";
 
 const ResidentLoginPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [error, setError] = useState('');
-  const [loginType, setLoginType] = useState<'resident' | 'officer'>('resident');
-  const [officerEmail, setOfficerEmail] = useState('');
-  const [officerPassword, setOfficerPassword] = useState('');
+  const [error, setError] = useState("");
+  const [loginType, setLoginType] = useState<"resident" | "officer">(
+    "resident"
+  );
+  const [officerEmail, setOfficerEmail] = useState("");
+  const [officerPassword, setOfficerPassword] = useState("");
 
   // Fetch users on component mount (only for resident login)
   useEffect(() => {
-    if (loginType === 'resident') {
+    if (loginType === "resident") {
       fetchUsers();
     }
   }, [loginType]);
 
-  const fetchUsers = async () => {
+  // const fetchUsers = async () => {
+  //   try {
+  //     setLoading(true);
+  //     const response = await authAPI.getUsersByRole("resident");
+
+  //     if (Array.isArray(response?.data)) {
+  //       setUsers(response.data.data.users);
+  //       setFilteredUsers(response.data);
+  //     } else {
+  //       console.warn("Unexpected response format:", response?.data);
+  //       setUsers([]);
+  //       setFilteredUsers([]);
+  //     }
+  //   } catch (error: any) {
+  //     console.error("Failed to fetch users:", error);
+  //     Alert.alert("Error", "Failed to load users. Please try again.");
+  //     setUsers([]);
+  //     setFilteredUsers([]);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+  // mya's edit
+  async function fetchUsers() {
     try {
       setLoading(true);
-      const response = await authAPI.getUsersByRole('resident');
-      
-      if (response && response.data) {
-        setUsers(response.data);
-        setFilteredUsers(response.data);
-      }
-    } catch (error: any) {
-      console.error('Failed to fetch users:', error);
-      Alert.alert('Error', 'Failed to load users. Please try again.');
+
+      const usersResponse = await api.get("users");
+      const users = usersResponse.data.data.users ?? [];
+      setUsers(users);
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
+  useEffect(() => {
+    fetchUsers();
+  }, []);
   // Filter users based on search query
   useEffect(() => {
-    if (searchQuery.trim() === '') {
+    if (searchQuery.trim() === "") {
       setFilteredUsers(users);
     } else {
-      const filtered = users.filter(user =>
+      const filtered = users.filter((user) =>
         user.userName.toLowerCase().includes(searchQuery.toLowerCase())
       );
       setFilteredUsers(filtered);
@@ -64,47 +94,46 @@ const ResidentLoginPage: React.FC = () => {
 
   const handleUserSelect = (user: User) => {
     setSelectedUser(user);
-    setPassword('');
-    setError('');
+    setPassword("");
+    setError("");
     setShowPasswordModal(true);
   };
 
   const handleLogin = async () => {
     if (!selectedUser || !password.trim()) {
-      setError('Please enter your password');
+      setError("Please enter your password");
       return;
     }
 
     try {
       setLoginLoading(true);
-      setError('');
+      setError("");
 
       const response = await authAPI.loginResident({
         userId: selectedUser.id,
-        plainPassword: password.trim()
+        plainPassword: password.trim(),
       });
 
       // Login successful
-      console.log('Login successful:', response);
-      
+      console.log("Login successful:", response);
+
       // Close modal
       setShowPasswordModal(false);
-      
-      // Redirect to catalogue
-      if (typeof window !== 'undefined') {
-        window.location.href = 'http://localhost:8081/catalogue';
-      }
 
+      // Redirect to catalogue
+      if (typeof window !== "undefined") {
+        window.location.href = "http://localhost:8081/catalogue";
+      }
     } catch (error: any) {
-      console.error('Login failed:', error);
-      
+      console.error("Login failed:", error);
+
       // Show error message based on status code
       if (error.status === 401 || error.status === 400) {
-        setError('Incorrect password. Please try again.');
+        setError("Incorrect password. Please try again.");
       } else if (error.status === 404) {
-        setError('User not found. Please try again.');
+        setError("User not found. Please try again.");
       } else {
-        setError('Login failed. Please check your connection and try again.');
+        setError("Login failed. Please check your connection and try again.");
       }
     } finally {
       setLoginLoading(false);
@@ -113,37 +142,36 @@ const ResidentLoginPage: React.FC = () => {
 
   const handleOfficerLogin = async () => {
     if (!officerEmail.trim() || !officerPassword.trim()) {
-      setError('Please enter both email and password');
+      setError("Please enter both email and password");
       return;
     }
 
     try {
       setLoginLoading(true);
-      setError('');
+      setError("");
 
       const response = await authAPI.loginOfficer({
         officerEmail: officerEmail.trim(),
-        plainPassword: officerPassword.trim()
+        plainPassword: officerPassword.trim(),
       });
 
       // Login successful
-      console.log('Officer login successful:', response);
-      
-      // Redirect to catalogue
-      if (typeof window !== 'undefined') {
-        window.location.href = 'http://localhost:8081/catalogue';
-      }
+      console.log("Officer login successful:", response);
 
+      // Redirect to catalogue
+      if (typeof window !== "undefined") {
+        window.location.href = "http://localhost:8081/catalogue";
+      }
     } catch (error: any) {
-      console.error('Officer login failed:', error);
-      
+      console.error("Officer login failed:", error);
+
       // Show error message based on status code
       if (error.status === 401 || error.status === 400) {
-        setError('Incorrect email or password. Please try again.');
+        setError("Incorrect email or password. Please try again.");
       } else if (error.status === 404) {
-        setError('Officer not found. Please try again.');
+        setError("Officer not found. Please try again.");
       } else {
-        setError('Login failed. Please check your connection and try again.');
+        setError("Login failed. Please check your connection and try again.");
       }
     } finally {
       setLoginLoading(false);
@@ -153,8 +181,8 @@ const ResidentLoginPage: React.FC = () => {
   const closeModal = () => {
     setShowPasswordModal(false);
     setSelectedUser(null);
-    setPassword('');
-    setError('');
+    setPassword("");
+    setError("");
   };
 
   const renderUserCard = (user: User) => (
@@ -179,7 +207,7 @@ const ResidentLoginPage: React.FC = () => {
     </TouchableOpacity>
   );
 
-  if (loading && loginType === 'resident') {
+  if (loading && loginType === "resident") {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
@@ -196,30 +224,40 @@ const ResidentLoginPage: React.FC = () => {
           <View style={styles.titleContainer}>
             <Text style={styles.title}>👋 Welcome Back</Text>
           </View>
-          
+
           {/* Login Type Tabs */}
           <View style={styles.tabContainer}>
             <TouchableOpacity
-              style={[styles.tab, loginType === 'resident' && styles.activeTab]}
-              onPress={() => setLoginType('resident')}
+              style={[styles.tab, loginType === "resident" && styles.activeTab]}
+              onPress={() => setLoginType("resident")}
             >
-              <Text style={[styles.tabText, loginType === 'resident' && styles.activeTabText]}>
+              <Text
+                style={[
+                  styles.tabText,
+                  loginType === "resident" && styles.activeTabText,
+                ]}
+              >
                 Resident
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.tab, loginType === 'officer' && styles.activeTab]}
-              onPress={() => setLoginType('officer')}
+              style={[styles.tab, loginType === "officer" && styles.activeTab]}
+              onPress={() => setLoginType("officer")}
             >
-              <Text style={[styles.tabText, loginType === 'officer' && styles.activeTabText]}>
+              <Text
+                style={[
+                  styles.tabText,
+                  loginType === "officer" && styles.activeTabText,
+                ]}
+              >
                 Officer
               </Text>
             </TouchableOpacity>
           </View>
         </View>
-        
+
         {/* Search Bar - Only for Resident */}
-        {loginType === 'resident' && (
+        {loginType === "resident" && (
           <View style={styles.searchContainer}>
             <Text style={styles.searchIcon}>🔍</Text>
             <TextInput
@@ -231,7 +269,7 @@ const ResidentLoginPage: React.FC = () => {
             {searchQuery.length > 0 && (
               <TouchableOpacity
                 style={styles.clearSearch}
-                onPress={() => setSearchQuery('')}
+                onPress={() => setSearchQuery("")}
               >
                 <Text style={styles.clearSearchText}>✕</Text>
               </TouchableOpacity>
@@ -241,9 +279,12 @@ const ResidentLoginPage: React.FC = () => {
       </View>
 
       {/* Content based on login type */}
-      {loginType === 'resident' ? (
+      {loginType === "resident" ? (
         /* Resident Login - Users List */
-        <ScrollView style={styles.usersList} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.usersList}
+          showsVerticalScrollIndicator={false}
+        >
           {filteredUsers.length === 0 && users.length > 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyText}>
@@ -251,7 +292,7 @@ const ResidentLoginPage: React.FC = () => {
               </Text>
               <TouchableOpacity
                 style={styles.retryButton}
-                onPress={() => setSearchQuery('')}
+                onPress={() => setSearchQuery("")}
               >
                 <Text style={styles.retryButtonText}>Clear Search</Text>
               </TouchableOpacity>
@@ -267,7 +308,8 @@ const ResidentLoginPage: React.FC = () => {
             <>
               {searchQuery.length > 0 && (
                 <Text style={styles.searchResults}>
-                  {filteredUsers.length} result{filteredUsers.length !== 1 ? 's' : ''} found
+                  {filteredUsers.length} result
+                  {filteredUsers.length !== 1 ? "s" : ""} found
                 </Text>
               )}
               {filteredUsers.map(renderUserCard)}
@@ -279,7 +321,7 @@ const ResidentLoginPage: React.FC = () => {
         <View style={styles.officerLoginContainer}>
           <View style={styles.officerLoginCard}>
             <Text style={styles.officerLoginTitle}>Officer Login</Text>
-            
+
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Email</Text>
               <TextInput
@@ -308,7 +350,10 @@ const ResidentLoginPage: React.FC = () => {
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
             <TouchableOpacity
-              style={[styles.officerLoginButton, loginLoading && styles.officerLoginButtonDisabled]}
+              style={[
+                styles.officerLoginButton,
+                loginLoading && styles.officerLoginButtonDisabled,
+              ]}
               onPress={handleOfficerLogin}
               disabled={loginLoading}
             >
@@ -347,7 +392,9 @@ const ResidentLoginPage: React.FC = () => {
                     {selectedUser.userName.charAt(0).toUpperCase()}
                   </Text>
                 </View>
-                <Text style={styles.selectedUserName}>{selectedUser.userName}</Text>
+                <Text style={styles.selectedUserName}>
+                  {selectedUser.userName}
+                </Text>
               </View>
             )}
 
@@ -379,7 +426,7 @@ const ResidentLoginPage: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.loginButton,
-                  loginLoading && styles.loginButtonDisabled
+                  loginLoading && styles.loginButtonDisabled,
                 ]}
                 onPress={handleLogin}
                 disabled={loginLoading}
