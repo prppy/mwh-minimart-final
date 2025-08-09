@@ -1,6 +1,7 @@
 import { validationResult } from 'express-validator';
 import * as userModel from '../models/userModel.js';
 
+
 // Get all users with filtering
 export const getAllUsers = async (req, res) => {
   try {
@@ -70,38 +71,38 @@ export const readUsersByRole = async (req, res) => {
   }
 }
 
-// // Get user by Role
-// export const getUserByRole = async (req, res) => {
-//   try {
-//     const { role } = req.query;
-//     const { includeTransactions = false } = req.query;
+// Get user by Role
+export const getUserByRole = async (req, res) => {
+  try {
+    const { role } = req.query;
+    const { includeTransactions = false } = req.query;
 
-//     const user = await userModel.findById(parseInt(id), {
-//       includeResident: true,
-//       includeOfficer: true,
-//       includeTransactions: includeTransactions === 'true'
-//     });
+    const user = await userModel.findById(parseInt(id), {
+      includeResident: true,
+      includeOfficer: true,
+      includeTransactions: includeTransactions === 'true'
+    });
 
-//     if (!user) {
-//       return res.status(404).json({ 
-//         error: { message: 'User not found' }
-//       });
-//     }
+    if (!user) {
+      return res.status(404).json({ 
+        error: { message: 'User not found' }
+      });
+    }
 
-//     const sanitizedUser = userModel.sanitize(user);
+    const sanitizedUser = userModel.sanitize(user);
 
-//     res.json({
-//       success: true,
-//       data: sanitizedUser
-//     });
+    res.json({
+      success: true,
+      data: sanitizedUser
+    });
 
-//   } catch (error) {
-//     console.error('Get user error:', error);
-//     res.status(500).json({ 
-//       error: { message: 'Internal server error' }
-//     });
-//   }
-// }
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({ 
+      error: { message: 'Internal server error' }
+    });
+  }
+}
 
 // Update user profile
 export const updateUser = async (req, res) => {
