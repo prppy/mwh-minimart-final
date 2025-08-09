@@ -1,5 +1,5 @@
 import { validationResult } from 'express-validator';
-import UserModel from '../models/userModel.js';
+import * as UserModel from '../models/userModel.js';
 
 
 // Get all users with filtering

@@ -1,7 +1,7 @@
 // routes/transactions.js
 import { Router } from 'express';
 import { body, param, query } from 'express-validator';
-import TransactionsController from '../controllers/transactionController.js';
+import * as TransactionsController from '../controllers/transactionController.js';
 
 const transactionRouter = Router();
 
@@ -33,9 +33,6 @@ const completionValidation = [
     .withMessage('Task ID must be a positive integer')
 ];
 
-// Routes
-// transactionRouter.get('/', authenticateToken, requireOfficerOrAdmin, getAllTransactions);
-// transactionRouter.get('/user/:userId', authenticateToken, requireOwnershipOrStaff, getUserTransactions);
 transactionRouter.get('/user/:userId/summary', TransactionsController.getPointsSummary);
 transactionRouter.post('/redemption', redemptionValidation, TransactionsController.createRedemption);
 transactionRouter.post('/completion', completionValidation, TransactionsController.createCompletion);

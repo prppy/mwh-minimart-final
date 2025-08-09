@@ -1,7 +1,7 @@
 // routes/leaderboardRoutes.js
 import { Router } from 'express';
 import { param, query } from 'express-validator';
-import LeaderboardController from '../controllers/leaderboardController.js';
+import * as leaderboardController from '../controllers/leaderboardController.js';
 
 const leaderboardRouter = Router();
 
@@ -71,19 +71,19 @@ const recentChangesValidation = [
     .withMessage('Limit must be between 1 and 50')
 ];
 
-// Public routes (authenticated users only)
-leaderboardRouter.get('/', leaderboardQueryValidation, LeaderboardController.getLeaderboard);
-leaderboardRouter.get('/stats', LeaderboardController.getLeaderboardStats);
-leaderboardRouter.get('/batch/:batchNumber', batchNumberValidation, LeaderboardController.getLeaderboardByBatch);
-leaderboardRouter.get('/top-performers', topPerformersValidation, LeaderboardController.getTopPerformers);
+// Routes
+leaderboardRouter.get('/', leaderboardQueryValidation, leaderboardController.getLeaderboard);
+leaderboardRouter.get('/stats', leaderboardController.getLeaderboardStats);
+leaderboardRouter.get('/batch/:batchNumber', batchNumberValidation, leaderboardController.getLeaderboardByBatch);
+leaderboardRouter.get('/top-performers', topPerformersValidation, leaderboardController.getTopPerformers);
 
-// User-specific routes (ownership or staff required)
-leaderboardRouter.get('/user/:userId/position', userIdValidation, LeaderboardController.getUserPosition);
-leaderboardRouter.get('/user/:userId/profile', userIdValidation, LeaderboardController.getResidentProfile);
+// Protected routes (require authentication)
+leaderboardRouter.get('/user/:userId/position', userIdValidation, leaderboardController.getUserPosition);
+leaderboardRouter.get('/user/:userId/profile', userIdValidation, leaderboardController.getResidentProfile);
 
-// Officer/Admin only routes
-leaderboardRouter.get('/batch-stats', LeaderboardController.getBatchStatistics);
-leaderboardRouter.get('/compare', compareResidentsValidation, LeaderboardController.compareResidents);
-leaderboardRouter.get('/recent-changes', recentChangesValidation, LeaderboardController.getRecentChanges);
+// Additional routes
+leaderboardRouter.get('/batch-stats', leaderboardController.getBatchStatistics);
+leaderboardRouter.get('/compare', compareResidentsValidation, leaderboardController.compareResidents);
+leaderboardRouter.get('/recent-changes', recentChangesValidation, leaderboardController.getRecentChanges);
 
 export default leaderboardRouter;
