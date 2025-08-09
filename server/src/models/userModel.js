@@ -262,7 +262,7 @@ export const findMany = async (options = {}) => {
     let params = [];
     let paramIndex = 1;
     if (role) {
-      whereClause += ` AND u."User_Role" = $${paramIndex}`;
+      whereClause += ` AND u."User_Role"::text = $${paramIndex}`;
       params.push(role);
       paramIndex++;
     }
