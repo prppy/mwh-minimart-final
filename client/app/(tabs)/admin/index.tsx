@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { StyleSheet, Text } from "react-native";
 import { VStack, Box, ScrollView } from "@gluestack-ui/themed";
 import { DataTable } from "react-native-paper";
@@ -8,27 +8,8 @@ import RowsPerPageSelector from "@/components/admin pages/RowsPerPageSelector";
 import SearchBar from "@/components/Searchbar";
 import { renderHighlightedText } from "@/utils/searchUtils";
 import ProfileAvatar from "@/components/ProfileAvatar";
-import {
-  Select,
-  SelectTrigger,
-  SelectInput,
-  SelectIcon,
-  Icon,
-  ChevronDownIcon,
-  SelectPortal,
-  SelectContent,
-  SelectItem,
-} from "@gluestack-ui/themed";
-
-// dummy data for now
-const rawData = Array(23)
-  .fill(0)
-  .map((_, idx) => ({
-    id: idx + 1,
-    name: `User ${idx + 1}`,
-    email: `user${idx + 1}@example.com`,
-    role: "Admin",
-  }));
+import api from "@/components/utility/api";
+import { User } from "@/constants/types";
 
 const officerColumns = [
   "Officer ID",
@@ -38,7 +19,7 @@ const officerColumns = [
   "Actions",
 ];
 
-const userColumns = [
+const residentColumns = [
   "Resident ID",
   "Full Name",
   "Date of Birth",
@@ -50,37 +31,62 @@ const userColumns = [
 ];
 
 const AdminUsers: React.FC = () => {
-  // some setups
-  const [selectedRole, setSelectedRole] = useState<
-    "residents" | "officers" | null
-  >("residents");
+  const [selectedRole, setSelectedRole] = useState<"residents" | "officers">(
+    "residents"
+  );
   const [searchText, setSearchText] = useState("");
   const [page, setPage] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(5);
 
+  const [officers, setOfficers] = useState<any[]>([]);
+  const [residents, setResidents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
   const rowsPerPageOptions = [5, 10, 15];
 
-  // to change columns
   const columns = useMemo(() => {
-    if (selectedRole === "officers") {
-      return officerColumns;
-    } else {
-      return userColumns;
-    }
+    return selectedRole === "officers" ? officerColumns : residentColumns;
   }, [selectedRole]);
 
-  // filter data by search text
+  async function fetchUsers() {
+    try {
+      setLoading(true);
+
+      const usersResponse = await api.get("users");
+      const users = usersResponse.data.data.users ?? [];
+
+      // separate by role
+      const residents = users.filter(
+        (user: User) => user.userRole === "resident"
+      );
+      const officers = users.filter(
+        (user: User) => user.userRole === "officer"
+      );
+
+      setResidents(residents);
+      setOfficers(officers);
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const rawData = selectedRole === "officers" ? officers : residents;
+
   const filteredData = useMemo(() => {
     return rawData.filter((item) =>
-      item.name.toLowerCase().includes(searchText.toLowerCase())
+      item.userName?.toLowerCase().includes(searchText.toLowerCase())
     );
   }, [searchText, rawData]);
 
-  // pagination
   const from = page * itemsPerPage;
   const to = Math.min((page + 1) * itemsPerPage, filteredData.length);
 
-  // function to render the right table (fake data for now..)
   const renderRow = (item: any, index: number) => (
     <DataTable.Row
       key={item.id}
@@ -91,39 +97,49 @@ const AdminUsers: React.FC = () => {
       {selectedRole === "officers" ? (
         <>
           <DataTable.Cell>{item.id}</DataTable.Cell>
-
           <DataTable.Cell>
-            <Box
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                flex: 1,
-                justifyContent: "flex-start",
-              }}
-            >
+            <Box style={{ flexDirection: "row", alignItems: "center" }}>
               <ProfileAvatar
-                source={item.profilePic}
+                source={item.profilePicture}
                 borderColor={item.color}
-                scale={0.9} // or 1.2 if you want it bigger
+                scale={0.9}
               />
-              <Text>{renderHighlightedText(item.name, searchText)}</Text>
+              <Text>{renderHighlightedText(item.userName, searchText)}</Text>
             </Box>
           </DataTable.Cell>
-          <DataTable.Cell>{item.email}</DataTable.Cell>
+          <DataTable.Cell>{item.officer?.officerEmail || "-"}</DataTable.Cell>
           <DataTable.Cell>Actions</DataTable.Cell>
         </>
       ) : (
         <>
           <DataTable.Cell>{item.id}</DataTable.Cell>
           <DataTable.Cell>
-            {" "}
-            {renderHighlightedText(item.name, searchText)}
+            <Box style={{ flexDirection: "row", alignItems: "center" }}>
+              <ProfileAvatar
+                source={item.profilePicture}
+                borderColor={item.color}
+                scale={0.9}
+              />
+              <Text>{renderHighlightedText(item.userName, searchText)}</Text>
+            </Box>
           </DataTable.Cell>
-          <DataTable.Cell>12/12/1990</DataTable.Cell>
-          <DataTable.Cell>01/01/2020</DataTable.Cell>
-          <DataTable.Cell>-</DataTable.Cell>
-          <DataTable.Cell>100</DataTable.Cell>
-          <DataTable.Cell>Batch 3</DataTable.Cell>
+          <DataTable.Cell>
+            {item.resident?.dateOfBirth
+              ? new Date(item.resident.dateOfBirth).toLocaleDateString()
+              : "-"}
+          </DataTable.Cell>
+          <DataTable.Cell>
+            {item.resident?.dateOfAdmission
+              ? new Date(item.resident.dateOfAdmission).toLocaleDateString()
+              : "-"}
+          </DataTable.Cell>
+          <DataTable.Cell>
+            {item.resident?.lastAbscondence
+              ? new Date(item.resident.lastAbscondence).toLocaleDateString()
+              : "-"}
+          </DataTable.Cell>
+          <DataTable.Cell>{item.resident?.currentPoints ?? "-"}</DataTable.Cell>
+          <DataTable.Cell>{item.resident?.batchNumber || "-"}</DataTable.Cell>
           <DataTable.Cell>Actions</DataTable.Cell>
         </>
       )}
@@ -135,22 +151,18 @@ const AdminUsers: React.FC = () => {
       style={styles.container}
       contentContainerStyle={{ paddingBottom: 40 }}
     >
-      {/* ROLE OPTIONS */}
       <Box style={styles.roleOptionsContainer}>
         <RoleOptions selectedRole={selectedRole} onChange={setSelectedRole} />
       </Box>
 
-      {/* SEARCHBAR */}
       <SearchBar
         value={searchText}
         onChangeText={setSearchText}
         placeholder="Search by name"
       />
 
-      {/* TABLE */}
       <Box borderRadius={12} overflow="hidden" mt={20}>
         <DataTable>
-          {/* header */}
           <DataTable.Header style={{ backgroundColor: LIGHTEST_PURPLE }}>
             {columns.map((col, index) => (
               <DataTable.Title
@@ -162,11 +174,16 @@ const AdminUsers: React.FC = () => {
             ))}
           </DataTable.Header>
 
-          {/* rows! */}
-          {filteredData
-            .slice(from, to)
-            .map((item, index) => renderRow(item, index))}
-          {/* pagination + rows per page selector container */}
+          {loading ? (
+            <DataTable.Row>
+              <DataTable.Cell>Loading...</DataTable.Cell>
+            </DataTable.Row>
+          ) : (
+            filteredData
+              .slice(from, to)
+              .map((item, index) => renderRow(item, index))
+          )}
+
           <Box
             flexDirection="row"
             justifyContent="space-between"
@@ -175,7 +192,6 @@ const AdminUsers: React.FC = () => {
             py="$2"
             bg={LIGHTEST_PURPLE}
           >
-            {/* rows per page selector */}
             <Box flexDirection="row" alignItems="center">
               <Text style={styles.rowsPerPageText}>Rows per page:</Text>
               <RowsPerPageSelector
@@ -188,7 +204,6 @@ const AdminUsers: React.FC = () => {
               />
             </Box>
 
-            {/* pagination */}
             <DataTable.Pagination
               page={page}
               numberOfPages={Math.ceil(filteredData.length / itemsPerPage)}
