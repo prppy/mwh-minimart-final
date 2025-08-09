@@ -1,5 +1,5 @@
 import { validationResult } from 'express-validator';
-import * as userModel from '../models/userModel.js';
+import UserModel from '../models/userModel.js';
 
 
 // Get all users with filtering
@@ -15,7 +15,7 @@ export const getAllUsers = async (req, res) => {
       sortOrder
     } = req.query;
 
-    const result = await userModel.findMany({
+    const result = await UserModel.findMany({
       role,
       batchNumber,
       limit,
@@ -26,7 +26,7 @@ export const getAllUsers = async (req, res) => {
     });
 
     // Sanitize user data
-    const sanitizedUsers = result.users.map(user => userModel.sanitize(user));
+    const sanitizedUsers = result.users.map(user => UserModel.sanitize(user));
 
     res.json({
       success: true,
@@ -56,16 +56,53 @@ export const readUsersByRole = async (req, res) => {
       })
     }
 
-    const selectedUsers = await userModel.selectUsersByRole(role);
+    const result = await UserModel.findMany({ role });
+    const sanitizedUsers = result.users.map(user => UserModel.sanitize(user));
 
     return res.status(200).json({
       message: "List of users of role " + role,
-      data: selectedUsers
+      data: {
+        users: sanitizedUsers,
+        pagination: result.pagination
+      }
     });
 
   } catch (error) {
     console.error('Get user error:', error);
     return res.status(500).json({ 
+      error: { message: 'Internal server error' }
+    });
+  }
+}
+
+// Get user by ID
+export const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { includeTransactions = false } = req.query;
+
+    const user = await UserModel.findById(parseInt(id), {
+      includeResident: true,
+      includeOfficer: true,
+      includeTransactions: includeTransactions === 'true'
+    });
+
+    if (!user) {
+      return res.status(404).json({ 
+        error: { message: 'User not found' }
+      });
+    }
+
+    const sanitizedUser = UserModel.sanitize(user);
+
+    res.json({
+      success: true,
+      data: sanitizedUser
+    });
+
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({ 
       error: { message: 'Internal server error' }
     });
   }

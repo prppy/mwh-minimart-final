@@ -21,25 +21,97 @@ class UserModel {
   static async findById(id, options = {}) {
     const { includeResident = false, includeOfficer = false, includeTransactions = false } = options;
     
-    const include = {};
-    if (includeResident) include.resident = true;
-    if (includeOfficer) include.officer = true;
-    if (includeTransactions) {
-      include.transactions = {
-        include: {
-          redemptions: { include: { product: true } },
-          completions: { include: { task: true } },
-          abscondence: true
-        },
-        orderBy: { transactionDate: 'desc' },
-        take: 10 // Last 10 transactions
-      };
+    try {
+      // Try the standard Prisma query first
+      const include = {};
+      if (includeResident) include.resident = true;
+      if (includeOfficer) include.officer = true;
+      if (includeTransactions) {
+        include.transactions = {
+          include: {
+            redemptions: { include: { product: true } },
+            completions: { include: { task: true } },
+            abscondence: true
+          },
+          orderBy: { transactionDate: 'desc' },
+          take: 10 // Last 10 transactions
+        };
+      }
+      const user = await prisma.user.findUnique({
+        where: { id: parseInt(id) },
+        include
+      });
+      // Handle null values in resident data if it exists
+      if (user && user.resident) {
+        user.resident = {
+          ...user.resident,
+          currentPoints: user.resident.currentPoints ?? 0,
+          totalPoints: user.resident.totalPoints ?? 0
+        };
+      }
+      return user;
+    } catch (error) {
+      // If the error is related to null values, use raw query
+      if (error.code === 'P2032') {
+        console.log('Attempting raw query for findById due to null value constraint violation...');
+        
+        const rawUser = await prisma.$queryRawUnsafe(`
+          SELECT 
+            u."User_ID" as id,
+            u."User_Name" as "userName",
+            u."User_Role" as "userRole",
+            u."Profile_Picture" as "profilePicture",
+            u."Password_Hash" as "passwordHash",
+            u."Biometric_Hash" as "biometricHash",
+            u."Created_At" as "createdAt",
+            u."Updated_At" as "updatedAt",
+            r."Date_Of_Birth" as "resident_dateOfBirth",
+            r."Date_Of_Admission" as "resident_dateOfAdmission",
+            r."Last_Abscondence" as "resident_lastAbscondence",
+            COALESCE(r."Current_Points", 0) as "resident_currentPoints",
+            COALESCE(r."Total_Points", 0) as "resident_totalPoints",
+            r."Batch_Number" as "resident_batchNumber",
+            o."Officer_Email" as "officer_officerEmail"
+          FROM "public"."MWH_User" u
+          LEFT JOIN "public"."MWH_Resident" r ON u."User_ID" = r."User_ID"
+          LEFT JOIN "public"."MWH_Officer" o ON u."User_ID" = o."User_ID"
+          WHERE u."User_ID" = $1
+        `, parseInt(id));
+        if (rawUser.length === 0) return null;
+        const user = rawUser[0];
+        
+        // Transform to match expected format
+        const transformedUser = {
+          id: user.id,
+          userName: user.userName,
+          userRole: user.userRole,
+          profilePicture: user.profilePicture,
+          passwordHash: user.passwordHash,
+          biometricHash: user.biometricHash,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+          resident: (includeResident && (user.resident_currentPoints !== null || user.resident_dateOfBirth !== null)) ? {
+            userId: user.id,
+            dateOfBirth: user.resident_dateOfBirth,
+            dateOfAdmission: user.resident_dateOfAdmission,
+            lastAbscondence: user.resident_lastAbscondence,
+            currentPoints: parseInt(user.resident_currentPoints) || 0,
+            totalPoints: parseInt(user.resident_totalPoints) || 0,
+            batchNumber: user.resident_batchNumber
+          } : null,
+          officer: (includeOfficer && user.officer_officerEmail) ? {
+            userId: user.id,
+            officerEmail: user.officer_officerEmail
+          } : null
+        };
+        // Note: includeTransactions not supported in raw query fallback
+        // If transactions are needed, consider fixing the database first
+        
+        return transformedUser;
+      }
+      
+      throw error;
     }
-
-    return prisma.user.findUnique({
-      where: { id: parseInt(id) },
-      include
-    });
   }
   /**
    * Create a new user with role-specific data
