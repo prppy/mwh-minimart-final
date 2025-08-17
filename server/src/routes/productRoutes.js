@@ -77,10 +77,6 @@ const productQueryValidation = [
     .optional()
     .isInt({ min: 1 })
     .withMessage('Category must be a positive integer'),
-  query('productType')
-    .optional()
-    .isIn(['physical', 'digital', 'service'])
-    .withMessage('Product type must be physical, digital, or service'),
   query('minPoints')
     .optional()
     .isInt({ min: 0 })
@@ -123,9 +119,8 @@ const popularProductsValidation = [
 ];
 
 // Public routes (authenticated users)
-productRouter.get('/', productQueryValidation, ProductController.getAllProducts);
-productRouter.get('/popular', popularProductsValidation, ProductController.getPopularProducts);
-productRouter.get('/categories', ProductController.getCategories);
+productRouter.get('/', productQueryValidation, ProductController.getAllProducts); 
+productRouter.get('/category/:categoryId', productIdValidation, ProductController.getProductsByCategory);
 productRouter.get('/:id', productIdValidation, ProductController.getProductById);
 
 // Officer/Admin only routes

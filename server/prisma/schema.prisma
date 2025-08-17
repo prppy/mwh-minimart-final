@@ -1,277 +1,202 @@
-// generator client {
-//   provider = "prisma-client-js"
-// }
-// datasource db {
-//   provider = "postgresql"
-//   url      = env("DATABASE_URL")
-// }
-// model User {
-//   id                  Int             @id @default(autoincrement()) @map("User_ID")
-//   userName            String?         @map("User_Name") @db.VarChar(127)
-//   userRole            user_role_enum? @map("User_Role")
-//   profilePicture      Bytes?          @map("Profile_Picture")
-//   passwordHash        String?         @map("Password_Hash") @db.VarChar(255)
-//   biometricHash       String?         @map("Biometric_Hash") @db.VarChar(255)
-//   createdAt           DateTime?       @map("Created_At") @db.Timestamp(6)
-//   updatedAt           DateTime?       @updatedAt @map("Updated_At") @db.Timestamp(6)
-//   officer             Officer?
-//   resident            Resident?
-//   officerTransactions Transaction[]   @relation("OfficerTransactions")
-//   transactions        Transaction[]   @relation("UserTransactions")
-//   @@map("MWH_User")
-// }
-// model Resident {
-//   userId          Int       @id @map("User_ID")
-//   dateOfBirth     DateTime? @map("Date_Of_Birth") @db.Timestamp(6)
-//   dateOfAdmission DateTime? @map("Date_Of_Admission") @db.Timestamp(6)
-//   lastAbscondence DateTime? @map("Last_Abscondence") @db.Timestamp(6)
-//   currentPoints   Int?      @map("Current_Points")
-//   batchNumber     Int?      @map("Batch_Number")
-//   Control_No      Int?
-//   totalPoints     Int       @default(0) @map("Total_Points")
-//   user            User      @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-//   @@map("MWH_Resident")
-// }
-// model Officer {
-//   userId       Int     @id @map("User_ID")
-//   officerEmail String? @map("Officer_Email") @db.VarChar(127)
-//   user         User    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-//   @@map("MWH_Officer")
-// }
-// model Category {
-//   id                Int               @id @default(autoincrement()) @map("Category_ID")
-//   categoryName      String?           @map("Category_Name") @db.VarChar(30)
-//   products          Product[]
-//   productCategories ProductCategory[]
-//   @@map("MWH_Category")
-// }
-// model TaskCategory {
-//   id                      Int     @id @default(autoincrement()) @map("Task_Category_ID")
-//   taskCategoryName        String? @map("Task_Category_Name") @db.VarChar(50)
-//   taskCategoryDescription String? @map("Task_Category_Description") @db.VarChar(100)
-//   tasks                   Task[]
-//   @@map("MWH_Task_Category")
-// }
-// model Product {
-//   id                 Int                @id @default(autoincrement()) @map("Product_ID")
-//   productName        String?            @map("Product_Name") @db.VarChar(31)
-//   imageUrl           String?            @map("Image_URL")
-//   productDescription String?            @map("Product_Description")
-//   points             Int?               @map("Points")
-//   productType        product_type_enum? @map("Product_Type")
-//   available          Boolean?           @map("Available")
-//   categoryId         Int?               @map("Category_ID")
-//   category           Category?          @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-//   productCategories  ProductCategory[]
-//   redemptions        Redemption[]
-//   @@map("MWH_Product")
-// }
-// model Task {
-//   id              Int           @id @default(autoincrement()) @map("Task_ID")
-//   taskCategoryId  Int?          @map("Task_Category_ID")
-//   taskName        String?       @map("Task_Name") @db.VarChar(127)
-//   taskDescription String?       @map("Task_Description")
-//   points          Int?          @map("Points")
-//   active          Boolean?      @map("Active")
-//   completions     Completion[]
-//   taskCategory    TaskCategory? @relation(fields: [taskCategoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-//   @@map("MWH_Task")
-// }
-// model Transaction {
-//   id              Int                    @id @default(autoincrement()) @map("Transaction_ID")
-//   transactionDate DateTime?              @map("Transaction_Date") @db.Date
-//   pointsChange    Int?                   @map("Points_Change")
-//   transactionType transaction_type_enum? @map("Transaction_Type")
-//   officerId       Int?                   @map("Officer_ID")
-//   userId          Int?                   @map("User_ID")
-//   abscondence     Abscondence?
-//   completions     Completion[]
-//   redemptions     Redemption[]
-//   officer         User?                  @relation("OfficerTransactions", fields: [officerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-//   user            User?                  @relation("UserTransactions", fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-//   @@map("MWH_Transaction")
-// }
-// model Redemption {
-//   transactionId   Int         @map("Transaction_ID")
-//   productQuantity Int?        @map("Product_Quantity")
-//   productId       Int         @map("Product_ID")
-//   product         Product     @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-//   transaction     Transaction @relation(fields: [transactionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-//   @@id([transactionId, productId])
-//   @@map("MWH_Redemption")
-// }
-// model Completion {
-//   transactionId Int         @map("Transaction_ID")
-//   taskId        Int         @map("Task_ID")
-//   task          Task        @relation(fields: [taskId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-//   transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-//   @@id([transactionId, taskId])
-//   @@map("MWH_Completion")
-// }
-// model Abscondence {
-//   transactionId Int         @id @map("Transaction_ID")
-//   reason        String?     @map("Reason")
-//   transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-//   @@map("MWH_Abscondence")
-// }
-// model ProductCategory {
-//   productId  Int      @map("Product_ID")
-//   categoryId Int      @map("Category_ID")
-//   category   Category @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-//   product    Product  @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-//   @@id([productId, categoryId])
-//   @@map("MWH_Product_Category")
-// }
-// enum product_type_enum {
-//   physical
-//   digital
-// }
-// enum transaction_type_enum {
-//   completion
-//   redemption
-//   abscondence
-// }
-// enum user_role_enum {
-//   resident
-//   officer
-//   developer
-// }
-
 generator client {
   provider = "prisma-client-js"
 }
+
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL")
 }
+
 model User {
-  id                  Int             @id @default(autoincrement()) @map("User_ID")
-  userName            String?         @map("User_Name") @db.VarChar(127)
-  userRole            user_role_enum? @map("User_Role")
-  profilePicture      Bytes?          @map("Profile_Picture")
-  passwordHash        String?         @map("Password_Hash") @db.VarChar(255)
-  biometricHash       String?         @map("Biometric_Hash") @db.VarChar(255)
-  createdAt           DateTime?       @map("Created_At") @db.Timestamp(6)
-  updatedAt           DateTime?       @updatedAt @map("Updated_At") @db.Timestamp(6)
-  officer             Officer?
-  resident            Resident?
-  officerTransactions Transaction[]   @relation("OfficerTransactions")
-  transactions        Transaction[]   @relation("UserTransactions")
+  id             Int             @id @default(autoincrement()) @map("User_ID")
+  userName       String?         @map("User_Name") @db.VarChar(127)
+  userRole       user_role_enum? @map("User_Role")
+  profilePicture Bytes?          @map("Profile_Picture")
+  passwordHash   String?         @map("Password_Hash") @db.VarChar(255)
+  biometricHash  String?         @map("Biometric_Hash") @db.VarChar(255)
+  createdAt      DateTime?       @map("Created_At") @db.Timestamp(6)
+  updatedAt      DateTime?       @updatedAt @map("Updated_At") @db.Timestamp(6)
+  officer        Officer?
+  resident       Resident?
+  transactions   Transaction[]   @relation("UserTransactions")
+
   @@map("MWH_User")
 }
+
 model Resident {
-  userId          Int       @id @map("User_ID")
-  dateOfBirth     DateTime? @map("Date_Of_Birth") @db.Timestamp(6)
-  dateOfAdmission DateTime? @map("Date_Of_Admission") @db.Timestamp(6)
-  lastAbscondence DateTime? @map("Last_Abscondence") @db.Timestamp(6)
-  currentPoints   Int?      @map("Current_Points")
-  batchNumber     Int?      @map("Batch_Number")
-  Control_No      Int?
-  totalPoints     Int       @default(0) @map("Total_Points")
-  user            User      @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  userId           Int                         @id @map("User_ID")
+  dateOfBirth      DateTime?                   @map("Date_Of_Birth") @db.Timestamp(6)
+  dateOfAdmission  DateTime?                   @map("Date_Of_Admission") @db.Timestamp(6)
+  lastAbscondence  DateTime?                   @map("Last_Abscondence") @db.Timestamp(6)
+  currentPoints    Int?                        @map("Current_Points")
+  batchNumber      Int?                        @map("Batch_Number")
+  Control_No       Int?
+  totalPoints      Int                         @default(0) @map("Total_Points")
+  Wallpaper_Colour wallpaper_colour_type_enum? @default(red)
+  Wallpaper_Theme  wallpaper_theme_type_enum?  @default(sports)
+  user             User                        @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
   @@map("MWH_Resident")
 }
+
 model Officer {
   userId       Int     @id @map("User_ID")
   officerEmail String? @map("Officer_Email") @db.VarChar(127)
   user         User    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
   @@map("MWH_Officer")
 }
+
 model Category {
   id                Int               @id @default(autoincrement()) @map("Category_ID")
   categoryName      String?           @map("Category_Name") @db.VarChar(30)
   products          Product[]
   productCategories ProductCategory[]
+
   @@map("MWH_Category")
 }
+
 model TaskCategory {
   id                      Int     @id @default(autoincrement()) @map("Task_Category_ID")
   taskCategoryName        String? @map("Task_Category_Name") @db.VarChar(50)
   taskCategoryDescription String? @map("Task_Category_Description") @db.VarChar(100)
   tasks                   Task[]
+
   @@map("MWH_Task_Category")
 }
+
 model Product {
-  id                 Int                @id @default(autoincrement()) @map("Product_ID")
-  productName        String?            @map("Product_Name") @db.VarChar(31)
-  imageUrl           String?            @map("Image_URL")
-  productDescription String?            @map("Product_Description")
-  points             Int?               @map("Points")
-  productType        product_type_enum? @map("Product_Type")
-  available          Boolean?           @map("Available")
-  categoryId         Int?               @map("Category_ID")
-  category           Category?          @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id                 Int               @id @default(autoincrement()) @map("Product_ID")
+  productName        String?           @map("Product_Name") @db.VarChar(31)
+  imageUrl           String?           @map("Image_URL")
+  productDescription String?           @map("Product_Description")
+  points             Int?              @map("Points")
+  available          Boolean?          @map("Available")
+  categoryId         Int?              @map("Category_ID")
+  category           Category?         @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   productCategories  ProductCategory[]
   redemptions        Redemption[]
+
   @@map("MWH_Product")
 }
+
 model Task {
   id              Int           @id @default(autoincrement()) @map("Task_ID")
   taskCategoryId  Int?          @map("Task_Category_ID")
   taskName        String?       @map("Task_Name") @db.VarChar(127)
   taskDescription String?       @map("Task_Description")
   points          Int?          @map("Points")
-  active          Boolean?      @map("Active")
   completions     Completion[]
   taskCategory    TaskCategory? @relation(fields: [taskCategoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
   @@map("MWH_Task")
 }
+
 model Transaction {
   id              Int                    @id @default(autoincrement()) @map("Transaction_ID")
   transactionDate DateTime?              @map("Transaction_Date") @db.Date
   pointsChange    Int?                   @map("Points_Change")
   transactionType transaction_type_enum? @map("Transaction_Type")
-  officerId       Int?                   @map("Officer_ID")
   userId          Int?                   @map("User_ID")
   abscondence     Abscondence?
   completions     Completion[]
   redemptions     Redemption[]
-  officer         User?                  @relation("OfficerTransactions", fields: [officerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   user            User?                  @relation("UserTransactions", fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
   @@map("MWH_Transaction")
 }
+
 model Redemption {
   transactionId   Int         @map("Transaction_ID")
   productQuantity Int?        @map("Product_Quantity")
   productId       Int         @map("Product_ID")
   product         Product     @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   transaction     Transaction @relation(fields: [transactionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
   @@id([transactionId, productId])
   @@map("MWH_Redemption")
 }
+
 model Completion {
   transactionId Int         @map("Transaction_ID")
   taskId        Int         @map("Task_ID")
   task          Task        @relation(fields: [taskId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
   @@id([transactionId, taskId])
   @@map("MWH_Completion")
 }
+
 model Abscondence {
   transactionId Int         @id @map("Transaction_ID")
   reason        String?     @map("Reason")
   transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
   @@map("MWH_Abscondence")
 }
+
 model ProductCategory {
   productId  Int      @map("Product_ID")
   categoryId Int      @map("Category_ID")
   category   Category @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   product    Product  @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
   @@id([productId, categoryId])
   @@map("MWH_Product_Category")
 }
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model MWH_Answer {
+  id           BigInt       @id @default(autoincrement())
+  question_id  BigInt
+  answer       String?      @db.VarChar
+  created_at   DateTime     @default(now()) @db.Timestamptz(6)
+  MWH_Question MWH_Question @relation(fields: [question_id], references: [id], onDelete: Cascade)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model MWH_Question {
+  id            BigInt              @id @default(autoincrement())
+  question_name String?             @db.VarChar
+  question_type question_type_enum?
+  created_at    DateTime            @default(now()) @db.Timestamptz(6)
+  MWH_Answer    MWH_Answer[]
+}
+
 enum product_type_enum {
   physical
   digital
 }
+
 enum transaction_type_enum {
   completion
   redemption
   abscondence
 }
+
 enum user_role_enum {
   resident
   officer
   developer
+}
+
+enum question_type_enum {
+  text
+  scale
+}
+
+enum wallpaper_colour_type_enum {
+  red
+  orange
+  yellow
+  green
+  blue
+  purple
+}
+
+enum wallpaper_theme_type_enum {
+  sports
+  arts
+  education
 }

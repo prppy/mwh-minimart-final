@@ -32,7 +32,7 @@ export const getAllProducts = async (req, res) => {
       offset
     };
 
-    const result = await ProductModel.findWithFilters(filters);
+    const result = await ProductModel.findAll()
 
     res.json({
       success: true,
@@ -41,6 +41,32 @@ export const getAllProducts = async (req, res) => {
 
   } catch (error) {
     console.error('Get all products error:', error);
+    res.status(500).json({ 
+      error: { message: 'Internal server error' }
+    });
+  }
+};
+
+/**
+ * Get products by category
+ */
+export const getProductsByCategory = async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+
+    const products = await ProductModel.findByCategory(categoryId);
+
+    res.json({
+      success: true,
+      data: {
+        products,
+        categoryId: parseInt(categoryId),
+        total: products.length
+      }
+    });
+
+  } catch (error) {
+    console.error('Get products by category error:', error);
     res.status(500).json({ 
       error: { message: 'Internal server error' }
     });
