@@ -64,6 +64,58 @@ export const getTaskById = async (req, res) => {
   }
 };
 
+// Add this method to your existing taskController.js
+
+/**
+ * Get tasks by category
+ */
+export const getTasksByCategory = async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    const { limit = 50, offset = 0, sortBy = 'taskName', sortOrder = 'asc' } = req.query;
+
+    // Validate categoryId
+    if (!categoryId || isNaN(parseInt(categoryId))) {
+      return res.status(400).json({
+        error: { message: 'Invalid category ID' }
+      });
+    }
+
+    const options = {
+      categoryId: parseInt(categoryId),
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      sortBy,
+      sortOrder
+    };
+
+    const result = await TaskModel.findByCategory(options);
+
+    res.json({
+      success: true,
+      data: {
+        tasks: result.tasks,
+        categoryId: parseInt(categoryId),
+        total: result.totalCount,
+        pagination: result.pagination
+      }
+    });
+
+  } catch (error) {
+    console.error('Get tasks by category error:', error);
+    
+    if (error.message.includes('not found')) {
+      return res.status(404).json({ 
+        error: { message: error.message }
+      });
+    }
+
+    res.status(500).json({ 
+      error: { message: 'Internal server error' }
+    });
+  }
+};
+
 // Create new task
 export const createTask = async (req, res) => {
   try {
@@ -170,64 +222,3 @@ export const getPopularTasks = async (req, res) => {
   }
 };
 
-// Get task analytics
-export const getTaskAnalytics = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { period = 'month' } = req.query;
-
-    const analytics = await TaskModel.getAnalytics(id, period);
-
-    res.json({
-      success: true,
-      data: analytics
-    });
-
-  } catch (error) {
-    console.error('Get task analytics error:', error);
-    if (error.message === 'Task not found') {
-      return res.status(404).json({ 
-        error: { message: error.message }
-      });
-    }
-    res.status(500).json({ 
-      error: { message: 'Internal server error' }
-    });
-  }
-};
-
-// Get task statistics
-export const getTaskStatistics = async (req, res) => {
-  try {
-    const statistics = await TaskModel.getStatistics();
-
-    res.json({
-      success: true,
-      data: statistics
-    });
-
-  } catch (error) {
-    console.error('Get task statistics error:', error);
-    res.status(500).json({ 
-      error: { message: 'Internal server error' }
-    });
-  }
-};
-
-// Get task categories
-export const getTaskCategories = async (req, res) => {
-  try {
-    const categories = await TaskModel.getCategories();
-
-    res.json({
-      success: true,
-      data: categories
-    });
-
-  } catch (error) {
-    console.error('Get task categories error:', error);
-    res.status(500).json({ 
-      error: { message: 'Internal server error' }
-    });
-  }
-};

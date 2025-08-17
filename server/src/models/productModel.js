@@ -2,109 +2,62 @@
 import { prisma } from '../lib/db.js';
 
 /**
- * Find products with advanced filtering
+ * Get all products
  */
-export const findWithFilters = async (filters = {}) => {
-  const {
-    search,
-    categories,
-    types,
-    maxPoints,
-    minPoints,
-    available = true,
-    sortBy = 'productName',
-    sortOrder = 'asc',
-    limit = 50,
-    offset = 0
-  } = filters;
-
-  // Build where clause
-  const where = {};
-  
-  if (available !== undefined) {
-    where.available = available;
-  }
-
-  // Search filter
-  if (search) {
-    where.productName = {
-      contains: search,
-      mode: 'insensitive'
-    };
-  }
-
-  // Category filter
-  if (categories && categories.length > 0) {
-    where.categoryId = {
-      in: categories.map(id => parseInt(id))
-    };
-  }
-
-  // Product type filter
-  if (types && types.length > 0) {
-    where.productType = {
-      in: types
-    };
-  }
-
-  // Points filters
-  if (maxPoints !== undefined || minPoints !== undefined) {
-    where.points = {};
-    if (maxPoints !== undefined) where.points.lte = parseInt(maxPoints);
-    if (minPoints !== undefined) where.points.gte = parseInt(minPoints);
-  }
-
-  // Build orderBy clause
-  let orderBy = {};
-  if (sortBy === 'productName') {
-    orderBy.productName = sortOrder.toLowerCase();
-  } else if (sortBy === 'points') {
-    orderBy.points = sortOrder.toLowerCase();
-  } else if (sortBy === 'popularity') {
-    // Order by redemption count
-    orderBy = {
-      redemptions: {
-        _count: 'desc'
-      }
-    };
-  } else {
-    orderBy[sortBy] = sortOrder.toLowerCase();
-  }
-
-  // Execute query with pagination
-  const [products, totalCount] = await Promise.all([
-    prisma.product.findMany({
-      where,
+export const findAll = async () => {
+  try {
+    const products = await prisma.product.findMany({
       include: {
-        category: {
-          select: {
-            id: true,
-            categoryName: true
-          }
-        },
-        _count: {
-          select: {
-            redemptions: true
-          }
-        }
+        category: true
       },
-      orderBy,
-      take: parseInt(limit),
-      skip: parseInt(offset)
-    }),
-    prisma.product.count({ where })
-  ]);
+      orderBy: {
+        productName: 'asc'
+      }
+    });
 
-  return {
-    products,
-    totalCount,
-    pagination: {
-      total: totalCount,
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      pages: Math.ceil(totalCount / parseInt(limit))
+    return products;
+
+  } catch (error) {
+    if (error.code === 'P2022' || error.code === 'P2032') {
+      console.log('Attempting raw query for findAll due to schema mismatch...');
+      
+      const query = `
+        SELECT 
+          p."Product_ID" as id,
+          p."Product_Name" as "productName",
+          p."Image_URL" as "imageUrl",
+          p."Product_Description" as "productDescription",
+          p."Points" as points,
+          p."Available" as available,
+          p."Category_ID" as "categoryId",
+          c."Category_Name" as "category_name"
+        FROM "public"."MWH_Product" p
+        LEFT JOIN "public"."MWH_Category" c ON p."Category_ID" = c."Category_ID"
+        ORDER BY p."Product_Name" ASC
+      `;
+
+      const rawProducts = await prisma.$queryRawUnsafe(query);
+
+      // Transform raw results to match expected format
+      const products = rawProducts.map(product => ({
+        id: product.id,
+        productName: product.productName,
+        imageUrl: product.imageUrl,
+        productDescription: product.productDescription,
+        points: product.points,
+        available: product.available,
+        categoryId: product.categoryId,
+        category: product.category_name ? {
+          id: product.categoryId,
+          categoryName: product.category_name
+        } : null
+      }));
+
+      return products;
     }
-  };
+
+    throw error;
+  }
 };
 
 /**
@@ -176,6 +129,69 @@ export const getPopular = async (limit = 10, timeframe = 'all') => {
 };
 
 /**
+ * Get products by category
+ */
+export const findByCategory = async (categoryId) => {
+  try {
+    const products = await prisma.product.findMany({
+      where: {
+        categoryId: parseInt(categoryId)
+      },
+      include: {
+        category: true
+      },
+      orderBy: {
+        productName: 'asc'
+      }
+    });
+
+    return products;
+
+  } catch (error) {
+    if (error.code === 'P2022' || error.code === 'P2032') {
+      console.log('Attempting raw query for findByCategory due to schema mismatch...');
+      
+      const query = `
+        SELECT 
+          p."Product_ID" as id,
+          p."Product_Name" as "productName",
+          p."Image_URL" as "imageUrl",
+          p."Product_Description" as "productDescription",
+          p."Points" as points,
+          p."Available" as available,
+          p."Category_ID" as "categoryId",
+          c."Category_Name" as "category_name"
+        FROM "public"."MWH_Product" p
+        LEFT JOIN "public"."MWH_Category" c ON p."Category_ID" = c."Category_ID"
+        WHERE p."Category_ID" = $1
+        ORDER BY p."Product_Name" ASC
+      `;
+
+      const rawProducts = await prisma.$queryRawUnsafe(query, parseInt(categoryId));
+
+      // Transform raw results to match expected format
+      const products = rawProducts.map(product => ({
+        id: product.id,
+        productName: product.productName,
+        imageUrl: product.imageUrl,
+        productDescription: product.productDescription,
+        points: product.points,
+        available: product.available,
+        categoryId: product.categoryId,
+        category: product.category_name ? {
+          id: product.categoryId,
+          categoryName: product.category_name
+        } : null
+      }));
+
+      return products;
+    }
+
+    throw error;
+  }
+};
+
+/**
  * Find product by ID
  */
 export const findById = async (id, includeAnalytics = false) => {
@@ -230,9 +246,7 @@ export const create = async (productData) => {
     productDescription,
     points,
     categoryId,
-    productType = 'physical',
     imageUrl,
-    stock,
     available = true
   } = productData;
 
@@ -256,9 +270,7 @@ export const create = async (productData) => {
       productDescription,
       points: parseInt(points),
       categoryId: parseInt(categoryId),
-      productType,
       imageUrl,
-      stock: stock ? parseInt(stock) : null,
       available
     },
     include: {

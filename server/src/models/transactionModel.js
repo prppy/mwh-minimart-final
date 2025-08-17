@@ -1,31 +1,15 @@
-// models/Transaction.js
 import { prisma } from '../lib/db.js';
 
-class TransactionModel {
-  /**
-   * Get transactions for a specific user
-   */
-  static async getByUser(userId, options = {}) {
-    const { limit = 20, offset = 0, type, startDate, endDate } = options;
-
-    const where = {
-      userId: parseInt(userId)
-    };
-
-    if (type) {
-      where.transactionType = type;
-    }
-
-    if (startDate && endDate) {
-      where.transactionDate = {
-        gte: new Date(startDate),
-        lte: new Date(endDate)
-      };
-    }
+/**
+ * Find transactions by user ID
+ */
+export const findByUserId = async (userId, options = {}) => {
+  try {
+    const { limit = 20, offset = 0 } = options;
 
     const [transactions, totalCount] = await Promise.all([
       prisma.transaction.findMany({
-        where,
+        where: { userId },
         include: {
           redemptions: {
             include: {
@@ -45,12 +29,22 @@ class TransactionModel {
                 select: {
                   id: true,
                   taskName: true,
-                  points: true
+                  points: true,
+                  taskCategory: {
+                    select: {
+                      taskCategoryName: true
+                    }
+                  }
                 }
               }
             }
           },
           abscondence: true,
+          user: {
+            select: {
+              userName: true
+            }
+          },
           officer: {
             select: {
               userName: true
@@ -61,12 +55,11 @@ class TransactionModel {
         take: parseInt(limit),
         skip: parseInt(offset)
       }),
-      prisma.transaction.count({ where })
+      prisma.transaction.count({ where: { userId } })
     ]);
 
     return {
       transactions,
-      totalCount,
       pagination: {
         total: totalCount,
         limit: parseInt(limit),
@@ -74,56 +67,63 @@ class TransactionModel {
         pages: Math.ceil(totalCount / parseInt(limit))
       }
     };
+
+  } catch (error) {
+    console.error('Transaction findByUserId error:', error);
+    throw error;
   }
+};
 
-  /**
-   * Create a redemption transaction
-   */
-  static async createRedemption(userId, officerId, products) {
-    return prisma.$transaction(async (tx) => {
-      // Verify resident exists
-      const resident = await tx.resident.findUnique({
-        where: { userId: parseInt(userId) }
-      });
+/**
+ * Create redemption transaction
+ */
+export const createRedemption = async ({ userId, officerId, products }) => {
+  try {
+    // Verify resident exists
+    const resident = await prisma.resident.findUnique({
+      where: { userId }
+    });
 
-      if (!resident) {
-        throw new Error('Resident not found');
+    if (!resident) {
+      throw new Error('Resident not found');
+    }
+
+    // Verify all products exist and are available
+    const productIds = products.map(p => parseInt(p.id));
+    const foundProducts = await prisma.product.findMany({
+      where: { 
+        id: { in: productIds },
+        available: true 
       }
+    });
 
-      // Verify all products exist and are available
-      const productIds = products.map(p => parseInt(p.id));
-      const foundProducts = await tx.product.findMany({
-        where: { 
-          id: { in: productIds },
-          available: true 
-        }
-      });
+    if (foundProducts.length !== productIds.length) {
+      throw new Error('One or more products not found or unavailable');
+    }
 
-      if (foundProducts.length !== productIds.length) {
-        throw new Error('One or more products not found or unavailable');
-      }
+    // Calculate total points needed
+    const productMap = foundProducts.reduce((map, product) => {
+      map[product.id] = product;
+      return map;
+    }, {});
 
-      // Calculate total points needed
-      const productMap = foundProducts.reduce((map, product) => {
-        map[product.id] = product;
-        return map;
-      }, {});
+    const totalPoints = products.reduce((sum, p) => {
+      const product = productMap[parseInt(p.id)];
+      return sum + (product.points * parseInt(p.quantity));
+    }, 0);
 
-      const totalPoints = products.reduce((sum, p) => {
-        const product = productMap[parseInt(p.id)];
-        return sum + (product.points * parseInt(p.quantity));
-      }, 0);
+    // Check if resident has enough points
+    if (resident.currentPoints < totalPoints) {
+      throw new Error(`Insufficient points. Required: ${totalPoints}, Available: ${resident.currentPoints}`);
+    }
 
-      // Check if resident has enough points
-      if (resident.currentPoints < totalPoints) {
-        throw new Error(`Insufficient points. Required: ${totalPoints}, Available: ${resident.currentPoints}`);
-      }
-
+    // Create redemption transaction
+    const result = await prisma.$transaction(async (tx) => {
       // Create transaction
       const transaction = await tx.transaction.create({
         data: {
-          userId: parseInt(userId),
-          officerId: parseInt(officerId),
+          userId,
+          officerId,
           pointsChange: -totalPoints,
           transactionType: 'redemption'
         }
@@ -144,7 +144,7 @@ class TransactionModel {
 
       // Update resident points
       const updatedResident = await tx.resident.update({
-        where: { userId: parseInt(userId) },
+        where: { userId },
         data: {
           currentPoints: {
             decrement: totalPoints
@@ -152,50 +152,58 @@ class TransactionModel {
         }
       });
 
-      return { 
-        transaction, 
-        redemptions, 
-        totalPoints,
-        remainingPoints: updatedResident.currentPoints 
-      };
+      return { transaction, redemptions, updatedResident };
     });
+
+    return {
+      transaction: result.transaction,
+      redemptions: result.redemptions,
+      pointsDeducted: totalPoints,
+      remainingPoints: result.updatedResident.currentPoints
+    };
+
+  } catch (error) {
+    console.error('Transaction createRedemption error:', error);
+    throw error;
   }
+};
 
-  /**
-   * Create a task completion transaction
-   */
-  static async createCompletion(userId, officerId, tasks) {
-    return prisma.$transaction(async (tx) => {
-      // Verify resident exists
-      const resident = await tx.resident.findUnique({
-        where: { userId: parseInt(userId) }
-      });
+/**
+ * Create task completion transaction
+ */
+export const createCompletion = async ({ userId, officerId, tasks }) => {
+  try {
+    // Verify resident exists
+    const resident = await prisma.resident.findUnique({
+      where: { userId }
+    });
 
-      if (!resident) {
-        throw new Error('Resident not found');
+    if (!resident) {
+      throw new Error('Resident not found');
+    }
+
+    // Verify all tasks exist (removed active check since it doesn't exist in schema)
+    const taskIds = tasks.map(t => parseInt(t.id));
+    const foundTasks = await prisma.task.findMany({
+      where: { 
+        id: { in: taskIds }
       }
+    });
 
-      // Verify all tasks exist and are active
-      const taskIds = tasks.map(t => parseInt(t.id));
-      const foundTasks = await tx.task.findMany({
-        where: { 
-          id: { in: taskIds },
-          active: true 
-        }
-      });
+    if (foundTasks.length !== taskIds.length) {
+      throw new Error('One or more tasks not found');
+    }
 
-      if (foundTasks.length !== taskIds.length) {
-        throw new Error('One or more tasks not found or inactive');
-      }
+    // Calculate total points earned
+    const totalPoints = foundTasks.reduce((sum, task) => sum + task.points, 0);
 
-      // Calculate total points earned
-      const totalPoints = foundTasks.reduce((sum, task) => sum + task.points, 0);
-
+    // Create completion transaction
+    const result = await prisma.$transaction(async (tx) => {
       // Create transaction
       const transaction = await tx.transaction.create({
         data: {
-          userId: parseInt(userId),
-          officerId: parseInt(officerId),
+          userId,
+          officerId,
           pointsChange: totalPoints,
           transactionType: 'completion'
         }
@@ -215,7 +223,7 @@ class TransactionModel {
 
       // Update resident points
       const updatedResident = await tx.resident.update({
-        where: { userId: parseInt(userId) },
+        where: { userId },
         data: {
           currentPoints: {
             increment: totalPoints
@@ -226,34 +234,43 @@ class TransactionModel {
         }
       });
 
-      return { 
-        transaction, 
-        completions, 
-        totalPoints,
-        newBalance: updatedResident.currentPoints 
-      };
+      return { transaction, completions, updatedResident };
     });
+
+    return {
+      transaction: result.transaction,
+      completions: result.completions,
+      pointsEarned: totalPoints,
+      newBalance: result.updatedResident.currentPoints
+    };
+
+  } catch (error) {
+    console.error('Transaction createCompletion error:', error);
+    throw error;
   }
+};
 
-  /**
-   * Create an abscondence transaction
-   */
-  static async createAbscondence(userId, officerId, reason, pointsPenalty = 0) {
-    return prisma.$transaction(async (tx) => {
-      // Verify resident exists
-      const resident = await tx.resident.findUnique({
-        where: { userId: parseInt(userId) }
-      });
+/**
+ * Create abscondence transaction
+ */
+export const createAbscondence = async ({ userId, officerId, reason, pointsPenalty }) => {
+  try {
+    // Verify resident exists
+    const resident = await prisma.resident.findUnique({
+      where: { userId }
+    });
 
-      if (!resident) {
-        throw new Error('Resident not found');
-      }
+    if (!resident) {
+      throw new Error('Resident not found');
+    }
 
+    // Create abscondence transaction
+    const result = await prisma.$transaction(async (tx) => {
       // Create transaction
       const transaction = await tx.transaction.create({
         data: {
-          userId: parseInt(userId),
-          officerId: parseInt(officerId),
+          userId,
+          officerId,
           pointsChange: -pointsPenalty,
           transactionType: 'abscondence'
         }
@@ -269,30 +286,38 @@ class TransactionModel {
 
       // Update resident points and last abscondence date
       const updatedResident = await tx.resident.update({
-        where: { userId: parseInt(userId) },
+        where: { userId },
         data: {
-          currentPoints: {
-            decrement: pointsPenalty
-          },
+          currentPoints: Math.max(0, resident.currentPoints - pointsPenalty),
           lastAbscondence: new Date()
         }
       });
 
-      return { 
-        transaction, 
-        abscondence, 
-        pointsPenalty,
-        remainingPoints: updatedResident.currentPoints 
-      };
+      return { transaction, abscondence, updatedResident };
     });
-  }
 
-  /**
-   * Get points summary for a user
-   */
-  static async getPointsSummary(userId, startDate, endDate) {
-    const where = { userId: parseInt(userId) };
-    
+    return {
+      transaction: result.transaction,
+      abscondence: result.abscondence,
+      pointsPenalty,
+      remainingPoints: result.updatedResident.currentPoints
+    };
+
+  } catch (error) {
+    console.error('Transaction createAbscondence error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get points summary for a user
+ */
+export const getPointsSummary = async (userId, options = {}) => {
+  try {
+    const { startDate, endDate } = options;
+
+    // Build where clause for date filtering
+    const where = { userId };
     if (startDate && endDate) {
       where.transactionDate = {
         gte: new Date(startDate),
@@ -314,7 +339,7 @@ class TransactionModel {
 
     // Get current resident data
     const resident = await prisma.resident.findUnique({
-      where: { userId: parseInt(userId) },
+      where: { userId },
       include: {
         user: {
           select: {
@@ -333,30 +358,35 @@ class TransactionModel {
       current: resident ? {
         currentPoints: resident.currentPoints,
         totalPoints: resident.totalPoints,
-        userName: resident.user.userName
+        userName: resident.user.userName,
+        lastAbscondence: resident.lastAbscondence
       } : null
     };
-  }
 
-  /**
-   * Get all transactions with filtering
-   */
-  static async getAll(options = {}) {
+  } catch (error) {
+    console.error('Transaction getPointsSummary error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Find many transactions with filters
+ */
+export const findMany = async (filters = {}) => {
+  try {
     const { 
       limit = 50, 
       offset = 0, 
       type, 
       startDate, 
       endDate,
-      userId,
-      officerId
-    } = options;
+      userId 
+    } = filters;
 
     const where = {};
     
     if (type) where.transactionType = type;
-    if (userId) where.userId = parseInt(userId);
-    if (officerId) where.officerId = parseInt(officerId);
+    if (userId) where.userId = userId;
     if (startDate && endDate) {
       where.transactionDate = {
         gte: new Date(startDate),
@@ -370,7 +400,8 @@ class TransactionModel {
         include: {
           user: {
             select: {
-              userName: true
+              userName: true,
+              userRole: true
             }
           },
           officer: {
@@ -384,7 +415,8 @@ class TransactionModel {
                 select: {
                   id: true,
                   productName: true,
-                  points: true
+                  points: true,
+                  imageUrl: true
                 }
               }
             }
@@ -395,7 +427,12 @@ class TransactionModel {
                 select: {
                   id: true,
                   taskName: true,
-                  points: true
+                  points: true,
+                  taskCategory: {
+                    select: {
+                      taskCategoryName: true
+                    }
+                  }
                 }
               }
             }
@@ -411,7 +448,6 @@ class TransactionModel {
 
     return {
       transactions,
-      totalCount,
       pagination: {
         total: totalCount,
         limit: parseInt(limit),
@@ -419,12 +455,18 @@ class TransactionModel {
         pages: Math.ceil(totalCount / parseInt(limit))
       }
     };
-  }
 
-  /**
-   * Get transaction analytics
-   */
-  static async getAnalytics(period = 'month') {
+  } catch (error) {
+    console.error('Transaction findMany error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get transaction analytics
+ */
+export const getAnalytics = async (period = 'month') => {
+  try {
     const now = new Date();
     let startDate;
 
@@ -474,16 +516,16 @@ class TransactionModel {
         }
       }),
 
-      // Daily breakdown
+      // Daily breakdown for the period
       prisma.$queryRaw`
         SELECT 
-          DATE(transaction_date) as date,
-          transaction_type,
+          DATE_TRUNC('day', "Transaction_Date") as date,
+          "Transaction_Type" as type,
           COUNT(*) as count,
-          SUM(points_change) as total_points
-        FROM "MWH_Transaction"
-        WHERE transaction_date >= ${startDate}
-        GROUP BY DATE(transaction_date), transaction_type
+          SUM("Points_Change") as points
+        FROM "public"."MWH_Transaction"
+        WHERE "Transaction_Date" >= ${startDate}
+        GROUP BY DATE_TRUNC('day', "Transaction_Date"), "Transaction_Type"
         ORDER BY date DESC
       `
     ]);
@@ -494,17 +536,27 @@ class TransactionModel {
         totalTransactions: overallStats._count.id,
         totalPointsFlow: overallStats._sum.pointsChange || 0
       },
-      byType: typeStats,
-      daily: dailyStats
+      byType: typeStats.map(stat => ({
+        type: stat.transactionType,
+        count: stat._count.id,
+        totalPoints: stat._sum.pointsChange || 0
+      })),
+      dailyBreakdown: dailyStats
     };
-  }
 
-  /**
-   * Get transaction by ID with full details
-   */
-  static async findById(id) {
-    return prisma.transaction.findUnique({
-      where: { id: parseInt(id) },
+  } catch (error) {
+    console.error('Transaction getAnalytics error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Find transaction by ID
+ */
+export const findById = async (id) => {
+  try {
+    const transaction = await prisma.transaction.findUnique({
+      where: { id },
       include: {
         user: {
           select: {
@@ -524,7 +576,8 @@ class TransactionModel {
                 id: true,
                 productName: true,
                 points: true,
-                imageUrl: true
+                imageUrl: true,
+                productDescription: true
               }
             }
           }
@@ -535,6 +588,7 @@ class TransactionModel {
               select: {
                 id: true,
                 taskName: true,
+                taskDescription: true,
                 points: true,
                 taskCategory: {
                   select: {
@@ -548,143 +602,11 @@ class TransactionModel {
         abscondence: true
       }
     });
+
+    return transaction;
+
+  } catch (error) {
+    console.error('Transaction findById error:', error);
+    throw error;
   }
-
-  /**
-   * Reverse/cancel a transaction (if applicable)
-   */
-  static async reverseTransaction(transactionId, officerId, reason) {
-    return prisma.$transaction(async (tx) => {
-      const originalTransaction = await tx.transaction.findUnique({
-        where: { id: parseInt(transactionId) },
-        include: {
-          redemptions: true,
-          completions: true,
-          abscondence: true
-        }
-      });
-
-      if (!originalTransaction) {
-        throw new Error('Transaction not found');
-      }
-
-      // Check if transaction is recent enough to reverse (e.g., within 24 hours)
-      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      if (originalTransaction.transactionDate < twentyFourHoursAgo) {
-        throw new Error('Transaction is too old to reverse');
-      }
-
-      // Create reverse transaction
-      const reverseTransaction = await tx.transaction.create({
-        data: {
-          userId: originalTransaction.userId,
-          officerId: parseInt(officerId),
-          pointsChange: -originalTransaction.pointsChange,
-          transactionType: originalTransaction.transactionType
-        }
-      });
-
-      // Update resident points (reverse the original change)
-      await tx.resident.update({
-        where: { userId: originalTransaction.userId },
-        data: {
-          currentPoints: {
-            increment: -originalTransaction.pointsChange
-          },
-          ...(originalTransaction.pointsChange > 0 && {
-            totalPoints: {
-              decrement: originalTransaction.pointsChange
-            }
-          })
-        }
-      });
-
-      // Create reverse records for redemptions
-      if (originalTransaction.redemptions.length > 0) {
-        await Promise.all(
-          originalTransaction.redemptions.map(redemption =>
-            tx.redemption.create({
-              data: {
-                transactionId: reverseTransaction.id,
-                productId: redemption.productId,
-                productQuantity: -redemption.productQuantity // Negative quantity for reversal
-              }
-            })
-          )
-        );
-      }
-
-      // Create reverse records for completions
-      if (originalTransaction.completions.length > 0) {
-        await Promise.all(
-          originalTransaction.completions.map(completion =>
-            tx.completion.create({
-              data: {
-                transactionId: reverseTransaction.id,
-                taskId: completion.taskId
-              }
-            })
-          )
-        );
-      }
-
-      // Create reverse record for abscondence
-      if (originalTransaction.abscondence) {
-        await tx.abscondence.create({
-          data: {
-            transactionId: reverseTransaction.id,
-            reason: `REVERSAL: ${reason}`
-          }
-        });
-      }
-
-      return {
-        originalTransaction,
-        reverseTransaction,
-        reason
-      };
-    });
-  }
-
-  /**
-   * Get recent activity across all users
-   */
-  static async getRecentActivity(limit = 20) {
-    return prisma.transaction.findMany({
-      include: {
-        user: {
-          select: {
-            userName: true
-          }
-        },
-        officer: {
-          select: {
-            userName: true
-          }
-        },
-        redemptions: {
-          include: {
-            product: {
-              select: {
-                productName: true
-              }
-            }
-          }
-        },
-        completions: {
-          include: {
-            task: {
-              select: {
-                taskName: true
-              }
-            }
-          }
-        }
-      },
-      orderBy: { transactionDate: 'desc' },
-      take: parseInt(limit)
-    });
-  }
-}
-
-export default TransactionModel;
+};
