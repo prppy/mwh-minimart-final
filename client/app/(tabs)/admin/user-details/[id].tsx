@@ -15,39 +15,54 @@ import { ADMIN_PURPLE } from "@/constants/colors";
 type User = {
   id: string;
   name: string;
-  leaderboard: number;
-  points: number;
+  userRole: string;
   profilePicture: string;
-  batchNumber: string;
-  dateOfAdmission: string;
+  resident: {
+    totalPoints: number;
+    currentPoints: number;
+    batchNumber: string;
+    dateOfAdmission: string;
+  } | null;
+  officer: {
+    officerEmail: string;
+  } | null;
 };
 
 const UserDetails: React.FC = () => {
   const { id, role } = useLocalSearchParams<{ id: string; role: string }>();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
-
   useEffect(() => {
-    if (!id) return;
-
     const fetchUser = async () => {
       try {
         const res = await api.get(`/users/${id}`);
-        // Transform API response to match your User type
-        if (role === "residents" && res.data?.data) {
-          const u = res.data.data; // your API shape
-          setUser({
-            id: u.id.toString(),
-            name: u.userName,
-            leaderboard: u.resident?.totalPoints || 0,
-            points: u.resident?.currentPoints || 0,
-            profilePicture:
-              u.profilePicture || "https://placekitten.com/200/200",
-            batchNumber: u.resident?.batchNumber?.toString() || "-",
-            dateOfAdmission: u.resident?.dateOfAdmission || "",
-          });
-        }
-        // For officers you can add another branch here
+        const u = res.data?.data;
+        if (!u) return;
+
+        const transformedUser = {
+          id: u.id.toString(),
+          name: u.userName,
+          userRole: u.userRole,
+          profilePicture: u.profilePicture || "https://placekitten.com/200/200",
+          resident:
+            u.userRole === "resident" && u.resident
+              ? {
+                  totalPoints: u.resident.totalPoints || 0,
+                  currentPoints: u.resident.currentPoints || 0,
+                  batchNumber: u.resident.batchNumber?.toString() || "-",
+                  dateOfAdmission: u.resident.dateOfAdmission || "",
+                  lastAbscondence: u.resident.lastAbsondence || "",
+                }
+              : null,
+          officer:
+            u.userRole === "officer" && u.officer
+              ? {
+                  officerEmail: u.officer.officerEmail || "-",
+                }
+              : null,
+        };
+
+        setUser(transformedUser);
       } catch (err) {
         console.error("Error fetching user:", err);
         setUser(null);
@@ -56,7 +71,10 @@ const UserDetails: React.FC = () => {
       }
     };
 
-    fetchUser();
+    if (id) {
+      setLoading(true);
+      fetchUser();
+    }
   }, [id, role]);
 
   if (loading) {
@@ -75,19 +93,31 @@ const UserDetails: React.FC = () => {
     );
   }
 
-  const rowItems = [
-    [
-      { label: "Leaderboard", value: user.leaderboard },
-      { label: "Points", value: `${user.points} pts` },
-    ],
-    [
-      { label: "Batch Number", value: user.batchNumber },
-      {
-        label: "Admission",
-        value: new Date(user.dateOfAdmission).toLocaleDateString(),
-      },
-    ],
-  ];
+  // inside your component, after `if (!user) return ...`
+  let rowItems: { label: string; value: string | number }[][] = [];
+
+  if (user.userRole === "resident" && user.resident) {
+    rowItems = [
+      [
+        { label: "Leaderboard", value: user.resident.totalPoints ?? 0 },
+        { label: "Points", value: user.resident.currentPoints ?? 0 },
+      ],
+      [
+        { label: "Batch Number", value: user.resident.batchNumber ?? "-" },
+        {
+          label: "Admission",
+          value: new Date(user.resident.dateOfAdmission).toLocaleDateString(),
+        },
+      ],
+    ];
+  } else if (user.userRole === "officer" && user.officer) {
+    rowItems = [
+      [
+        { label: "Email", value: user.officer.officerEmail ?? "-" },
+        { label: "User ID", value: user.id },
+      ],
+    ];
+  }
 
   return (
     <ScrollView flex={1} bg={ADMIN_PURPLE}>
