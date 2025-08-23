@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { StyleSheet, Text } from "react-native";
-import { VStack, Box, ScrollView } from "@gluestack-ui/themed";
+import { useRouter } from "expo-router";
+import { VStack, Box, ScrollView, Pressable } from "@gluestack-ui/themed";
 import { DataTable } from "react-native-paper";
 import { ADMIN_PURPLE, LIGHTEST_PURPLE } from "../../../constants/colors";
 import RoleOptions from "@/components/admin pages/RoleOptions";
@@ -88,63 +89,76 @@ const AdminUsers: React.FC = () => {
   const from = page * itemsPerPage;
   const to = Math.min((page + 1) * itemsPerPage, filteredData.length);
 
+  const router = useRouter(); // to navigate
+
   const renderRow = (item: any, index: number) => (
-    <DataTable.Row
+    <Pressable
+      onPress={() =>
+        router.push({
+          pathname: `/admin/user-details/${item.id}`,
+          params: { role: selectedRole },
+        })
+      }
       key={item.id}
-      style={{
-        backgroundColor: index % 2 === 0 ? "white" : "#F5F5F5",
-      }}
     >
-      {selectedRole === "officers" ? (
-        <>
-          <DataTable.Cell>{item.id}</DataTable.Cell>
-          <DataTable.Cell>
-            <Box style={{ flexDirection: "row", alignItems: "center" }}>
-              <ProfileAvatar
-                source={item.profilePicture}
-                borderColor={item.color}
-                scale={0.9}
-              />
-              <Text>{renderHighlightedText(item.userName, searchText)}</Text>
-            </Box>
-          </DataTable.Cell>
-          <DataTable.Cell>{item.officer?.officerEmail || "-"}</DataTable.Cell>
-          <DataTable.Cell>Actions</DataTable.Cell>
-        </>
-      ) : (
-        <>
-          <DataTable.Cell>{item.id}</DataTable.Cell>
-          <DataTable.Cell>
-            <Box style={{ flexDirection: "row", alignItems: "center" }}>
-              <ProfileAvatar
-                source={item.profilePicture}
-                borderColor={item.color}
-                scale={0.9}
-              />
-              <Text>{renderHighlightedText(item.userName, searchText)}</Text>
-            </Box>
-          </DataTable.Cell>
-          <DataTable.Cell>
-            {item.resident?.dateOfBirth
-              ? new Date(item.resident.dateOfBirth).toLocaleDateString()
-              : "-"}
-          </DataTable.Cell>
-          <DataTable.Cell>
-            {item.resident?.dateOfAdmission
-              ? new Date(item.resident.dateOfAdmission).toLocaleDateString()
-              : "-"}
-          </DataTable.Cell>
-          <DataTable.Cell>
-            {item.resident?.lastAbscondence
-              ? new Date(item.resident.lastAbscondence).toLocaleDateString()
-              : "-"}
-          </DataTable.Cell>
-          <DataTable.Cell>{item.resident?.currentPoints ?? "-"}</DataTable.Cell>
-          <DataTable.Cell>{item.resident?.batchNumber || "-"}</DataTable.Cell>
-          <DataTable.Cell>Actions</DataTable.Cell>
-        </>
-      )}
-    </DataTable.Row>
+      <DataTable.Row
+        style={{
+          backgroundColor: index % 2 === 0 ? "white" : "#F5F5F5",
+        }}
+      >
+        {selectedRole === "officers" ? (
+          <>
+            <DataTable.Cell>{item.id}</DataTable.Cell>
+            <DataTable.Cell>
+              <Box style={{ flexDirection: "row", alignItems: "center" }}>
+                <ProfileAvatar
+                  source={item.profilePicture}
+                  borderColor={item.color}
+                  scale={0.9}
+                />
+                <Text>{renderHighlightedText(item.userName, searchText)}</Text>
+              </Box>
+            </DataTable.Cell>
+            <DataTable.Cell>{item.officer?.officerEmail || "-"}</DataTable.Cell>
+            <DataTable.Cell>Actions</DataTable.Cell>
+          </>
+        ) : (
+          <>
+            <DataTable.Cell>{item.id}</DataTable.Cell>
+            <DataTable.Cell>
+              <Box style={{ flexDirection: "row", alignItems: "center" }}>
+                <ProfileAvatar
+                  source={item.profilePicture}
+                  borderColor={item.color}
+                  scale={0.9}
+                />
+                <Text>{renderHighlightedText(item.userName, searchText)}</Text>
+              </Box>
+            </DataTable.Cell>
+            <DataTable.Cell>
+              {item.resident?.dateOfBirth
+                ? new Date(item.resident.dateOfBirth).toLocaleDateString()
+                : "-"}
+            </DataTable.Cell>
+            <DataTable.Cell>
+              {item.resident?.dateOfAdmission
+                ? new Date(item.resident.dateOfAdmission).toLocaleDateString()
+                : "-"}
+            </DataTable.Cell>
+            <DataTable.Cell>
+              {item.resident?.lastAbscondence
+                ? new Date(item.resident.lastAbscondence).toLocaleDateString()
+                : "-"}
+            </DataTable.Cell>
+            <DataTable.Cell>
+              {item.resident?.currentPoints ?? "-"}
+            </DataTable.Cell>
+            <DataTable.Cell>{item.resident?.batchNumber || "-"}</DataTable.Cell>
+            <DataTable.Cell>Actions</DataTable.Cell>
+          </>
+        )}
+      </DataTable.Row>
+    </Pressable>
   );
 
   return (
