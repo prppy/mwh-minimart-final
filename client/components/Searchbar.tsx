@@ -1,5 +1,11 @@
 import React from "react";
-import { StyleSheet, TextInput, View } from "react-native";
+import {
+  StyleSheet,
+  TextInput,
+  View,
+  StyleProp,
+  ViewStyle,
+} from "react-native";
 import { Icon } from "@gluestack-ui/themed";
 import { Search } from "lucide-react-native";
 
@@ -7,15 +13,17 @@ interface SearchBarProps {
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
+  sx?: StyleProp<ViewStyle>;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({
   value,
   onChangeText,
   placeholder,
+  sx,
 }) => {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, sx]}>
       <TextInput
         style={styles.searchInput}
         placeholder={placeholder || "Search..."}
@@ -31,7 +39,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
 const styles = StyleSheet.create({
   container: {
     position: "relative",
-    marginTop: 20,
+    justifyContent: "center",
   },
   searchInput: {
     backgroundColor: "white",
