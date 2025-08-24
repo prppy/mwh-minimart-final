@@ -177,6 +177,7 @@ const AdminUsers: React.FC = () => {
           setPage(0);
         }}
         placeholder="Search by name"
+        sx={{ marginTop: 20 }}
       />
 
       <Box borderRadius={12} overflow="hidden" mt={20}>
