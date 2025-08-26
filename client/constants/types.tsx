@@ -3,6 +3,10 @@ export interface User {
   userName: string; // from u."User_Name"
   userRole: string; // from u."User_Role" — consider string union if possible
   profilePicture?: string | null; // from u."Profile_Picture"
+  resident?: {
+    batchNumber?: number;
+    currentPoints?: number;
+  };
   passwordHash: string; // from u."Password_Hash"
   biometricHash?: string | null; // from u."Biometric_Hash"
   createdAt: string; // from u."Created_At" (ISO string date)
