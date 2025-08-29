@@ -610,3 +610,216 @@ export const findById = async (id) => {
     throw error;
   }
 };
+
+/**
+ * Get transaction analytics for leaderboards
+ */
+export const getTransactionAnalytics = async (options = {}) => {
+  try {
+    const {
+      period = 'month', // 'month', 'year', 'all'
+      batchNumber,
+      type // 'completion', 'redemption', 'abscondence'
+    } = options;
+
+    const now = new Date();
+    let startDate, endDate;
+
+    if (period === 'month') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    } else if (period === 'year') {
+      startDate = new Date(now.getFullYear(), 0, 1);
+      endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+    }
+
+    // Build the query
+    let query = `
+      SELECT 
+        r."User_ID" as "userId",
+        u."User_Name" as "userName",
+        r."Batch_Number" as "batchNumber",
+        COUNT(t."Transaction_ID") as "transactionCount",
+        COALESCE(SUM(t."Points_Change"), 0) as "totalPoints",
+        AVG(t."Points_Change") as "avgPoints",
+        MIN(t."Transaction_Date") as "firstTransaction",
+        MAX(t."Transaction_Date") as "lastTransaction"
+      FROM "public"."MWH_Transaction" t
+      INNER JOIN "public"."MWH_Resident" r ON t."User_ID" = r."User_ID"
+      INNER JOIN "public"."MWH_User" u ON r."User_ID" = u."User_ID"
+      WHERE 1=1
+    `;
+
+    const params = [];
+    let paramIndex = 1;
+
+    if (startDate && endDate) {
+      query += ` AND t."Transaction_Date" >= $${paramIndex} AND t."Transaction_Date" <= $${paramIndex + 1}`;
+      params.push(startDate, endDate);
+      paramIndex += 2;
+    }
+
+    if (type) {
+      query += ` AND t."Transaction_Type" = $${paramIndex}`;
+      params.push(type);
+      paramIndex++;
+    }
+
+    if (batchNumber) {
+      query += ` AND r."Batch_Number" = $${paramIndex}`;
+      params.push(parseInt(batchNumber));
+      paramIndex++;
+    }
+
+    query += `
+      GROUP BY r."User_ID", u."User_Name", r."Batch_Number"
+      ORDER BY "totalPoints" DESC
+    `;
+
+    const analytics = await prisma.$queryRawUnsafe(query, ...params);
+
+    return analytics.map(item => ({
+      userId: item.userId,
+      userName: item.userName,
+      batchNumber: item.batchNumber,
+      transactionCount: parseInt(item.transactionCount),
+      totalPoints: parseInt(item.totalPoints),
+      avgPoints: parseFloat(item.avgPoints || 0),
+      firstTransaction: item.firstTransaction,
+      lastTransaction: item.lastTransaction
+    }));
+
+  } catch (error) {
+    console.error('Transaction getTransactionAnalytics error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get points gained by period for specific users
+ */
+export const getPointsByPeriod = async (userIds, period = 'month') => {
+  try {
+    const now = new Date();
+    let startDate, endDate;
+
+    if (period === 'month') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    } else if (period === 'year') {
+      startDate = new Date(now.getFullYear(), 0, 1);
+      endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+    }
+
+    const query = `
+      SELECT 
+        t."User_ID" as "userId",
+        u."User_Name" as "userName",
+        COALESCE(SUM(CASE 
+          WHEN t."Transaction_Type" = 'completion' 
+          THEN t."Points_Change" 
+          ELSE 0 
+        END), 0) as "pointsGained",
+        COALESCE(SUM(CASE 
+          WHEN t."Transaction_Type" = 'redemption' 
+          THEN ABS(t."Points_Change") 
+          ELSE 0 
+        END), 0) as "pointsSpent",
+        COUNT(CASE 
+          WHEN t."Transaction_Type" = 'completion' 
+          THEN 1 
+        END) as "completionCount",
+        COUNT(CASE 
+          WHEN t."Transaction_Type" = 'redemption' 
+          THEN 1 
+        END) as "redemptionCount"
+      FROM "public"."MWH_Transaction" t
+      INNER JOIN "public"."MWH_User" u ON t."User_ID" = u."User_ID"
+      WHERE t."User_ID" = ANY($1)
+        AND t."Transaction_Date" >= $2 
+        AND t."Transaction_Date" <= $3
+      GROUP BY t."User_ID", u."User_Name"
+      ORDER BY "pointsGained" DESC
+    `;
+
+    const results = await prisma.$queryRawUnsafe(query, userIds, startDate, endDate);
+
+    return results.map(result => ({
+      userId: result.userId,
+      userName: result.userName,
+      pointsGained: parseInt(result.pointsGained),
+      pointsSpent: parseInt(result.pointsSpent),
+      netPoints: parseInt(result.pointsGained) - parseInt(result.pointsSpent),
+      completionCount: parseInt(result.completionCount),
+      redemptionCount: parseInt(result.redemptionCount)
+    }));
+
+  } catch (error) {
+    console.error('Transaction getPointsByPeriod error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get transaction trends for dashboard
+ */
+export const getTransactionTrends = async (options = {}) => {
+  try {
+    const {
+      period = 'month',
+      batchNumber
+    } = options;
+
+    const now = new Date();
+    let startDate;
+    let groupBy;
+
+    if (period === 'month') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      groupBy = 'DATE(t."Transaction_Date")';
+    } else if (period === 'year') {
+      startDate = new Date(now.getFullYear(), 0, 1);
+      groupBy = 'DATE_TRUNC(\'month\', t."Transaction_Date")';
+    }
+
+    let query = `
+      SELECT 
+        ${groupBy} as "period",
+        t."Transaction_Type" as "transactionType",
+        COUNT(*) as "count",
+        COALESCE(SUM(t."Points_Change"), 0) as "totalPoints"
+      FROM "public"."MWH_Transaction" t
+    `;
+
+    const params = [startDate];
+    let paramIndex = 2;
+
+    if (batchNumber) {
+      query += `
+        INNER JOIN "public"."MWH_Resident" r ON t."User_ID" = r."User_ID"
+        WHERE t."Transaction_Date" >= $1 AND r."Batch_Number" = $${paramIndex}
+      `;
+      params.push(parseInt(batchNumber));
+    } else {
+      query += ` WHERE t."Transaction_Date" >= $1`;
+    }
+
+    query += `
+      GROUP BY ${groupBy}, t."Transaction_Type"
+      ORDER BY "period", t."Transaction_Type"
+    `;
+
+    const trends = await prisma.$queryRawUnsafe(query, ...params);
+
+    return trends.map(trend => ({
+      period: trend.period,
+      transactionType: trend.transactionType,
+      count: parseInt(trend.count),
+      totalPoints: parseInt(trend.totalPoints)
+    }));
+
+  } catch (error) {
+    console.error('Transaction getTransactionTrends error:', error);
+    throw error;
+  }
+};

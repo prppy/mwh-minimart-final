@@ -87,6 +87,7 @@ model Task {
   taskName        String?       @map("Task_Name") @db.VarChar(127)
   taskDescription String?       @map("Task_Description")
   points          Int?          @map("Points")
+  Image_URL       String?
   completions     Completion[]
   taskCategory    TaskCategory? @relation(fields: [taskCategoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -161,6 +162,7 @@ model MWH_Question {
   question_name String?             @db.VarChar
   question_type question_type_enum?
   created_at    DateTime            @default(now()) @db.Timestamptz(6)
+  active        Boolean?
   MWH_Answer    MWH_Answer[]
 }
 

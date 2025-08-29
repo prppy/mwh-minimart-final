@@ -2,12 +2,12 @@
 import { validationResult } from 'express-validator';
 import * as ResidentModel from '../models/residentModel.js';
 
-// Get main leaderboard
+// Get main leaderboard with enhanced filtering
 export const getLeaderboard = async (req, res) => {
   try {
     const {
       batchNumber,
-      type = 'current', // 'current' or 'total'
+      type = 'current', // 'current', 'total', 'month', 'year'
       limit = 10,
       offset = 0
     } = req.query;
@@ -32,31 +32,24 @@ export const getLeaderboard = async (req, res) => {
   }
 };
 
-// Get leaderboard statistics
-export const getLeaderboardStats = async (req, res) => {
-  try {
-    const statistics = await ResidentModel.getStatistics();
-
-    res.json({
-      success: true,
-      data: statistics
-    });
-
-  } catch (error) {
-    console.error('Get leaderboard stats error:', error);
-    res.status(500).json({ 
-      error: { message: 'Internal server error' }
-    });
-  }
-};
-
-// Get leaderboard by batch
+// Get leaderboard by batch with enhanced features
 export const getLeaderboardByBatch = async (req, res) => {
   try {
     const { batchNumber } = req.params;
-    const { limit = 50, offset = 0 } = req.query;
+    const { 
+      type = 'current', // 'current', 'total', 'month', 'year'
+      limit = 50, 
+      offset = 0 
+    } = req.query;
 
-    const result = await ResidentModel.getByBatch(parseInt(batchNumber), {
+    if (!batchNumber || isNaN(parseInt(batchNumber))) {
+      return res.status(400).json({
+        error: { message: 'Invalid batch number' }
+      });
+    }
+
+    const result = await ResidentModel.getLeaderboardByBatch(parseInt(batchNumber), {
+      type,
       limit: parseInt(limit),
       offset: parseInt(offset)
     });
@@ -68,6 +61,84 @@ export const getLeaderboardByBatch = async (req, res) => {
 
   } catch (error) {
     console.error('Get batch leaderboard error:', error);
+    res.status(500).json({ 
+      error: { message: 'Internal server error' }
+    });
+  }
+};
+
+// Get leaderboard by points gained this month
+export const getLeaderboardByMonth = async (req, res) => {
+  try {
+    const {
+      batchNumber,
+      limit = 10,
+      offset = 0
+    } = req.query;
+
+    // Check if batchNumber is provided in route params (for dedicated batch routes)
+    const routeBatchNumber = req.params.batchNumber;
+    const finalBatchNumber = routeBatchNumber || batchNumber;
+
+    if (routeBatchNumber && isNaN(parseInt(routeBatchNumber))) {
+      return res.status(400).json({
+        error: { message: 'Invalid batch number in route' }
+      });
+    }
+
+    const result = await ResidentModel.getLeaderboard({
+      batchNumber: finalBatchNumber ? parseInt(finalBatchNumber) : undefined,
+      type: 'month',
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+
+    res.json({
+      success: true,
+      data: result
+    });
+
+  } catch (error) {
+    console.error('Get monthly leaderboard error:', error);
+    res.status(500).json({ 
+      error: { message: 'Internal server error' }
+    });
+  }
+};
+
+// Get leaderboard by points gained this year
+export const getLeaderboardByYear = async (req, res) => {
+  try {
+    const {
+      batchNumber,
+      limit = 10,
+      offset = 0
+    } = req.query;
+
+    // Check if batchNumber is provided in route params (for dedicated batch routes)
+    const routeBatchNumber = req.params.batchNumber;
+    const finalBatchNumber = routeBatchNumber || batchNumber;
+
+    if (routeBatchNumber && isNaN(parseInt(routeBatchNumber))) {
+      return res.status(400).json({
+        error: { message: 'Invalid batch number in route' }
+      });
+    }
+
+    const result = await ResidentModel.getLeaderboard({
+      batchNumber: finalBatchNumber ? parseInt(finalBatchNumber) : undefined,
+      type: 'year',
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+
+    res.json({
+      success: true,
+      data: result
+    });
+
+  } catch (error) {
+    console.error('Get yearly leaderboard error:', error);
     res.status(500).json({ 
       error: { message: 'Internal server error' }
     });
@@ -173,35 +244,41 @@ export const getResidentProfile = async (req, res) => {
   }
 };
 
-// Get batch statistics
-export const getBatchStatistics = async (req, res) => {
+// Get leaderboard statistics
+export const getLeaderboardStats = async (req, res) => {
   try {
     const statistics = await ResidentModel.getStatistics();
 
-    // Extract batch-specific data
-    const batchStats = statistics.byBatch;
-    const overallStats = statistics.overall;
-
-    // Calculate additional batch metrics
-    const batchSummary = batchStats.map(batch => {
-      const avgPointsPercentage = overallStats.maxCurrentPoints > 0 
-        ? Math.round((batch.avgPoints / overallStats.maxCurrentPoints) * 100)
-        : 0;
-
-      return {
-        ...batch,
-        avgPointsPercentage,
-        totalResidents: batch.residentCount
-      };
+    res.json({
+      success: true,
+      data: statistics
     });
+
+  } catch (error) {
+    console.error('Get leaderboard stats error:', error);
+    res.status(500).json({ 
+      error: { message: 'Internal server error' }
+    });
+  }
+};
+
+// Get batch statistics with period comparison
+export const getBatchStatistics = async (req, res) => {
+  try {
+    const { batchNumber } = req.params;
+    const { period = 'month' } = req.query;
+
+    if (!batchNumber || isNaN(parseInt(batchNumber))) {
+      return res.status(400).json({
+        error: { message: 'Invalid batch number' }
+      });
+    }
+
+    const statistics = await ResidentModel.getBatchStatistics(parseInt(batchNumber), period);
 
     res.json({
       success: true,
-      data: {
-        overall: overallStats,
-        batches: batchSummary,
-        totalBatches: batchStats.length
-      }
+      data: statistics
     });
 
   } catch (error) {
@@ -212,94 +289,71 @@ export const getBatchStatistics = async (req, res) => {
   }
 };
 
-// Compare residents
-export const compareResidents = async (req, res) => {
+// Get recent point changes
+export const getRecentChanges = async (req, res) => {
   try {
-    const { userIds } = req.query; // Comma-separated user IDs
+    const { 
+      batchNumber,
+      limit = 20,
+      hours = 24
+    } = req.query;
 
-    if (!userIds) {
-      return res.status(400).json({ 
-        error: { message: 'User IDs are required' }
-      });
-    }
-
-    const userIdArray = userIds.split(',').map(id => parseInt(id));
-
-    if (userIdArray.length < 2 || userIdArray.length > 5) {
-      return res.status(400).json({ 
-        error: { message: 'Please provide between 2 and 5 user IDs for comparison' }
-      });
-    }
-
-    // Get residents data
-    const residents = await Promise.all(
-      userIdArray.map(async (userId) => {
-        const [resident, position] = await Promise.all([
-          ResidentModel.findByUserId(userId),
-          ResidentModel.getPosition(userId)
-        ]);
-        return { resident, position };
-      })
-    );
-
-    // Filter out not found residents
-    const validResidents = residents.filter(r => r.resident !== null);
-
-    if (validResidents.length === 0) {
-      return res.status(404).json({ 
-        error: { message: 'No valid residents found' }
-      });
-    }
-
-    // Create comparison data
-    const comparison = validResidents.map(({ resident, position }) => ({
-      userId: resident.userId,
-      userName: resident.user.userName,
-      currentPoints: resident.currentPoints,
-      totalPoints: resident.totalPoints,
-      batchNumber: resident.batchNumber,
-      leaderboardPosition: position.position,
-      profilePicture: resident.user.profilePicture
-    }));
-
-    // Add ranking within this comparison
-    const sortedComparison = comparison
-      .sort((a, b) => b.currentPoints - a.currentPoints)
-      .map((resident, index) => ({
-        ...resident,
-        comparisonRank: index + 1
-      }));
+    const changes = await ResidentModel.getRecentPointChanges({
+      batchNumber: batchNumber ? parseInt(batchNumber) : undefined,
+      limit: parseInt(limit),
+      hours: parseInt(hours)
+    });
 
     res.json({
       success: true,
-      data: {
-        comparison: sortedComparison,
-        totalCompared: sortedComparison.length
-      }
+      data: changes
     });
 
   } catch (error) {
-    console.error('Compare residents error:', error);
+    console.error('Get recent changes error:', error);
     res.status(500).json({ 
       error: { message: 'Internal server error' }
     });
   }
 };
 
-// Get recent leaderboard changes
-export const getRecentChanges = async (req, res) => {
+// Enhanced compare residents with performance metrics
+export const compareResidents = async (req, res) => {
   try {
-    const { limit = 20 } = req.query;
+    const { userIds } = req.query;
 
-    const recentChanges = await ResidentModel.getRecentChanges(parseInt(limit));
+    if (!userIds) {
+      return res.status(400).json({
+        error: { message: 'User IDs are required' }
+      });
+    }
+
+    const userIdArray = userIds.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+
+    if (userIdArray.length < 2 || userIdArray.length > 5) {
+      return res.status(400).json({
+        error: { message: 'Please provide between 2 and 5 user IDs for comparison' }
+      });
+    }
+
+    const comparison = await ResidentModel.compareResidents(userIdArray);
+
+    if (comparison.length === 0) {
+      return res.status(404).json({ 
+        error: { message: 'No valid residents found' }
+      });
+    }
 
     res.json({
       success: true,
-      data: recentChanges
+      data: {
+        comparison,
+        totalCompared: comparison.length
+      }
     });
 
   } catch (error) {
-    console.error('Get recent changes error:', error);
+    console.error('Compare residents error:', error);
     res.status(500).json({ 
       error: { message: 'Internal server error' }
     });

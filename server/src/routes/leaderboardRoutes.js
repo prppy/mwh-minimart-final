@@ -25,8 +25,8 @@ const leaderboardQueryValidation = [
     .withMessage('Batch number must be a positive integer'),
   query('type')
     .optional()
-    .isIn(['current', 'total'])
-    .withMessage('Type must be either "current" or "total"'),
+    .isIn(['current', 'total', 'month', 'year'])
+    .withMessage('Type must be current, total, month, or year'),
   query('limit')
     .optional()
     .isInt({ min: 1, max: 100 })
@@ -37,15 +37,45 @@ const leaderboardQueryValidation = [
     .withMessage('Offset must be non-negative')
 ];
 
-const topPerformersValidation = [
+const batchQueryValidation = [
+  query('type')
+    .optional()
+    .isIn(['current', 'total', 'month', 'year'])
+    .withMessage('Type must be current, total, month, or year'),
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 100 })
+    .withMessage('Limit must be between 1 and 100'),
+  query('offset')
+    .optional()
+    .isInt({ min: 0 })
+    .withMessage('Offset must be non-negative')
+];
+
+const periodValidation = [
   query('period')
     .optional()
-    .isIn(['day', 'week', 'month', 'year'])
-    .withMessage('Period must be day, week, month, or year'),
+    .isIn(['month', 'year', 'all'])
+    .withMessage('Period must be month, year, or all'),
+  query('batchNumber')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Batch number must be a positive integer')
+];
+
+const recentChangesValidation = [
   query('limit')
     .optional()
     .isInt({ min: 1, max: 50 })
-    .withMessage('Limit must be between 1 and 50')
+    .withMessage('Limit must be between 1 and 50'),
+  query('hours')
+    .optional()
+    .isInt({ min: 1, max: 168 })
+    .withMessage('Hours must be between 1 and 168 (1 week)'),
+  query('batchNumber')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Batch number must be a positive integer')
 ];
 
 const compareResidentsValidation = [
@@ -64,25 +94,31 @@ const compareResidentsValidation = [
     })
 ];
 
-const recentChangesValidation = [
-  query('limit')
-    .optional()
-    .isInt({ min: 1, max: 50 })
-    .withMessage('Limit must be between 1 and 50')
-];
-
 // Routes
 leaderboardRouter.get('/', leaderboardQueryValidation, leaderboardController.getLeaderboard);
 leaderboardRouter.get('/stats', leaderboardController.getLeaderboardStats);
-leaderboardRouter.get('/batch/:batchNumber', batchNumberValidation, leaderboardController.getLeaderboardByBatch);
-leaderboardRouter.get('/top-performers', topPerformersValidation, leaderboardController.getTopPerformers);
+
+// Dedicated period-based leaderboards for current month/year points
+leaderboardRouter.get('/current-month-points', leaderboardQueryValidation, leaderboardController.getLeaderboardByMonth);
+leaderboardRouter.get('/current-year-points', leaderboardQueryValidation, leaderboardController.getLeaderboardByYear);
+
+// Legacy period-based leaderboards (kept for backward compatibility)
+leaderboardRouter.get('/month', leaderboardQueryValidation, leaderboardController.getLeaderboardByMonth);
+leaderboardRouter.get('/year', leaderboardQueryValidation, leaderboardController.getLeaderboardByYear);
+
+// Batch-specific routes
+leaderboardRouter.get('/batch/:batchNumber', batchNumberValidation.concat(batchQueryValidation), leaderboardController.getLeaderboardByBatch);
+leaderboardRouter.get('/batch/:batchNumber/stats', batchNumberValidation.concat(periodValidation), leaderboardController.getBatchStatistics);
+
+// Dedicated batch + period combinations
+leaderboardRouter.get('/batch/:batchNumber/current-month-points', batchNumberValidation.concat(leaderboardQueryValidation), leaderboardController.getLeaderboardByMonth);
+leaderboardRouter.get('/batch/:batchNumber/current-year-points', batchNumberValidation.concat(leaderboardQueryValidation), leaderboardController.getLeaderboardByYear);
 
 // Protected routes (require authentication)
 leaderboardRouter.get('/user/:userId/position', userIdValidation, leaderboardController.getUserPosition);
 leaderboardRouter.get('/user/:userId/profile', userIdValidation, leaderboardController.getResidentProfile);
 
-// Additional routes
-leaderboardRouter.get('/batch-stats', leaderboardController.getBatchStatistics);
+// Additional enhanced routes
 leaderboardRouter.get('/compare', compareResidentsValidation, leaderboardController.compareResidents);
 leaderboardRouter.get('/recent-changes', recentChangesValidation, leaderboardController.getRecentChanges);
 
