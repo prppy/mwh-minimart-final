@@ -12,6 +12,7 @@ dotenv.config();
 
 import { connectDB } from './lib/db.js';
 import mainRoutes from './routes/mainRoutes.js';
+import { scheduleArchiveJob } from './jobs/archiveJob.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -130,6 +131,9 @@ app.use('*', (req, res) => {
 const startServer = async () => {
   try {
     await connectDB();
+    
+    // Schedule archive job
+    scheduleArchiveJob();
     
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);

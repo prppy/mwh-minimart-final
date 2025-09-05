@@ -85,10 +85,14 @@ export const getLeaderboard = async (options = {}) => {
     batchNumber,
     type = 'current', // 'current' or 'total'
     limit = 10,
-    offset = 0
+    offset = 0,
+    includeArchived = false // New option to include archived residents
   } = options;
 
-  const where = {};
+  const where = {
+    isActive: includeArchived ? undefined : true // Only show active residents by default
+  };
+  
   if (batchNumber) {
     where.batchNumber = parseInt(batchNumber);
   }
@@ -350,20 +354,29 @@ export const getPosition = async (userId, type = 'current') => {
     throw new Error('Resident not found');
   }
 
+  // Check if resident is archived
+  if (!resident.isActive) {
+    throw new Error('Resident is archived and not included in leaderboard');
+  }
+
   const pointsField = type === 'total' ? 'totalPoints' : 'currentPoints';
   const userPoints = resident[pointsField];
 
-  // Count residents with higher points
+  // Count active residents with higher points
   const position = await prisma.resident.count({
     where: {
+      isActive: true,
       [pointsField]: {
         gt: userPoints
       }
     }
   }) + 1;
 
-  // Get nearby residents (3 above, 3 below)
+  // Get nearby residents (3 above, 3 below) - only active residents
   const nearbyResidents = await prisma.resident.findMany({
+    where: {
+      isActive: true
+    },
     include: {
       user: {
         select: {

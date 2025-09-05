@@ -29,6 +29,8 @@ model Resident {
   dateOfBirth      DateTime?                   @map("Date_Of_Birth") @db.Timestamp(6)
   dateOfAdmission  DateTime?                   @map("Date_Of_Admission") @db.Timestamp(6)
   lastAbscondence  DateTime?                   @map("Last_Abscondence") @db.Timestamp(6)
+  lastActivityDate DateTime?                   @map("Last_Activity_Date") @db.Timestamp(6)
+  isActive         Boolean                     @default(true) @map("Is_Active")
   currentPoints    Int?                        @map("Current_Points")
   batchNumber      Int?                        @map("Batch_Number")
   Control_No       Int?
