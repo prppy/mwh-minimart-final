@@ -10,7 +10,8 @@ import {
   Pressable,
   ScrollView,
 } from "@gluestack-ui/themed";
-
+import { Resident } from "@/constants/types";
+import api from "@/components/utility/api";
 import { hslToHSLA } from "@/utils/styleUtils";
 import { setHSLlightness } from "@/utils/styleUtils";
 // helper functions
@@ -92,6 +93,7 @@ const Profile: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [colorTheme, setColorTheme] = useState<string>("hsl(9, 67%, 50%)");
   const [style, setStyle] = useState<string>("🎮");
+  const [user, setUser] = useState<Resident | null>(null);
 
   const colorOptions: string[] = [
     "hsl(9, 67%, 50%)",
@@ -119,6 +121,32 @@ const Profile: React.FC = () => {
 
     return () => clearTimeout(timeout);
   }, [style]);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await api.get("users/me"); // PLACEHOLDER
+        const data = response.data.data;
+        console.log(data);
+
+        const resident = new Resident({
+          id: data.userId,
+          name: data.userName,
+          profilePic: data.profilePicture,
+          points: data.currentPoints,
+          leaderboard: data.rank,
+          colorTheme: data.colorTheme,
+          style: data.style,
+        });
+
+        setUser(resident);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   const handleSetColorTheme = (newColor: string) => {
     setColorTheme(newColor);
@@ -177,7 +205,7 @@ const Profile: React.FC = () => {
             <Text
               style={[styles.name, { color: setHSLlightness(colorTheme, 25) }]}
             >
-              Resident Name
+              {user?.name || "Resident's Name"}
             </Text>
             <Text
               style={[
@@ -185,7 +213,7 @@ const Profile: React.FC = () => {
                 { color: setHSLlightness(colorTheme, 25) },
               ]}
             >
-              Leaderboard: {leaderboard}
+              Leaderboard: {user?.leaderboard || "placeholder"}
             </Text>
             <Text
               style={[
@@ -193,7 +221,7 @@ const Profile: React.FC = () => {
                 { color: setHSLlightness(colorTheme, 25) },
               ]}
             >
-              Points: {points} pts
+              Points: {user?.points} pts
             </Text>
 
             {/* Color + Style Selectors */}
