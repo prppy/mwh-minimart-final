@@ -21,7 +21,7 @@ const CustomCard: React.FC<CustomCardProps> = ({ title, points, image }) => {
     >
       {/* image container */}
       <Box sx={styles.imageContainer} marginTop={15}>
-        {image && <Image source={image} resizeMode="cover" />}
+        {image && <Image source={image} resizeMode="contain" style={{ width: '90%', height: '90%' }} />}
       </Box>
       {/* title label: ALWAYS exist*/}
       <Text sx={styles.text}>{title}</Text>
