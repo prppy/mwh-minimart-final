@@ -17,3 +17,35 @@ export interface User {
   resident_dateOfAdmission?: string | null; // from r."Date_Of_Admission"
   resident_lastAbscondence?: string | null; // from r."Last_Abscondence"
 }
+
+export class Resident {
+  id: number;
+  name: string;
+  profilePic: string | null;
+  points: number;
+  leaderboard: number;
+  colorTheme: string;
+  style: string;
+
+  constructor(data: {
+    id: number;
+    name: string;
+    profilePic?: string | null;
+    points?: number;
+    leaderboard?: number;
+    colorTheme?: string;
+    style?: string;
+  }) {
+    this.id = data.id;
+    this.name = data.name;
+    this.profilePic = data.profilePic ?? null;
+    this.points = data.points ?? 0;
+    this.leaderboard = data.leaderboard ?? -1;
+    this.colorTheme = data.colorTheme ?? "hsl(9, 67%, 50%)";
+    this.style = data.style ?? "🎮";
+  }
+
+  getPointsText() {
+    return `${this.points} pts`;
+  }
+}
