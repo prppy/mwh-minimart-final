@@ -140,7 +140,7 @@ export const createDeveloper = async (req, res, next) => {
  * @param {*} req 
  * @param {*} res 
  * @param {*} next 
- * @returns 
+ * @returns
  */
 export const validateResidentCredentials = async (req, res, next) => {
   try {
