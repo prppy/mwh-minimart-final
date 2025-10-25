@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   Image,
@@ -14,7 +14,7 @@ import ProfileAvatar from "@/components/ProfileAvatar";
 // functions
 import { hslToHSLA } from "@/utils/styleUtils";
 import { setHSLlightness } from "@/utils/styleUtils";
-
+import api from "@/components/utility/api";
 const styleBgMappings: Record<string, any> = {
   "🌳": require("../../assets/background/nature.png"),
   "🏀": require("../../assets/background/sports.png"),
@@ -33,57 +33,12 @@ const colorOptions: string[] = [
   "hsl(223, 49%, 50%)",
 ];
 
-// 🧪 Sample resident data
-const residents = [
-  {
-    name: "Resident Name #1",
-    profilePic: null,
-    points: 4000,
-    style: "🎨",
-    color: "hsl(55, 67%, 50%)",
-  },
-  {
-    name: "Resident Name #2",
-    profilePic: null, // no profile picture
-    points: 4000,
-    style: "🎮",
-    color: "hsl(208, 79%, 50%)",
-  },
-  {
-    name: "Resident Name #3",
-    profilePic: null,
-    points: 4000,
-    style: "📖",
-    color: "hsl(101, 67%, 50%)",
-  },
-  {
-    name: "Resident Name #4",
-    profilePic: null,
-    points: 4000,
-    style: "🌳",
-    color: "hsl(2, 67%, 50%)",
-  },
-  {
-    name: "Resident Name #5",
-    profilePic: null,
-    points: 4000,
-    style: "📖",
-    color: "hsl(223, 49%, 50%)",
-  },
-  {
-    name: "Resident Name #5",
-    profilePic: null,
-    points: 4000,
-    style: "📖",
-    color: "hsl(223, 49%, 50%)",
-  },
-];
-
 // define the Resident type
 type Resident = {
   name: string;
-  profilePic: any | null; // can refine to ImageSourcePropType if needed
+  profilePic: any | null;
   points: number;
+  rank: number;
   style: string;
   color: string;
 };
@@ -138,7 +93,9 @@ const MONTHS = [
 ];
 // main Page
 const LeaderboardPage: React.FC = () => {
-  const [monthIndex, setMonthIndex] = useState(5); // June is index 5 (0-based)
+  const [monthIndex, setMonthIndex] = useState(new Date().getMonth()); // current month's
+
+  const [residents, setResidents] = useState<Resident[]>([]);
 
   const prevMonth = () => {
     setMonthIndex((prev) => (prev === 0 ? 11 : prev - 1));
@@ -147,6 +104,32 @@ const LeaderboardPage: React.FC = () => {
   const nextMonth = () => {
     setMonthIndex((prev) => (prev === 11 ? 0 : prev + 1));
   };
+
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      try {
+        const response = await api.get("leaderboard");
+
+        const mapped: Resident[] = response.data.data.residents.map(
+          (user: any) => ({
+            name: user.userName,
+            profilePic: user.profilePicture || null,
+            points: user.currentPoints,
+            rank: user.rank, // include rank
+            style: user?.style || "📖", //UPDATE TO INCLUDE BACKEND's style
+            color: colorOptions[user.rank % colorOptions.length], // //UPDATE TO INCLUDE BACKEND's color
+          })
+        );
+
+        setResidents(mapped);
+      } catch (err) {
+        console.error("Error fetching leaderboard:", err);
+      }
+    };
+
+    fetchLeaderboard();
+  }, [monthIndex]);
+
   return (
     <Box style={styles.container}>
       <Box style={styles.leaderboardBox}>

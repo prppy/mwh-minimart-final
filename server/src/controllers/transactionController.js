@@ -1,5 +1,6 @@
 import { validationResult } from 'express-validator';
 import * as TransactionModel from '../models/transactionModel.js';
+import { updateResidentActivity } from '../models/archiveModel.js';
 
 /**
  * Get user's transaction history
@@ -87,6 +88,9 @@ export const createRedemption = async (req, res) => {
       products
     });
 
+    // Update resident activity
+    await updateResidentActivity(parseInt(userId));
+
     res.status(201).json({
       success: true,
       data: result,
@@ -137,6 +141,9 @@ export const createCompletion = async (req, res) => {
       officerId,
       tasks
     });
+
+    // Update resident activity
+    await updateResidentActivity(parseInt(userId));
 
     res.status(201).json({
       success: true,

@@ -16,6 +16,8 @@ import {
   MessageSquare,
   User,
   Laugh,
+  Users,
+  Dices,
 } from "lucide-react-native";
 
 const Header: React.FC = () => {
@@ -28,8 +30,8 @@ const Header: React.FC = () => {
     if (pathname.startsWith("/leaderboard")) return "leaderboard";
     if (pathname.startsWith("/feedback")) return "feedback";
     if (pathname.startsWith("/profile")) return "profile";
+    if (pathname.startsWith("/admin/lottery")) return "lottery";
     if (pathname.startsWith("/admin")) return "admin"; // TEMP: admin dashboard screen
-
     if (pathname.startsWith("/login")) return "login"; //login system
     return "catalogue"; // default
   };
@@ -60,7 +62,12 @@ const Header: React.FC = () => {
     {
       name: "Admin TEMP",
       route: "/admin",
-      icon: Laugh,
+      icon: Users,
+    },
+    {
+      name: "Lottery",
+      route: "/admin/lottery",
+      icon: Dices,
     },
     {
       name: "Login",
