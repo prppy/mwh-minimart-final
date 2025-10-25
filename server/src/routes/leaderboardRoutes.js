@@ -102,7 +102,6 @@ leaderboardRouter.get('/stats', leaderboardController.getLeaderboardStats);
 leaderboardRouter.get('/current-month-points', leaderboardQueryValidation, leaderboardController.getLeaderboardByMonth);
 leaderboardRouter.get('/current-year-points', leaderboardQueryValidation, leaderboardController.getLeaderboardByYear);
 
-// Legacy period-based leaderboards (kept for backward compatibility)
 leaderboardRouter.get('/month', leaderboardQueryValidation, leaderboardController.getLeaderboardByMonth);
 leaderboardRouter.get('/year', leaderboardQueryValidation, leaderboardController.getLeaderboardByYear);
 

@@ -44,11 +44,6 @@ export const findByUserId = async (userId, options = {}) => {
             select: {
               userName: true
             }
-          },
-          officer: {
-            select: {
-              userName: true
-            }
           }
         },
         orderBy: { transactionDate: 'desc' },
@@ -123,7 +118,6 @@ export const createRedemption = async ({ userId, officerId, products }) => {
       const transaction = await tx.transaction.create({
         data: {
           userId,
-          officerId,
           pointsChange: -totalPoints,
           transactionType: 'redemption'
         }
@@ -203,7 +197,6 @@ export const createCompletion = async ({ userId, officerId, tasks }) => {
       const transaction = await tx.transaction.create({
         data: {
           userId,
-          officerId,
           pointsChange: totalPoints,
           transactionType: 'completion'
         }
@@ -270,7 +263,6 @@ export const createAbscondence = async ({ userId, officerId, reason, pointsPenal
       const transaction = await tx.transaction.create({
         data: {
           userId,
-          officerId,
           pointsChange: -pointsPenalty,
           transactionType: 'abscondence'
         }
@@ -402,11 +394,6 @@ export const findMany = async (filters = {}) => {
             select: {
               userName: true,
               userRole: true
-            }
-          },
-          officer: {
-            select: {
-              userName: true
             }
           },
           redemptions: {
@@ -562,11 +549,6 @@ export const findById = async (id) => {
           select: {
             userName: true,
             userRole: true
-          }
-        },
-        officer: {
-          select: {
-            userName: true
           }
         },
         redemptions: {

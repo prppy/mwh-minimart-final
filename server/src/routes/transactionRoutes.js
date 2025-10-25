@@ -127,22 +127,23 @@ const summaryValidation = [
     .withMessage('End date must be a valid ISO 8601 date')
 ];
 
-// User transaction routes
-transactionRouter.get('/user/:userId', userIdValidation, TransactionController.getUserTransactions);
-transactionRouter.get('/user/:userId/summary', userIdValidation.concat(summaryValidation), TransactionController.getPointsSummary);
-
-// Analytics routes for leaderboards
-transactionRouter.get('/analytics/overview', analyticsValidation, TransactionController.getTransactionAnalytics);
-transactionRouter.get('/analytics/points-by-period', pointsPeriodValidation, TransactionController.getPointsByPeriod);
-transactionRouter.get('/analytics/trends', trendsValidation, TransactionController.getTransactionTrends);
+// // Analytics routes for leaderboards
+// transactionRouter.get('/analytics/overview', analyticsValidation, TransactionController.getTransactionAnalytics);
+// transactionRouter.get('/analytics/points-by-period', pointsPeriodValidation, TransactionController.getPointsByPeriod);
+// transactionRouter.get('/analytics/trends', trendsValidation, TransactionController.getTransactionTrends);
 
 // Officer/Admin routes
 transactionRouter.get('/', transactionQueryValidation, TransactionController.getAllTransactions);
-transactionRouter.get('/:id', transactionIdValidation, TransactionController.getTransactionById);
 
 // Transaction creation routes
 transactionRouter.post('/redemption', redemptionValidation, TransactionController.createRedemption);
 transactionRouter.post('/completion', completionValidation, TransactionController.createCompletion);
 transactionRouter.post('/abscondence', abscondenceValidation, TransactionController.createAbscondence);
+
+// User transaction routes
+transactionRouter.get('/user/:userId', userIdValidation, TransactionController.getUserTransactions);
+transactionRouter.get('/user/:userId/summary', userIdValidation.concat(summaryValidation), TransactionController.getPointsSummary);
+
+transactionRouter.get('/:id', transactionIdValidation, TransactionController.getTransactionById);
 
 export default transactionRouter;
