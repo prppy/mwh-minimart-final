@@ -9,11 +9,14 @@ import {
   Image as GSImage,
   Pressable,
   ScrollView,
+  Button,
+  ButtonText,
 } from "@gluestack-ui/themed";
 import { Resident } from "@/constants/types";
 import api from "@/components/utility/api";
 import { hslToHSLA } from "@/utils/styleUtils";
 import { setHSLlightness } from "@/utils/styleUtils";
+import AIImageGenerator from "@/components/AIImageGenerator";
 // helper functions
 
 // ColorSwatch component props
@@ -94,6 +97,8 @@ const Profile: React.FC = () => {
   const [colorTheme, setColorTheme] = useState<string>("hsl(9, 67%, 50%)");
   const [style, setStyle] = useState<string>("🎮");
   const [user, setUser] = useState<Resident | null>(null);
+  const [showAIGenerator, setShowAIGenerator] = useState<boolean>(false);
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
 
   const colorOptions: string[] = [
     "hsl(9, 67%, 50%)",
@@ -160,6 +165,38 @@ const Profile: React.FC = () => {
     // e.g. updateUserPreference({ style: newStyle });
   };
 
+  const handleImageGenerated = (imageUrl: string) => {
+    console.log("Image generated:", imageUrl);
+  };
+
+  const handleImageAccepted = async (imageUrl: string) => {
+    try {
+      // Upload to Supabase and update user profile
+      const userId = user?.id;
+      if (!userId) {
+        throw new Error("User ID not found");
+      }
+
+      const response = await api.post("images/upload", {
+        imageUrl,
+        userId,
+      });
+
+      const supabaseUrl = response.data.data.url;
+
+      // Update user profile with the new image URL
+      await api.put(`users/${userId}`, {
+        profilePicture: supabaseUrl,
+      });
+
+      setProfileImageUrl(supabaseUrl);
+      setShowAIGenerator(false);
+    } catch (error) {
+      console.error("Failed to save image:", error);
+      throw error;
+    }
+  };
+
   // TODO: need to save and update the user's bg choices
   return (
     <ScrollView flex={1} bg={hslToHSLA(colorTheme, 0.5)}>
@@ -185,20 +222,32 @@ const Profile: React.FC = () => {
       <Box flex={1} p={28}>
         <HStack space="2xl" alignItems="center" p="$4">
           {/* Profile Picture */}
-          <Box
-            borderRadius="$full"
-            overflow="hidden"
-            borderWidth={5}
-            borderColor={colorTheme}
-            backgroundColor="white"
-          >
-            <GSImage
-              source={{ uri: "placeholder" }}
-              alt="Profile Picture"
-              width={300}
-              height={300}
-            />
-          </Box>
+          <VStack space="md">
+            <Box
+              borderRadius="$full"
+              overflow="hidden"
+              borderWidth={5}
+              borderColor={colorTheme}
+              backgroundColor="white"
+            >
+              <GSImage
+                source={{ uri: profileImageUrl || user?.profilePic || "placeholder" }}
+                alt="Profile Picture"
+                width={300}
+                height={300}
+              />
+            </Box>
+            
+            <Button
+              onPress={() => setShowAIGenerator(!showAIGenerator)}
+              variant={showAIGenerator ? "outline" : "solid"}
+              size="sm"
+            >
+              <ButtonText>
+                {showAIGenerator ? "Cancel" : "Generate AI Profile Picture"}
+              </ButtonText>
+            </Button>
+          </VStack>
 
           {/* Profile Info */}
           <VStack flex={1} space="lg" marginLeft={100}>
@@ -248,6 +297,16 @@ const Profile: React.FC = () => {
                 ))}
               </Selector>
             </HStack>
+
+            {/* AI Image Generator */}
+            {showAIGenerator && (
+              <AIImageGenerator
+                onImageGenerated={handleImageGenerated}
+                onImageAccepted={handleImageAccepted}
+                borderColor={colorTheme}
+                size={300}
+              />
+            )}
 
             {/* Recent Transactions */}
             <Box style={styles.selectorCard}>

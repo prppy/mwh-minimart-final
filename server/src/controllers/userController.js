@@ -112,6 +112,40 @@ export const getUserById = async (req, res) => {
   }
 }
 
+// Get current user (from session/auth)
+export const getCurrentUser = async (req, res) => {
+  try {
+    // For now, we'll use a default user ID or expect it from a session/auth middleware
+    // You should replace this with actual authentication
+    const userId = req.user?.id || req.session?.userId || 1; // Default to user 1 for testing
+
+    const user = await UserModel.findById(parseInt(userId), {
+      includeResident: true,
+      includeOfficer: true,
+      includeTransactions: false
+    });
+
+    if (!user) {
+      return res.status(404).json({ 
+        error: { message: 'User not found' }
+      });
+    }
+
+    const sanitizedUser = UserModel.sanitize(user);
+
+    res.json({
+      success: true,
+      data: sanitizedUser
+    });
+
+  } catch (error) {
+    console.error('Get current user error:', error);
+    res.status(500).json({ 
+      error: { message: 'Internal server error' }
+    });
+  }
+}
+
 // Get user by Role
 export const getUserByRole = async (req, res) => {
   try {
@@ -266,37 +300,6 @@ const getUserStatistics = async (req, res) => {
 
   } catch (error) {
     console.error('Get user statistics error:', error);
-    res.status(500).json({ 
-      error: { message: 'Internal server error' }
-    });
-  }
-}
-
-// Get current user profile
-const getCurrentUser = async (req, res) => {
-  try {
-    const userId = req.user.userId;
-
-    const user = await userModel.findById(userId, {
-      includeResident: true,
-      includeOfficer: true
-    });
-
-    if (!user) {
-      return res.status(404).json({ 
-        error: { message: 'User not found' }
-      });
-    }
-
-    const sanitizedUser = userModel.sanitize(user);
-
-    res.json({
-      success: true,
-      data: sanitizedUser
-    });
-
-  } catch (error) {
-    console.error('Get current user error:', error);
     res.status(500).json({ 
       error: { message: 'Internal server error' }
     });
