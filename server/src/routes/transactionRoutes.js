@@ -80,18 +80,70 @@ const transactionQueryValidation = [
     .withMessage('End date must be a valid ISO 8601 date')
 ];
 
-// User transaction routes
-transactionRouter.get('/user/:userId', userIdValidation, TransactionController.getUserTransactions);
-transactionRouter.get('/user/:userId/summary', userIdValidation, TransactionController.getPointsSummary);
+const analyticsValidation = [
+  query('period')
+    .optional()
+    .isIn(['month', 'year', 'all'])
+    .withMessage('Period must be month, year, or all'),
+  query('batchNumber')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Batch number must be a positive integer'),
+  query('type')
+    .optional()
+    .isIn(['completion', 'redemption', 'abscondence'])
+    .withMessage('Type must be completion, redemption, or abscondence')
+];
+
+const pointsPeriodValidation = [
+  query('userIds')
+    .notEmpty()
+    .withMessage('User IDs are required'),
+  query('period')
+    .optional()
+    .isIn(['month', 'year'])
+    .withMessage('Period must be month or year')
+];
+
+const trendsValidation = [
+  query('period')
+    .optional()
+    .isIn(['month', 'year'])
+    .withMessage('Period must be month or year'),
+  query('batchNumber')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Batch number must be a positive integer')
+];
+
+const summaryValidation = [
+  query('startDate')
+    .optional()
+    .isISO8601()
+    .withMessage('Start date must be a valid ISO 8601 date'),
+  query('endDate')
+    .optional()
+    .isISO8601()
+    .withMessage('End date must be a valid ISO 8601 date')
+];
+
+// // Analytics routes for leaderboards
+// transactionRouter.get('/analytics/overview', analyticsValidation, TransactionController.getTransactionAnalytics);
+// transactionRouter.get('/analytics/points-by-period', pointsPeriodValidation, TransactionController.getPointsByPeriod);
+// transactionRouter.get('/analytics/trends', trendsValidation, TransactionController.getTransactionTrends);
 
 // Officer/Admin routes
 transactionRouter.get('/', transactionQueryValidation, TransactionController.getAllTransactions);
-transactionRouter.get('/analytics', TransactionController.getTransactionAnalytics);
-transactionRouter.get('/:id', transactionIdValidation, TransactionController.getTransactionById);
 
 // Transaction creation routes
 transactionRouter.post('/redemption', redemptionValidation, TransactionController.createRedemption);
 transactionRouter.post('/completion', completionValidation, TransactionController.createCompletion);
 transactionRouter.post('/abscondence', abscondenceValidation, TransactionController.createAbscondence);
+
+// User transaction routes
+transactionRouter.get('/user/:userId', userIdValidation, TransactionController.getUserTransactions);
+transactionRouter.get('/user/:userId/summary', userIdValidation.concat(summaryValidation), TransactionController.getPointsSummary);
+
+transactionRouter.get('/:id', transactionIdValidation, TransactionController.getTransactionById);
 
 export default transactionRouter;

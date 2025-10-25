@@ -218,43 +218,121 @@ export const createAbscondence = async (req, res) => {
 };
 
 /**
+ * Get transaction analytics for leaderboards
+ */
+export const getTransactionAnalytics = async (req, res) => {
+  try {
+    const {
+      period = 'month',
+      batchNumber,
+      type
+    } = req.query;
+
+    const analytics = await TransactionModel.getTransactionAnalytics({
+      period,
+      batchNumber: batchNumber ? parseInt(batchNumber) : undefined,
+      type
+    });
+
+    res.json({
+      success: true,
+      data: {
+        analytics,
+        period,
+        batchNumber: batchNumber ? parseInt(batchNumber) : null,
+        type: type || 'all'
+      }
+    });
+
+  } catch (error) {
+    console.error('Get transaction analytics error:', error);
+    res.status(500).json({ 
+      error: { message: 'Internal server error' }
+    });
+  }
+};
+
+/**
+ * Get points by period for users
+ */
+export const getPointsByPeriod = async (req, res) => {
+  try {
+    const { userIds, period = 'month' } = req.query;
+
+    if (!userIds) {
+      return res.status(400).json({
+        error: { message: 'User IDs are required' }
+      });
+    }
+
+    const userIdArray = userIds.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+
+    if (userIdArray.length === 0) {
+      return res.status(400).json({
+        error: { message: 'Valid user IDs are required' }
+      });
+    }
+
+    const results = await TransactionModel.getPointsByPeriod(userIdArray, period);
+
+    res.json({
+      success: true,
+      data: {
+        results,
+        period,
+        userCount: userIdArray.length
+      }
+    });
+
+  } catch (error) {
+    console.error('Get points by period error:', error);
+    res.status(500).json({ 
+      error: { message: 'Internal server error' }
+    });
+  }
+};
+
+/**
+ * Get transaction trends
+ */
+export const getTransactionTrends = async (req, res) => {
+  try {
+    const {
+      period = 'month',
+      batchNumber
+    } = req.query;
+
+    const trends = await TransactionModel.getTransactionTrends({
+      period,
+      batchNumber: batchNumber ? parseInt(batchNumber) : undefined
+    });
+
+    res.json({
+      success: true,
+      data: {
+        trends,
+        period,
+        batchNumber: batchNumber ? parseInt(batchNumber) : null
+      }
+    });
+
+  } catch (error) {
+    console.error('Get transaction trends error:', error);
+    res.status(500).json({ 
+      error: { message: 'Internal server error' }
+    });
+  }
+};
+
+/**
  * Get points summary for a user
  */
 export const getPointsSummary = async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        error: { 
-          message: 'Validation failed',
-          details: errors.array()
-        }
-      });
-    }
-
-    // // Check authentication
-    // if (!req.user) {
-    //   return res.status(401).json({ 
-    //     error: { message: 'Authentication required' }
-    //   });
-    // }
-
     const { userId } = req.params;
     const { startDate, endDate } = req.query;
 
-    // // Check access permissions
-    // const requestedUserId = parseInt(userId);
-    // const currentUserId = req.user.userId;
-    // const userRole = req.user.role || req.user.userRole;
-
-    // if (requestedUserId !== currentUserId && !['officer', 'admin'].includes(userRole)) {
-    //   return res.status(403).json({ 
-    //     error: { message: 'Access denied' }
-    //   });
-    // }
-
-    const requestedUserId = parseInt(userId);
-    const summary = await TransactionModel.getPointsSummary(requestedUserId, {
+    const summary = await TransactionModel.getPointsSummary(parseInt(userId), {
       startDate,
       endDate
     });
@@ -329,50 +407,6 @@ export const getAllTransactions = async (req, res) => {
 
   } catch (error) {
     console.error('Get all transactions error:', error);
-    res.status(500).json({ 
-      error: { message: 'Internal server error' }
-    });
-  }
-};
-
-/**
- * Get transaction analytics
- */
-export const getTransactionAnalytics = async (req, res) => {
-  try {
-    // // Check authentication
-    // if (!req.user) {
-    //   return res.status(401).json({ 
-    //     error: { message: 'Authentication required' }
-    //   });
-    // }
-
-    // // Check role permissions
-    // const userRole = req.user.role || req.user.userRole;
-    // if (!['officer', 'admin'].includes(userRole)) {
-    //   return res.status(403).json({ 
-    //     error: { message: 'Access denied - Officer or Admin role required' }
-    //   });
-    // }
-
-    const { period = 'month' } = req.query;
-
-    const validPeriods = ['week', 'month', 'year'];
-    if (!validPeriods.includes(period)) {
-      return res.status(400).json({
-        error: { message: 'Period must be one of: week, month, year' }
-      });
-    }
-
-    const analytics = await TransactionModel.getAnalytics(period);
-
-    res.json({
-      success: true,
-      data: analytics
-    });
-
-  } catch (error) {
-    console.error('Get transaction analytics error:', error);
     res.status(500).json({ 
       error: { message: 'Internal server error' }
     });
