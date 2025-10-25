@@ -58,6 +58,52 @@ const FortuneWheel: React.FC<FortuneWheelProps> = ({
   
   const radius = size / 2;
   const center = radius;
+
+  // Define helper functions before useMemo
+  const createSegmentPath = (index: number, total: number, rad: number, cen: number): string => {
+    if (total === 1) {
+      const outerRadius = rad - 20;
+      return `M ${cen} ${cen} m -${outerRadius}, 0 a ${outerRadius},${outerRadius} 0 1,1 ${outerRadius * 2},0 a ${outerRadius},${outerRadius} 0 1,1 -${outerRadius * 2},0`;
+    }
+    
+    const angle = (360 / total) * Math.PI / 180;
+    const startAngle = index * angle;
+    const endAngle = (index + 1) * angle;
+    
+    const x1 = cen + Math.cos(startAngle) * (rad - 20);
+    const y1 = cen + Math.sin(startAngle) * (rad - 20);
+    const x2 = cen + Math.cos(endAngle) * (rad - 20);
+    const y2 = cen + Math.sin(endAngle) * (rad - 20);
+    
+    const largeArc = angle > Math.PI ? 1 : 0;
+    
+    return `M ${cen} ${cen} L ${x1} ${y1} A ${rad - 20} ${rad - 20} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+  };
+
+  const getTextPosition = (index: number, total: number, rad: number, cen: number) => {
+    if (total === 1) {
+      return { x: cen, y: cen, rotation: 0 };
+    }
+    
+    const angle = (360 / total) * Math.PI / 180;
+    const midAngle = (index + 0.5) * angle;
+    const textRadius = rad * 0.7;
+    
+    const x = cen + Math.cos(midAngle) * textRadius;
+    const y = cen + Math.sin(midAngle) * textRadius;
+    const rotation = (midAngle * 180 / Math.PI + 90) % 360;
+    
+    return { x, y, rotation };
+  };
+
+  // Memoize segment paths and text positions to avoid recalculating on every render
+  const segments = useMemo(() => {
+    return options.map((option, index) => ({
+      option,
+      path: createSegmentPath(index, options.length, radius, center),
+      textPos: getTextPosition(index, options.length, radius, center)
+    }));
+  }, [options.length, radius, center]);
   
   useEffect(() => {
     if (isSpinning) {
@@ -88,46 +134,6 @@ const FortuneWheel: React.FC<FortuneWheelProps> = ({
     }
   }, [isSpinning]);
 
-  // Create wheel segments
-  const createSegmentPath = (index: number, total: number): string => {
-    if (total === 1) {
-      // For single participant, create a full circle
-      const outerRadius = radius - 20;
-      return `M ${center} ${center} m -${outerRadius}, 0 a ${outerRadius},${outerRadius} 0 1,1 ${outerRadius * 2},0 a ${outerRadius},${outerRadius} 0 1,1 -${outerRadius * 2},0`;
-    }
-    
-    const angle = (360 / total) * Math.PI / 180;
-    const startAngle = index * angle;
-    const endAngle = (index + 1) * angle;
-    
-    const x1 = center + Math.cos(startAngle) * (radius - 20);
-    const y1 = center + Math.sin(startAngle) * (radius - 20);
-    const x2 = center + Math.cos(endAngle) * (radius - 20);
-    const y2 = center + Math.sin(endAngle) * (radius - 20);
-    
-    const largeArc = angle > Math.PI ? 1 : 0;
-    
-    return `M ${center} ${center} L ${x1} ${y1} A ${radius - 20} ${radius - 20} 0 ${largeArc} 1 ${x2} ${y2} Z`;
-  };
-
-  // Calculate text position and rotation for each segment
-  const getTextPosition = (index: number, total: number) => {
-    if (total === 1) {
-      // For single participant, center the text
-      return { x: center, y: center, rotation: 0 };
-    }
-    
-    const angle = (360 / total) * Math.PI / 180;
-    const midAngle = (index + 0.5) * angle;
-    const textRadius = radius * 0.7;
-    
-    const x = center + Math.cos(midAngle) * textRadius;
-    const y = center + Math.sin(midAngle) * textRadius;
-    const rotation = (midAngle * 180 / Math.PI + 90) % 360;
-    
-    return { x, y, rotation };
-  };
-
   const animatedStyle = {
     transform: [
       {
@@ -154,28 +160,25 @@ const FortuneWheel: React.FC<FortuneWheelProps> = ({
       <Box style={{ position: 'relative', width: size, height: size }}>
         <Animated.View style={animatedStyle}>
           <Svg width={size} height={size}>
-            {options.map((option, index) => {
-              const segmentPath = createSegmentPath(index, options.length);
-              const textPos = getTextPosition(index, options.length);
-              
+            {segments.map((segment, index) => {
               return (
-                <G key={index}>
+                <G key={`segment-${index}-${segment.option}`}>
                   <Path
-                    d={segmentPath}
+                    d={segment.path}
                     fill={colors[index]}
                     stroke="#fff"
                     strokeWidth="2"
                   />
                   <SvgText
-                    x={textPos.x}
-                    y={textPos.y}
+                    x={segment.textPos.x}
+                    y={segment.textPos.y}
                     fill="#000"
                     fontSize="12"
                     textAnchor="middle"
                     alignmentBaseline="middle"
-                    transform={`rotate(${textPos.rotation > 180 ? textPos.rotation + 180 : textPos.rotation}, ${textPos.x}, ${textPos.y})`}
+                    transform={`rotate(${segment.textPos.rotation > 180 ? segment.textPos.rotation + 180 : segment.textPos.rotation}, ${segment.textPos.x}, ${segment.textPos.y})`}
                   >
-                    {option.length > 10 ? option.substring(0, 8) + '...' : option}
+                    {segment.option.length > 10 ? segment.option.substring(0, 8) + '...' : segment.option}
                   </SvgText>
                 </G>
               );
@@ -199,11 +202,10 @@ const AdminLottery: React.FC = () => {
   async function fetchUsers() {
     try {
       setLoading(true);
-      const usersResponse = await api.get("users");
-      const allUsers = usersResponse.data.data.users ?? [];
-      const residents = allUsers.filter(
-        (user: User) => user.userRole === "resident"
-      );
+      // Fetch only residents using the role-specific endpoint
+      // Exclude profile pictures for better performance (binary data is slow)
+      const usersResponse = await api.get("users/role?role=resident&includeProfilePicture=false");
+      const residents = usersResponse.data.data.users ?? [];
       setUsers(residents);
     } catch (error) {
       console.error("Failed to fetch users:", error);
@@ -217,6 +219,15 @@ const AdminLottery: React.FC = () => {
     fetchUsers();
   }, []);
 
+  // Create a user lookup map for O(1) access
+  const userMap = useMemo(() => {
+    const map = new Map<string, User>();
+    users.forEach((user) => {
+      map.set(String(user.id), user);
+    });
+    return map;
+  }, [users]);
+
   const filteredUsers = useMemo(() => {
     return users.filter((user) =>
       (user.userName || "")
@@ -226,15 +237,16 @@ const AdminLottery: React.FC = () => {
   }, [searchText, users]);
 
   const wheelParticipants = useMemo<WheelParticipant[]>(() => {
+    // Use Map for O(1) lookup instead of O(n) find()
     return Array.from(selectedUsers).map((userId) => {
-      const user = users.find((u) => String(u.id) === userId);
+      const user = userMap.get(userId);
       return {
         id: String(user?.id ?? ""),
         name: user?.userName || "Unknown",
         ...(user?.profilePicture ? { profilePicture: user.profilePicture } : {}),
       };
     });
-  }, [selectedUsers, users]);
+  }, [selectedUsers, userMap]);
 
   const wheelOptions = wheelParticipants.map((p) => p.name);
   const wheelColors = generateWheelColors(wheelParticipants.length);
@@ -272,22 +284,25 @@ const AdminLottery: React.FC = () => {
     Alert.alert("🎉 Winner!", `Congratulations to ${winnerName}!`);
   };
 
-  const renderUserItem = (user: User) => {
+  // Memoized user item to prevent unnecessary re-renders
+  const UserItem = React.memo(({ user }: { user: User }) => {
     const userId = String(user.id);
     const userName = user.userName || "Unknown";
+    const isSelected = selectedUsers.has(userId);
+    
     return (
       <Pressable
         key={userId}
         onPress={() => handleUserToggle(userId)}
         style={[
           styles.userItem,
-          selectedUsers.has(userId) && styles.selectedUserItem,
+          isSelected && styles.selectedUserItem,
         ]}
       >
         <HStack space="md" alignItems="center" flex={1}>
           <Checkbox
             value={userId}
-            isChecked={selectedUsers.has(userId)}
+            isChecked={isSelected}
             onChange={() => handleUserToggle(userId)}
             size="md"
           >
@@ -312,7 +327,14 @@ const AdminLottery: React.FC = () => {
         </HStack>
       </Pressable>
     );
-  };
+  }, (prevProps, nextProps) => {
+    // Custom comparison: only re-render if user data changed or selection state changed
+    const prevUserId = String(prevProps.user.id);
+    const nextUserId = String(nextProps.user.id);
+    return prevUserId === nextUserId && 
+           prevProps.user.userName === nextProps.user.userName &&
+           prevProps.user.resident?.currentPoints === nextProps.user.resident?.currentPoints;
+  });
 
   return (
     <ScrollView style={styles.container}>
@@ -383,7 +405,7 @@ const AdminLottery: React.FC = () => {
                   <Text>Loading users...</Text>
                 </Box>
               ) : filteredUsers.length > 0 ? (
-                filteredUsers.map(renderUserItem)
+                filteredUsers.map((user) => <UserItem key={user.id} user={user} />)
               ) : (
                 <Box style={styles.emptyContainer}>
                   <Text style={styles.emptyText}>No residents found</Text>

@@ -25,27 +25,29 @@ model User {
 }
 
 model Resident {
-  userId           Int                         @id @map("User_ID")
-  dateOfBirth      DateTime?                   @map("Date_Of_Birth") @db.Timestamp(6)
-  dateOfAdmission  DateTime?                   @map("Date_Of_Admission") @db.Timestamp(6)
-  lastAbscondence  DateTime?                   @map("Last_Abscondence") @db.Timestamp(6)
-  lastActivityDate DateTime?                   @map("Last_Activity_Date") @db.Timestamp(6)
-  isActive         Boolean                     @default(true) @map("Is_Active")
-  currentPoints    Int?                        @map("Current_Points")
-  batchNumber      Int?                        @map("Batch_Number")
-  Control_No       Int?
-  totalPoints      Int                         @default(0) @map("Total_Points")
-  Wallpaper_Colour wallpaper_colour_type_enum? @default(red)
-  Wallpaper_Theme  wallpaper_theme_type_enum?  @default(sports)
-  user             User                        @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  userId              Int                         @id @map("User_ID")
+  dateOfBirth         DateTime?                   @map("Date_Of_Birth") @db.Timestamp(6)
+  dateOfAdmission     DateTime?                   @map("Date_Of_Admission") @db.Timestamp(6)
+  lastAbscondence     DateTime?                   @map("Last_Abscondence") @db.Timestamp(6)
+  currentPoints       Int?                        @map("Current_Points")
+  batchNumber         Int?                        @map("Batch_Number")
+  totalPoints         Int                         @default(0) @map("Total_Points")
+  Wallpaper_Colour    wallpaper_colour_type_enum? @default(red)
+  Wallpaper_Theme     wallpaper_theme_type_enum?  @default(sports)
+  lastActivityDate    DateTime?                   @map("Last_Activity_Date") @db.Timestamptz(6)
+  isActive            Boolean?                    @default(true) @map("Is_Active")
+  MWH_Product_Request MWH_Product_Request[]
+  MWH_Rating_Feedback MWH_Rating_Feedback[]
+  user                User                        @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("MWH_Resident")
 }
 
 model Officer {
-  userId       Int     @id @map("User_ID")
-  officerEmail String? @map("Officer_Email") @db.VarChar(127)
-  user         User    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  userId              Int                   @id @map("User_ID")
+  officerEmail        String?               @map("Officer_Email") @db.VarChar(127)
+  user                User                  @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  MWH_Product_Request MWH_Product_Request[]
 
   @@map("MWH_Officer")
 }
@@ -165,7 +167,34 @@ model MWH_Question {
   question_type question_type_enum?
   created_at    DateTime            @default(now()) @db.Timestamptz(6)
   active        Boolean?
+  form_type     form_type_enum      @default(product_request)
   MWH_Answer    MWH_Answer[]
+}
+
+model MWH_Product_Request {
+  Request_ID       BigInt                    @id @default(autoincrement())
+  User_ID          Int
+  Product_Name     String                    @db.VarChar
+  Description      String?                   @db.VarChar
+  Request_Category product_request_category?
+  Request_Status   request_status?
+  Comments         String?                   @db.VarChar
+  Submitted_At     DateTime?                 @default(now()) @db.Timestamptz(6)
+  Updated_At       DateTime?                 @default(now()) @db.Timestamptz(6)
+  Updated_By       Int?
+  MWH_Officer      Officer?                  @relation(fields: [Updated_By], references: [userId], onUpdate: NoAction)
+  MWH_Resident     Resident                  @relation(fields: [User_ID], references: [userId], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model MWH_Rating_Feedback {
+  Feedback_ID       BigInt             @id @default(autoincrement())
+  User_ID           Int
+  Rating            Int                @db.SmallInt
+  Feedback          String?            @db.VarChar
+  Feedback_Category feedback_category?
+  Submitted_At      DateTime           @default(now()) @db.Timestamptz(6)
+  MWH_Resident      Resident           @relation(fields: [User_ID], references: [userId], onDelete: NoAction, onUpdate: NoAction)
 }
 
 enum product_type_enum {
@@ -203,4 +232,43 @@ enum wallpaper_theme_type_enum {
   sports
   arts
   education
+}
+
+enum feedback_category {
+  general
+  product
+  service
+  facility
+  suggestion
+  complaint
+}
+
+enum form_type_enum {
+  product_request
+  rate_us
+}
+
+enum product_request_category {
+  hygiene
+  snacks
+  drinks
+  electronics
+  games
+  books
+  clothing
+  other
+}
+
+enum request_status {
+  pending
+  approved
+  rejected
+  in_progress
+  completed
+}
+
+enum urgency_level {
+  low
+  medium
+  high
 }

@@ -235,7 +235,8 @@ export const findMany = async (options = {}) => {
     offset = 0,
     search,
     sortBy = 'userName',
-    sortOrder = 'asc'
+    sortOrder = 'asc',
+    includeProfilePicture = true // Add option to exclude profile pictures for performance
   } = options;
   const where = {};
   if (role) where.userRole = role;
@@ -277,7 +278,7 @@ export const findMany = async (options = {}) => {
         u."User_ID" as id,
         u."User_Name" as "userName",
         u."User_Role" as "userRole",
-        u."Profile_Picture" as "profilePicture",
+        ${includeProfilePicture ? 'u."Profile_Picture" as "profilePicture",' : ''}
         u."Created_At" as "createdAt",
         u."Updated_At" as "updatedAt",
         r."Date_Of_Birth" as "resident_dateOfBirth",
@@ -305,7 +306,7 @@ export const findMany = async (options = {}) => {
       id: user.id,
       userName: user.userName,
       userRole: user.userRole,
-      profilePicture: user.profilePicture,
+      ...(includeProfilePicture && { profilePicture: user.profilePicture }),
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       resident: user.resident_currentPoints !== null || user.resident_dateOfBirth !== null ? {
