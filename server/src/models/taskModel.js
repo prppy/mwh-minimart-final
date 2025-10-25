@@ -91,6 +91,7 @@ export const findMany = async (options = {}) => {
           t."Task_Description" as "taskDescription",
           t."Points" as points,
           t."Task_Category_ID" as "taskCategoryId",
+          t."Image_URL" as "imageUrl",
           tc."Task_Category_Name" as "category_name",
           tc."Task_Category_Description" as "category_description"
         FROM "public"."MWH_Task" t
@@ -160,6 +161,7 @@ export const findMany = async (options = {}) => {
         taskDescription: task.taskDescription,
         points: task.points,
         taskCategoryId: task.taskCategoryId,
+        imageUrl: task.imageUrl,
         taskCategory: task.category_name ? {
           id: task.taskCategoryId,
           taskCategoryName: task.category_name,
@@ -237,6 +239,7 @@ export const findById = async (id) => {
           t."Task_Description" as "taskDescription",
           t."Points" as points,
           t."Task_Category_ID" as "taskCategoryId",
+          t."Image_URL" as "imageUrl",
           tc."Task_Category_Name" as "category_name",
           tc."Task_Category_Description" as "category_description"
         FROM "public"."MWH_Task" t
@@ -258,6 +261,7 @@ export const findById = async (id) => {
         taskDescription: task.taskDescription,
         points: task.points,
         taskCategoryId: task.taskCategoryId,
+        imageUrl: task.imageUrl,
         taskCategory: task.category_name ? {
           id: task.taskCategoryId,
           taskCategoryName: task.category_name,
@@ -371,6 +375,7 @@ export const findByCategory = async (options = {}) => {
           t."Task_Description" as "taskDescription",
           t."Points" as points,
           t."Task_Category_ID" as "taskCategoryId",
+          t."Image_URL" as "imageUrl",
           tc."Task_Category_Name" as "category_name",
           tc."Task_Category_Description" as "category_description"
         FROM "public"."MWH_Task" t
@@ -428,6 +433,7 @@ export const findByCategory = async (options = {}) => {
         taskDescription: task.taskDescription,
         points: task.points,
         taskCategoryId: task.taskCategoryId,
+        imageUrl: task.imageUrl,
         taskCategory: task.category_name ? {
           id: task.taskCategoryId,
           taskCategoryName: task.category_name,
@@ -460,7 +466,8 @@ export const create = async (taskData) => {
     taskName,
     taskDescription,
     points,
-    taskCategoryId
+    taskCategoryId,
+    imageUrl
   } = taskData;
 
   // Validate required fields
@@ -482,7 +489,8 @@ export const create = async (taskData) => {
       taskName,
       taskDescription,
       points: parseInt(points),
-      taskCategoryId: parseInt(taskCategoryId)
+      taskCategoryId: parseInt(taskCategoryId),
+      imageUrl: imageUrl || null
     },
     include: {
       taskCategory: true
@@ -821,6 +829,7 @@ export const findAll = async () => {
           t."Task_Description" as "taskDescription",
           t."Points" as points,
           t."Task_Category_ID" as "taskCategoryId",
+          t."Image_URL" as "imageUrl",
           tc."Task_Category_Name" as "category_name",
           tc."Task_Category_Description" as "category_description"
         FROM "public"."MWH_Task" t
@@ -837,6 +846,7 @@ export const findAll = async () => {
         taskDescription: task.taskDescription,
         points: task.points,
         taskCategoryId: task.taskCategoryId,
+        imageUrl: task.imageUrl,
         taskCategory: task.category_name ? {
           id: task.taskCategoryId,
           taskCategoryName: task.category_name,

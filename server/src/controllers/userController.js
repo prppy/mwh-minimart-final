@@ -48,6 +48,7 @@ export const getAllUsers = async (req, res) => {
 export const readUsersByRole = async (req, res) => {
   try {
     const { role } = req.query;
+    const { includeProfilePicture = 'true' } = req.query; // Allow excluding profile pictures for performance
     console.log(role)
 
     if (role !== "developer" && role !== "resident" && role !== "officer") {
@@ -56,8 +57,11 @@ export const readUsersByRole = async (req, res) => {
       })
     }
 
-    const result = await userModel.findMany({ role });
-    const sanitizedUsers = result.users.map(user => userModel.sanitize(user));
+    const result = await UserModel.findMany({ 
+      role,
+      includeProfilePicture: includeProfilePicture === 'true'
+    });
+    const sanitizedUsers = result.users.map(user => UserModel.sanitize(user));
 
     return res.status(200).json({
       message: "List of users of role " + role,
