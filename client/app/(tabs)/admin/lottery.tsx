@@ -16,7 +16,6 @@ import {
 import Svg, { G, Path, Text as SvgText, Circle, Line } from "react-native-svg";
 import { ADMIN_PURPLE, LIGHTEST_PURPLE } from "../../../constants/colors";
 import SearchBar from "@/components/Searchbar";
-import ProfileAvatar from "@/components/ProfileAvatar";
 import { renderHighlightedText } from "@/utils/searchUtils";
 import api from "@/components/utility/api";
 import { User } from "@/constants/types";
@@ -54,7 +53,12 @@ const FortuneWheel: React.FC<FortuneWheelProps> = ({
   size = 500
 }) => {
   const spinValue = useRef(new Animated.Value(0)).current;
+  const arrowBounce = useRef(new Animated.Value(0)).current;
   const [currentRotation, setCurrentRotation] = useState(0);
+  const [currentPointerName, setCurrentPointerName] = useState<string>("");
+  const currentSpinValue = useRef(0);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const celebrationAnimations = useRef<Animated.Value[]>([]);
   
   const radius = size / 2;
   const center = radius;
@@ -104,6 +108,41 @@ const FortuneWheel: React.FC<FortuneWheelProps> = ({
       textPos: getTextPosition(index, options.length, radius, center)
     }));
   }, [options.length, radius, center]);
+
+  // Create confetti particles
+  const confettiParticles = useMemo(() => {
+    return Array.from({ length: 50 }, (_, i) => ({
+      id: i,
+      animValue: new Animated.Value(0),
+      x: Math.random() * size,
+      y: -20 - Math.random() * 100,
+      rotation: Math.random() * 360,
+      color: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFEAA7', '#DDA0DD', '#F8C471'][Math.floor(Math.random() * 6)],
+      size: 8 + Math.random() * 8,
+      delay: Math.random() * 500,
+    }));
+  }, [size]);
+
+  // Start celebration animation
+  const startCelebration = () => {
+    setShowCelebration(true);
+    
+    confettiParticles.forEach((particle) => {
+      particle.animValue.setValue(0);
+      Animated.timing(particle.animValue, {
+        toValue: 1,
+        duration: 2000 + Math.random() * 1000,
+        delay: particle.delay,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    });
+
+    // Hide celebration after 3 seconds
+    setTimeout(() => {
+      setShowCelebration(false);
+    }, 3500);
+  };
   
   useEffect(() => {
     if (isSpinning) {
@@ -113,6 +152,66 @@ const FortuneWheel: React.FC<FortuneWheelProps> = ({
       const totalRotation = randomSpins * 360 + randomAngle;
       
       spinValue.setValue(0);
+      arrowBounce.setValue(0);
+      currentSpinValue.current = 0;
+      
+      // Track spin value changes
+      const listenerId = spinValue.addListener(({ value }) => {
+        currentSpinValue.current = value;
+      });
+      
+      // Arrow bounce animation during spin (up-down motion)
+      const bounceAnimation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(arrowBounce, {
+            toValue: 1,
+            duration: 150,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(arrowBounce, {
+            toValue: -1,
+            duration: 300,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(arrowBounce, {
+            toValue: 0,
+            duration: 150,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      bounceAnimation.start();
+      
+      // Update current pointer name periodically during spin
+      const segmentAngle = 360 / options.length;
+      const updateInterval = setInterval(() => {
+        const currentAngle = (currentRotation + currentSpinValue.current) % 360;
+        
+        // Find the segment with the highest text position under the arrow
+        let currentIndex = 0;
+        let highestY = Infinity;
+        
+        for (let i = 0; i < options.length; i++) {
+          const baseAngle = ((i + 0.5) * segmentAngle) * Math.PI / 180;
+          const rotatedAngle = baseAngle - (currentAngle * Math.PI / 180);
+          
+          const textRadius = radius * 0.7;
+          const x = center + Math.cos(rotatedAngle) * textRadius;
+          const y = center + Math.sin(rotatedAngle) * textRadius;
+          
+          const isUnderArrow = y < center && Math.abs(x - center) < radius * 0.4;
+          
+          if (isUnderArrow && y < highestY) {
+            highestY = y;
+            currentIndex = i;
+          }
+        }
+        
+        setCurrentPointerName(options[currentIndex] || "");
+      }, 50);
       
       Animated.timing(spinValue, {
         toValue: totalRotation,
@@ -120,19 +219,82 @@ const FortuneWheel: React.FC<FortuneWheelProps> = ({
         easing: Easing.out(Easing.exp),
         useNativeDriver: true,
       }).start(() => {
+        clearInterval(updateInterval);
+        bounceAnimation.stop();
+        arrowBounce.setValue(0);
+        spinValue.removeListener(listenerId);
+        
         const finalAngle = (currentRotation + totalRotation) % 360;
         setCurrentRotation(finalAngle);
         
-        // Calculate which segment the pointer is on
-        const segmentAngle = 360 / options.length;
-        // Adjust for pointer being at top (270 degrees in our coordinate system)
-        const adjustedAngle = (360 - finalAngle + 270) % 360;
-        const winnerIndex = Math.floor(adjustedAngle / segmentAngle);
+        // Find the segment with the highest text position (smallest Y coordinate) under the arrow
+        // Arrow is at the top, we want segments in the upper half (y < center)
+        let winnerIndex = 0;
+        let highestY = Infinity;
         
-        onSpinEnd(options[winnerIndex]);
+        segments.forEach((segment, index) => {
+          // Calculate the current angle of this segment's text after rotation
+          const baseAngle = ((index + 0.5) * segmentAngle) * Math.PI / 180;
+          const rotatedAngle = baseAngle - (finalAngle * Math.PI / 180);
+          
+          // Convert to x, y coordinates
+          const textRadius = radius * 0.7;
+          const x = center + Math.cos(rotatedAngle) * textRadius;
+          const y = center + Math.sin(rotatedAngle) * textRadius;
+          
+          // Check if segment is in the upper half (y < center means above horizontal center line)
+          // And within a reasonable range under the arrow (x close to center)
+          const isUnderArrow = y < center && Math.abs(x - center) < radius * 0.4;
+          
+          if (isUnderArrow && y < highestY) {
+            highestY = y;
+            winnerIndex = index;
+          }
+        });
+        
+        const winnerName = options[winnerIndex];
+        setCurrentPointerName(winnerName);
+        
+        // Start celebration animation
+        startCelebration();
+        
+        onSpinEnd(winnerName);
       });
+      
+      return () => {
+        clearInterval(updateInterval);
+        bounceAnimation.stop();
+        spinValue.removeListener(listenerId);
+      };
+    } else {
+      // Set initial pointer name when not spinning
+      if (options.length > 0 && !currentPointerName) {
+        const segmentAngle = 360 / options.length;
+        
+        // Find the segment with the highest text position under the arrow
+        let currentIndex = 0;
+        let highestY = Infinity;
+        
+        for (let i = 0; i < options.length; i++) {
+          const baseAngle = ((i + 0.5) * segmentAngle) * Math.PI / 180;
+          const rotatedAngle = baseAngle - (currentRotation * Math.PI / 180);
+          
+          const textRadius = radius * 0.7;
+          const x = center + Math.cos(rotatedAngle) * textRadius;
+          const y = center + Math.sin(rotatedAngle) * textRadius;
+          
+          const isUnderArrow = y < center && Math.abs(x - center) < radius * 0.4;
+          
+          if (isUnderArrow && y < highestY) {
+            highestY = y;
+            currentIndex = i;
+          }
+        }
+        
+        setCurrentPointerName(options[currentIndex] || "");
+      }
     }
-  }, [isSpinning]);
+  }, [isSpinning, options]);
 
   const animatedStyle = {
     transform: [
@@ -140,6 +302,17 @@ const FortuneWheel: React.FC<FortuneWheelProps> = ({
         rotate: spinValue.interpolate({
           inputRange: [0, 360],
           outputRange: ['0deg', '360deg'],
+        }),
+      },
+    ],
+  };
+
+  const arrowStyle = {
+    transform: [
+      {
+        translateY: arrowBounce.interpolate({
+          inputRange: [-1, 0, 1],
+          outputRange: [-10, 0, 10], // Bounce up-down
         }),
       },
     ],
@@ -157,6 +330,126 @@ const FortuneWheel: React.FC<FortuneWheelProps> = ({
 
   return (
     <Box style={{ alignItems: 'center', width: size, height: size }}>
+      {/* Confetti Celebration */}
+      {showCelebration && confettiParticles.map((particle) => (
+        <Animated.View
+          key={particle.id}
+          style={{
+            position: 'absolute',
+            left: particle.x,
+            top: particle.y,
+            width: particle.size,
+            height: particle.size,
+            backgroundColor: particle.color,
+            borderRadius: particle.size / 2,
+            transform: [
+              {
+                translateY: particle.animValue.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, size + 100],
+                }),
+              },
+              {
+                rotate: particle.animValue.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['0deg', `${particle.rotation * 3}deg`],
+                }),
+              },
+              {
+                scale: particle.animValue.interpolate({
+                  inputRange: [0, 0.5, 1],
+                  outputRange: [1, 1.2, 0.5],
+                }),
+              },
+            ],
+            opacity: particle.animValue.interpolate({
+              inputRange: [0, 0.1, 0.9, 1],
+              outputRange: [0, 1, 1, 0],
+            }),
+            zIndex: 5,
+          }}
+        />
+      ))}
+
+      {/* Arrow Pointer */}
+      <Animated.View style={[
+        {
+          position: 'absolute',
+          top: -40,
+          zIndex: 10,
+        },
+        arrowStyle
+      ]}>
+        <Svg width="60" height="60" viewBox="0 0 60 60">
+          {/* Glow Circle */}
+          <Circle
+            cx="30"
+            cy="32"
+            r="22"
+            fill="rgba(255, 107, 53, 0.2)"
+          />
+          <Circle
+            cx="30"
+            cy="32"
+            r="18"
+            fill="rgba(255, 107, 53, 0.3)"
+          />
+          {/* Arrow Shadow */}
+          <Path
+            d="M30 50 L20 30 L30 35 L40 30 Z"
+            fill="rgba(0,0,0,0.3)"
+          />
+          {/* Arrow Body */}
+          <Path
+            d="M30 48 L18 28 L30 33 L42 28 Z"
+            fill="#FF6B35"
+            stroke="#FFF"
+            strokeWidth="3"
+          />
+          {/* Arrow Highlight */}
+          <Path
+            d="M30 33 L24 30 L30 40 Z"
+            fill="#FF8C5A"
+          />
+          {/* Arrow Tip Highlight */}
+          <Circle
+            cx="30"
+            cy="48"
+            r="3"
+            fill="#FF4500"
+          />
+        </Svg>
+      </Animated.View>
+
+      {/* Current Name Display */}
+      {currentPointerName && (
+        <Box style={{
+          position: 'absolute',
+          top: -80,
+          zIndex: 9,
+          backgroundColor: 'rgba(255, 107, 53, 0.95)',
+          paddingHorizontal: 16,
+          paddingVertical: 8,
+          borderRadius: 20,
+          borderWidth: 2,
+          borderColor: '#FFF',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.3,
+          shadowRadius: 4,
+          elevation: 5,
+        }}>
+          <Text style={{
+            color: '#FFF',
+            fontSize: 16,
+            fontWeight: 'bold',
+            textAlign: 'center',
+          }}>
+            {currentPointerName}
+          </Text>
+        </Box>
+      )}
+
       <Box style={{ position: 'relative', width: size, height: size }}>
         <Animated.View style={animatedStyle}>
           <Svg width={size} height={size}>
@@ -196,7 +489,6 @@ const AdminLottery: React.FC = () => {
   const [searchText, setSearchText] = useState("");
   const [loading, setLoading] = useState(false);
   const [spinning, setSpinning] = useState(false);
-  const [winner, setWinner] = useState<string | null>(null);
 
   // Fetch users from API
   async function fetchUsers() {
@@ -257,7 +549,6 @@ const AdminLottery: React.FC = () => {
       ? newSelected.delete(userId)
       : newSelected.add(userId);
     setSelectedUsers(newSelected);
-    setWinner(null);
   };
 
   const handleSelectAll = () => {
@@ -266,7 +557,6 @@ const AdminLottery: React.FC = () => {
     } else {
       setSelectedUsers(new Set(filteredUsers.map((u) => String(u.id))));
     }
-    setWinner(null);
   };
 
   const handleSpin = () => {
@@ -275,13 +565,11 @@ const AdminLottery: React.FC = () => {
       return;
     }
     setSpinning(true);
-    setWinner(null);
   };
 
   const handleSpinEnd = (winnerName: string) => {
     setSpinning(false);
-    setWinner(winnerName);
-    Alert.alert("🎉 Winner!", `Congratulations to ${winnerName}!`);
+    Alert.alert("🎉 Congratulations!", "");
   };
 
   // Memoized user item to prevent unnecessary re-renders
@@ -304,17 +592,12 @@ const AdminLottery: React.FC = () => {
             value={userId}
             isChecked={isSelected}
             onChange={() => handleUserToggle(userId)}
-            size="md"
+            aria-label={`Select ${userName}`}
           >
-            <CheckboxIndicator>
-              <CheckboxIcon as={CheckIcon} color="white" />
+            <CheckboxIndicator mr="$2">
+              <CheckboxIcon as={CheckIcon} />
             </CheckboxIndicator>
           </Checkbox>
-          <ProfileAvatar
-            source={user.profilePicture}
-            borderColor="#8B5CF6"
-            scale={0.7}
-          />
           <VStack flex={1}>
             <Text style={styles.userName}>
               {renderHighlightedText(userName, searchText)}
@@ -363,13 +646,6 @@ const AdminLottery: React.FC = () => {
                   {spinning ? "Spinning..." : "Spin the Wheel!"}
                 </Text>
               </Button>
-
-              {winner && (
-                <Box style={styles.winnerBox}>
-                  <Text style={styles.winnerTitle}>🏆 Winner</Text>
-                  <Text style={styles.winnerName}>{winner}</Text>
-                </Box>
-              )}
 
               <Text style={styles.participantCount}>
                 Participants: {wheelParticipants.length}
@@ -439,6 +715,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     minHeight: 500,
+    position: "relative",
   },
   selectionContainer: {
     backgroundColor: "white",
