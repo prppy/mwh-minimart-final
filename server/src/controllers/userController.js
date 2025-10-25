@@ -1,5 +1,5 @@
 import { validationResult } from 'express-validator';
-import * as UserModel from '../models/userModel.js';
+import * as userModel from '../models/userModel.js';
 
 
 // Get all users with filtering
@@ -15,7 +15,7 @@ export const getAllUsers = async (req, res) => {
       sortOrder
     } = req.query;
 
-    const result = await UserModel.findMany({
+    const result = await userModel.findMany({
       role,
       batchNumber,
       limit,
@@ -26,7 +26,7 @@ export const getAllUsers = async (req, res) => {
     });
 
     // Sanitize user data
-    const sanitizedUsers = result.users.map(user => UserModel.sanitize(user));
+    const sanitizedUsers = result.users.map(user => userModel.sanitize(user));
 
     res.json({
       success: true,
@@ -56,8 +56,8 @@ export const readUsersByRole = async (req, res) => {
       })
     }
 
-    const result = await UserModel.findMany({ role });
-    const sanitizedUsers = result.users.map(user => UserModel.sanitize(user));
+    const result = await userModel.findMany({ role });
+    const sanitizedUsers = result.users.map(user => userModel.sanitize(user));
 
     return res.status(200).json({
       message: "List of users of role " + role,
@@ -81,7 +81,7 @@ export const getUserById = async (req, res) => {
     const { id } = req.params;
     const { includeTransactions = false } = req.query;
 
-    const user = await UserModel.findById(parseInt(id), {
+    const user = await userModel.findById(parseInt(id), {
       includeResident: true,
       includeOfficer: true,
       includeTransactions: includeTransactions === 'true'
@@ -93,7 +93,7 @@ export const getUserById = async (req, res) => {
       });
     }
 
-    const sanitizedUser = UserModel.sanitize(user);
+    const sanitizedUser = userModel.sanitize(user);
 
     res.json({
       success: true,
