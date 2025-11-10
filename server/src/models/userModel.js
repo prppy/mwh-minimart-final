@@ -1,7 +1,7 @@
 // models/User.js
-import { setMaxIdleHTTPParsers } from 'http';
-import { prisma } from '../lib/db.js';
-import bcryptjs from 'bcryptjs';
+import { setMaxIdleHTTPParsers } from "http";
+import { prisma } from "../lib/db.js";
+import bcryptjs from "bcryptjs";
 const { genSalt, hash, compare } = bcryptjs;
 
 /**
@@ -12,8 +12,8 @@ export const findByUserName = async (userName) => {
     where: { userName },
     include: {
       resident: true,
-      officer: true
-    }
+      officer: true,
+    },
   });
 };
 
@@ -21,8 +21,12 @@ export const findByUserName = async (userName) => {
  * Find user by ID with optional includes
  */
 export const findById = async (id, options = {}) => {
-  const { includeResident = false, includeOfficer = false, includeTransactions = false } = options;
-  
+  const {
+    includeResident = false,
+    includeOfficer = false,
+    includeTransactions = false,
+  } = options;
+
   try {
     // Try the standard Prisma query first
     const include = {};
@@ -33,16 +37,16 @@ export const findById = async (id, options = {}) => {
         include: {
           redemptions: { include: { product: true } },
           completions: { include: { task: true } },
-          abscondence: true
+          abscondence: true,
         },
-        orderBy: { transactionDate: 'desc' },
-        take: 10 // Last 10 transactions
+        orderBy: { transactionDate: "desc" },
+        take: 10, // Last 10 transactions
       };
     }
 
     const user = await prisma.user.findUnique({
       where: { id: parseInt(id) },
-      include
+      include,
     });
 
     // Handle null values in resident data if it exists
@@ -50,17 +54,20 @@ export const findById = async (id, options = {}) => {
       user.resident = {
         ...user.resident,
         currentPoints: user.resident.currentPoints ?? 0,
-        totalPoints: user.resident.totalPoints ?? 0
+        totalPoints: user.resident.totalPoints ?? 0,
       };
     }
 
     return user;
   } catch (error) {
     // If the error is related to null values, use raw query
-    if (error.code === 'P2032') {
-      console.log('Attempting raw query for findById due to null value constraint violation...');
-      
-      const rawUser = await prisma.$queryRawUnsafe(`
+    if (error.code === "P2032") {
+      console.log(
+        "Attempting raw query for findById due to null value constraint violation..."
+      );
+
+      const rawUser = await prisma.$queryRawUnsafe(
+        `
         SELECT 
           u."User_ID" as id,
           u."User_Name" as "userName",
@@ -81,12 +88,14 @@ export const findById = async (id, options = {}) => {
         LEFT JOIN "public"."MWH_Resident" r ON u."User_ID" = r."User_ID"
         LEFT JOIN "public"."MWH_Officer" o ON u."User_ID" = o."User_ID"
         WHERE u."User_ID" = $1
-      `, parseInt(id));
+      `,
+        parseInt(id)
+      );
 
       if (rawUser.length === 0) return null;
 
       const user = rawUser[0];
-      
+
       // Transform to match expected format
       const transformedUser = {
         id: user.id,
@@ -97,24 +106,32 @@ export const findById = async (id, options = {}) => {
         biometricHash: user.biometricHash,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
-        resident: (includeResident && (user.resident_currentPoints !== null || user.resident_dateOfBirth !== null)) ? {
-          userId: user.id,
-          dateOfBirth: user.resident_dateOfBirth,
-          dateOfAdmission: user.resident_dateOfAdmission,
-          lastAbscondence: user.resident_lastAbscondence,
-          currentPoints: parseInt(user.resident_currentPoints) || 0,
-          totalPoints: parseInt(user.resident_totalPoints) || 0,
-          batchNumber: user.resident_batchNumber
-        } : null,
-        officer: (includeOfficer && user.officer_officerEmail) ? {
-          userId: user.id,
-          officerEmail: user.officer_officerEmail
-        } : null
+        resident:
+          includeResident &&
+          (user.resident_currentPoints !== null ||
+            user.resident_dateOfBirth !== null)
+            ? {
+                userId: user.id,
+                dateOfBirth: user.resident_dateOfBirth,
+                dateOfAdmission: user.resident_dateOfAdmission,
+                lastAbscondence: user.resident_lastAbscondence,
+                currentPoints: parseInt(user.resident_currentPoints) || 0,
+                totalPoints: parseInt(user.resident_totalPoints) || 0,
+                batchNumber: user.resident_batchNumber,
+              }
+            : null,
+        officer:
+          includeOfficer && user.officer_officerEmail
+            ? {
+                userId: user.id,
+                officerEmail: user.officer_officerEmail,
+              }
+            : null,
       };
 
       return transformedUser;
     }
-    
+
     throw error;
   }
 };
@@ -123,37 +140,39 @@ export const findById = async (id, options = {}) => {
  * Create a new user with role-specific data
  */
 export const create = async (userData) => {
-  const { userName, password, userRole, ...roleData } = userData;
-  
+  const { userName, passwordHash, userRole, ...roleData } = userData;
+
   // Hash password
-  const salt = await genSalt(12);
-  const passwordHash = await hash(password, salt);
   return prisma.$transaction(async (tx) => {
     // Create user
     const user = await tx.user.create({
       data: {
         userName,
         passwordHash,
-        userRole: userRole || 'resident'
-      }
+        userRole: userRole || "resident",
+      },
     });
     // Create role-specific record
-    if (userRole === 'resident' || !userRole) {
+    if (userRole === "resident" || !userRole) {
       await tx.resident.create({
         data: {
           userId: user.id,
-          dateOfBirth: roleData.dateOfBirth ? new Date(roleData.dateOfBirth) : null,
-          batchNumber: roleData.batchNumber ? parseInt(roleData.batchNumber) : null,
+          dateOfBirth: roleData.dateOfBirth
+            ? new Date(roleData.dateOfBirth)
+            : null,
+          batchNumber: roleData.batchNumber
+            ? parseInt(roleData.batchNumber)
+            : null,
           currentPoints: roleData.currentPoints || 0,
-          totalPoints: roleData.totalPoints || 0
-        }
+          totalPoints: roleData.totalPoints || 0,
+        },
       });
-    } else if (userRole === 'officer') {
+    } else if (userRole === "officer") {
       await tx.officer.create({
         data: {
           userId: user.id,
-          officerEmail: roleData.email
-        }
+          officerEmail: roleData.email,
+        },
       });
     }
     return user;
@@ -164,57 +183,73 @@ export const create = async (userData) => {
  * Update user profile
  */
 export const updateProfile = async (userId, updates) => {
-  const user = await findById(userId, { includeResident: true, includeOfficer: true });
-  
+  const user = await findById(userId, {
+    includeResident: true,
+    includeOfficer: true,
+  });
+
   if (!user) {
-    throw new Error('User not found');
+    throw new Error("User not found");
   }
   return prisma.$transaction(async (tx) => {
     // Update user fields
     const userUpdateData = {};
     if (updates.userName) userUpdateData.userName = updates.userName;
-    if (updates.profilePicture !== undefined) userUpdateData.profilePicture = updates.profilePicture;
-    
+    if (updates.profilePicture !== undefined)
+      userUpdateData.profilePicture = updates.profilePicture;
+
     if (Object.keys(userUpdateData).length > 0) {
       await tx.user.update({
         where: { id: userId },
-        data: userUpdateData
+        data: userUpdateData,
       });
     }
     // Update role-specific fields
-    if (user.userRole === 'resident' && user.resident && updates.resident) {
+    if (user.userRole === "resident" && user.resident && updates.resident) {
       const residentUpdates = updates.resident;
       const residentUpdateData = {};
-      
+
       if (residentUpdates.dateOfBirth) {
         residentUpdateData.dateOfBirth = new Date(residentUpdates.dateOfBirth);
       }
       if (residentUpdates.batchNumber) {
         residentUpdateData.batchNumber = parseInt(residentUpdates.batchNumber);
       }
-      
+      if (residentUpdates.wallpaperType) {
+        residentUpdateData.Wallpaper_Colour = residentUpdates.wallpaperType;
+      }
+      if (residentUpdates.backgroundType) {
+        residentUpdateData.Wallpaper_Theme = residentUpdates.backgroundType;
+      }
+
       if (Object.keys(residentUpdateData).length > 0) {
         await tx.resident.update({
           where: { userId },
-          data: residentUpdateData
+          data: residentUpdateData,
         });
       }
-    } else if (user.userRole === 'officer' && user.officer && updates.officer) {
+    } else if (user.userRole === "officer" && user.officer && updates.officer) {
       const officerUpdates = updates.officer;
       const officerUpdateData = {};
-      
+
       if (officerUpdates.email) {
         officerUpdateData.officerEmail = officerUpdates.email;
       }
-      
+
       if (Object.keys(officerUpdateData).length > 0) {
         await tx.officer.update({
           where: { userId },
-          data: officerUpdateData
+          data: officerUpdateData,
         });
       }
     }
-    return findById(userId, { includeResident: true, includeOfficer: true });
+    return tx.user.findUnique({
+      where: { id: userId },
+      include: {
+        resident: true,
+        officer: true,
+      },
+    });
   });
 };
 
@@ -235,32 +270,32 @@ export const findMany = async (options = {}) => {
     limit = 50,
     offset = 0,
     search,
-    sortBy = 'userName',
-    sortOrder = 'asc',
-    includeProfilePicture = true // Add option to exclude profile pictures for performance
+    sortBy = "userName",
+    sortOrder = "asc",
+    includeProfilePicture = true, // Add option to exclude profile pictures for performance
   } = options;
   const where = {};
   if (role) where.userRole = role;
   if (search) {
     where.userName = {
       contains: search,
-      mode: 'insensitive'
+      mode: "insensitive",
     };
   }
   const include = {
     resident: true,
-    officer: true
+    officer: true,
   };
   let orderBy = {};
-  if (sortBy === 'userName') {
+  if (sortBy === "userName") {
     orderBy.userName = sortOrder;
-  } else if (sortBy === 'createdAt') {
+  } else if (sortBy === "createdAt") {
     orderBy.createdAt = sortOrder;
   }
   // Use raw query to handle null values properly
   try {
     // Build the WHERE clause dynamically
-    let whereClause = 'WHERE 1=1';
+    let whereClause = "WHERE 1=1";
     let params = [];
     let paramIndex = 1;
     if (role) {
@@ -274,12 +309,17 @@ export const findMany = async (options = {}) => {
       paramIndex++;
     }
     // Main query
-    const rawUsers = await prisma.$queryRawUnsafe(`
+    const rawUsers = await prisma.$queryRawUnsafe(
+      `
       SELECT 
         u."User_ID" as id,
         u."User_Name" as "userName",
         u."User_Role" as "userRole",
-        ${includeProfilePicture ? 'u."Profile_Picture" as "profilePicture",' : ''}
+        ${
+          includeProfilePicture
+            ? 'u."Profile_Picture" as "profilePicture",'
+            : ""
+        }
         u."Created_At" as "createdAt",
         u."Updated_At" as "updatedAt",
         r."Date_Of_Birth" as "resident_dateOfBirth",
@@ -288,6 +328,8 @@ export const findMany = async (options = {}) => {
         COALESCE(r."Current_Points", 0) as "resident_currentPoints",
         COALESCE(r."Total_Points", 0) as "resident_totalPoints",
         r."Batch_Number" as "resident_batchNumber",
+        r."Wallpaper_Colour" as "resident_wallpaperColour",
+        r."Wallpaper_Theme" as "resident_wallpaperTheme",
         o."Officer_Email" as "officer_officerEmail"
       FROM "public"."MWH_User" u
       LEFT JOIN "public"."MWH_Resident" r ON u."User_ID" = r."User_ID"
@@ -295,40 +337,56 @@ export const findMany = async (options = {}) => {
       ${whereClause}
       ORDER BY u."User_Name" ${sortOrder.toUpperCase()}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-    `, ...params, parseInt(limit), parseInt(offset));
+    `,
+      ...params,
+      parseInt(limit),
+      parseInt(offset)
+    );
     // Count query
-    const totalCountResult = await prisma.$queryRawUnsafe(`
+    const totalCountResult = await prisma.$queryRawUnsafe(
+      `
       SELECT COUNT(*) as count
       FROM "public"."MWH_User" u
       ${whereClause}
-    `, ...params);
+    `,
+      ...params
+    );
     // Transform raw query results to match expected format
-    const transformedUsers = rawUsers.map(user => ({
+    const transformedUsers = rawUsers.map((user) => ({
       id: user.id,
       userName: user.userName,
       userRole: user.userRole,
       ...(includeProfilePicture && { profilePicture: user.profilePicture }),
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
-      resident: user.resident_currentPoints !== null || user.resident_dateOfBirth !== null ? {
-        userId: user.id,
-        dateOfBirth: user.resident_dateOfBirth,
-        dateOfAdmission: user.resident_dateOfAdmission,
-        lastAbscondence: user.resident_lastAbscondence,
-        currentPoints: parseInt(user.resident_currentPoints) || 0,
-        totalPoints: parseInt(user.resident_totalPoints) || 0,
-        batchNumber: user.resident_batchNumber
-      } : null,
-      officer: user.officer_officerEmail ? {
-        userId: user.id,
-        officerEmail: user.officer_officerEmail
-      } : null
+      resident:
+        user.resident_currentPoints !== null ||
+        user.resident_dateOfBirth !== null
+          ? {
+              userId: user.id,
+              dateOfBirth: user.resident_dateOfBirth,
+              dateOfAdmission: user.resident_dateOfAdmission,
+              lastAbscondence: user.resident_lastAbscondence,
+              currentPoints: parseInt(user.resident_currentPoints) || 0,
+              totalPoints: parseInt(user.resident_totalPoints) || 0,
+              batchNumber: user.resident_batchNumber,
+              backgroundType: user.resident_wallpaperTheme,
+              wallpaperType: user.resident_wallpaperColour,
+            }
+          : null,
+      officer: user.officer_officerEmail
+        ? {
+            userId: user.id,
+            officerEmail: user.officer_officerEmail,
+          }
+        : null,
     }));
     // Filter by batch number if specified (post-query filtering)
     let filteredUsers = transformedUsers;
     if (batchNumber) {
-      filteredUsers = transformedUsers.filter(user => 
-        user.resident && user.resident.batchNumber === parseInt(batchNumber)
+      filteredUsers = transformedUsers.filter(
+        (user) =>
+          user.resident && user.resident.batchNumber === parseInt(batchNumber)
       );
     }
     const totalCount = parseInt(totalCountResult[0].count);
@@ -339,11 +397,11 @@ export const findMany = async (options = {}) => {
         total: totalCount,
         limit: parseInt(limit),
         offset: parseInt(offset),
-        pages: Math.ceil(totalCount / parseInt(limit))
-      }
+        pages: Math.ceil(totalCount / parseInt(limit)),
+      },
     };
   } catch (error) {
-    console.error('Error in findMany:', error);
+    console.error("Error in findMany:", error);
     throw error;
   }
 };
@@ -353,22 +411,22 @@ export const findMany = async (options = {}) => {
  */
 export const changePassword = async (userId, currentPassword, newPassword) => {
   const user = await prisma.user.findUnique({
-    where: { id: userId }
+    where: { id: userId },
   });
   if (!user) {
-    throw new Error('User not found');
+    throw new Error("User not found");
   }
   // Verify current password
   const isValid = await compare(currentPassword, user.passwordHash);
   if (!isValid) {
-    throw new Error('Current password is incorrect');
+    throw new Error("Current password is incorrect");
   }
   // Hash new password
   const salt = await genSalt(12);
   const newPasswordHash = await hash(newPassword, salt);
   return prisma.user.update({
     where: { id: userId },
-    data: { passwordHash: newPasswordHash }
+    data: { passwordHash: newPasswordHash },
   });
 };
 
@@ -378,13 +436,13 @@ export const changePassword = async (userId, currentPassword, newPassword) => {
 export const softDelete = async (userId) => {
   // Check if user has transactions
   const transactionCount = await prisma.transaction.count({
-    where: { userId }
+    where: { userId },
   });
   if (transactionCount > 0) {
-    throw new Error('Cannot delete user with existing transactions');
+    throw new Error("Cannot delete user with existing transactions");
   }
   return prisma.user.delete({
-    where: { id: userId }
+    where: { id: userId },
   });
 };
 
@@ -393,19 +451,19 @@ export const softDelete = async (userId) => {
  */
 export const getStatistics = async () => {
   const stats = await prisma.user.groupBy({
-    by: ['userRole'],
+    by: ["userRole"],
     _count: {
-      id: true
-    }
+      id: true,
+    },
   });
   const totalUsers = await prisma.user.count();
-  
+
   return {
     total: totalUsers,
     byRole: stats.reduce((acc, stat) => {
       acc[stat.userRole] = stat._count.id;
       return acc;
-    }, {})
+    }, {}),
   };
 };
 
@@ -414,20 +472,20 @@ export const getStatistics = async () => {
  */
 export const sanitize = (user) => {
   if (!user) return null;
-  
+
   const sanitized = { ...user };
   delete sanitized.passwordHash;
   delete sanitized.biometricHash;
-  
+
   // Handle null values in resident data
   if (sanitized.resident) {
     sanitized.resident = {
       ...sanitized.resident,
       currentPoints: sanitized.resident.currentPoints ?? 0,
-      totalPoints: sanitized.resident.totalPoints ?? 0
+      totalPoints: sanitized.resident.totalPoints ?? 0,
     };
   }
-  
+
   return sanitized;
 };
 
@@ -435,199 +493,199 @@ export const sanitize = (user) => {
 
 /**
  * Inserts resident to MWH_User and MWH_Resident tables
- * @param {*} username 
- * @param {*} hashedpassword 
- * @param {*} userRole 
- * @param {*} Date_Of_Birth 
- * @param {*} Date_Of_Admission 
- * @param {*} Last_Abscondence 
- * @returns 
+ * @param {*} username
+ * @param {*} hashedpassword
+ * @param {*} userRole
+ * @param {*} Date_Of_Birth
+ * @param {*} Date_Of_Admission
+ * @param {*} Last_Abscondence
+ * @returns
  */
 export const insertResident = async (
-    username, 
-    hashedPassword, 
-    userRole, 
-    dateOfBirth, 
-    dateOfAdmission, 
-    lastAbscondence
+  username,
+  hashedPassword,
+  userRole,
+  dateOfBirth,
+  dateOfAdmission,
+  lastAbscondence
 ) => {
-    try {
-        const result = await prisma.$transaction(async (prisma) => {
-            // insert into mwh_user
-            const createdUser = await prisma.user.create({
-                data: {
-                    userName: username,
-                    passwordHash: hashedPassword,
-                    userRole: userRole,
-                }
-            });
+  try {
+    const result = await prisma.$transaction(async (prisma) => {
+      // insert into mwh_user
+      const createdUser = await prisma.user.create({
+        data: {
+          userName: username,
+          passwordHash: hashedPassword,
+          userRole: userRole,
+        },
+      });
 
-            // insert into mwh_resident
-            const createdResident = await prisma.resident.create({
-                data: {
-                    userId: createdUser.id,
-                    dateOfBirth: dateOfBirth,
-                    dateOfAdmission: dateOfAdmission,
-                    lastAbscondence: lastAbscondence,
-                }
-            });
+      // insert into mwh_resident
+      const createdResident = await prisma.resident.create({
+        data: {
+          userId: createdUser.id,
+          dateOfBirth: dateOfBirth,
+          dateOfAdmission: dateOfAdmission,
+          lastAbscondence: lastAbscondence,
+        },
+      });
 
-            return createdUser.id
-        });
+      return createdUser.id;
+    });
 
-        return result
-
-    } catch (error) {
-        if (error.code === 'P2002') {
-            throw new Error('Username already exists');
-        }
-        if (error.code === 'P2003') {
-            throw new Error('Foreign key constraint failed');
-        }
-        
-        console.error('Transaction failed:', error);
-        
-        throw new Error('Failed to create resident account');
+    return result;
+  } catch (error) {
+    if (error.code === "P2002") {
+      throw new Error("Username already exists");
     }
-}
+    if (error.code === "P2003") {
+      throw new Error("Foreign key constraint failed");
+    }
+
+    console.error("Transaction failed:", error);
+
+    throw new Error("Failed to create resident account");
+  }
+};
 
 /**
  * Inserts officer to MWH_User and MWH_Officer tables
- * @param {*} username 
- * @param {*} hashedpassword 
- * @param {*} userRole 
- * @returns 
+ * @param {*} username
+ * @param {*} hashedpassword
+ * @param {*} userRole
+ * @returns
  */
 export const insertOfficer = async (
-    username, 
-    hashedpassword, 
-    userRole, 
-    officerEmail
+  username,
+  hashedpassword,
+  userRole,
+  officerEmail
 ) => {
-    try {
-        const result = await prisma.$transaction(async (prisma) => {
-            // insert into mwh_user
-            const createdUser = await prisma.user.create({
-                data: {
-                    userName: username,
-                    passwordHash: hashedpassword,
-                    userRole: userRole,
-                }
-            });
+  try {
+    const result = await prisma.$transaction(async (prisma) => {
+      // insert into mwh_user
+      const createdUser = await prisma.user.create({
+        data: {
+          userName: username,
+          passwordHash: hashedpassword,
+          userRole: userRole,
+        },
+      });
 
-            // insert into mwh_resident
-            const createdOfficer = await prisma.officer.create({
-                data: {
-                    userId: createdUser.id,
-                    officerEmail: officerEmail,
-                }
-            });
+      // insert into mwh_resident
+      const createdOfficer = await prisma.officer.create({
+        data: {
+          userId: createdUser.id,
+          officerEmail: officerEmail,
+        },
+      });
 
-            return createdUser.id
-        });
+      return createdUser.id;
+    });
 
-        return result;
-        
-    } catch (error) {
-        if (error.code === 'P2002') {
-            throw new Error('Username already exists');
-        }
-        if (error.code === 'P2003') {
-            throw new Error('Foreign key constraint failed');
-        }
-        
-        console.error('Transaction failed:', error);
-        
-        throw new Error('Failed to create resident account');
+    return result;
+  } catch (error) {
+    if (error.code === "P2002") {
+      throw new Error("Username already exists");
     }
-}
+    if (error.code === "P2003") {
+      throw new Error("Foreign key constraint failed");
+    }
+
+    console.error("Transaction failed:", error);
+
+    throw new Error("Failed to create resident account");
+  }
+};
 
 /**
  * Inserts developer to MWH_User table (no linking table for developer role)
- * @param {*} username 
- * @param {*} hashedpassword 
+ * @param {*} username
+ * @param {*} hashedpassword
  */
 export const insertDeveloper = async (username, hashedPassword, userRole) => {
-    const userData = {
-        userName: username,
-        passwordHash: hashedPassword,
-        userRole: userRole,
-    }
+  const userData = {
+    userName: username,
+    passwordHash: hashedPassword,
+    userRole: userRole,
+  };
 
-    const createdUser = await prisma.user.create({ data: userData })
+  const createdUser = await prisma.user.create({ data: userData });
 
-    return createdUser.id
-}
+  return createdUser.id;
+};
 
 /**
  * selects user from MWH_User table based on userid
- * @param {*} userId 
- * @returns 
+ * @param {*} userId
+ * @returns
  */
 export const selectUserByUserId = async (userId) => {
-    const selectedUser = await prisma.user.findFirst({
-        where: {
-            id: userId
-        },
-        select: {
-            id: true,
-            userName: true,
-            passwordHash: true
-        }
-    })
+  const selectedUser = await prisma.user.findFirst({
+    where: {
+      id: userId,
+    },
+    select: {
+      id: true,
+      userName: true,
+      passwordHash: true,
+      userRole: true,
+    },
+  });
 
-    if (!selectedUser) {
-        return null
-    };
+  if (!selectedUser) {
+    return null;
+  }
 
-    return selectedUser
-}
+  return selectedUser;
+};
 
 /**
  * selects user from MWH_User table based on role
  * @param {*} role
- * @returns 
+ * @returns
  */
 export const selectUsersByRole = async (role) => {
-    const selectedUsers = await prisma.user.findMany({
-        where: {
-            userRole: role
-        },
-        select: {
-            id: true,
-            userName: true,
-            profilePicture: true
-        }
-    })
+  const selectedUsers = await prisma.user.findMany({
+    where: {
+      userRole: role,
+    },
+    select: {
+      id: true,
+      userName: true,
+      profilePicture: true,
+    },
+  });
 
-    return selectedUsers
-}
+  return selectedUsers;
+};
 
 /**
  * selects user from MWH_Officer table based on officer email
- * @param {*} officerEmail 
- * @returns 
+ * @param {*} officerEmail
+ * @returns
  */
 export const selectOfficerByOfficerEmail = async (officerEmail) => {
-    const selectedOfficer = await prisma.officer.findFirst({
-        where: {
-            officerEmail: officerEmail
-        },
+  const selectedOfficer = await prisma.officer.findFirst({
+    where: {
+      officerEmail: officerEmail,
+    },
+    select: {
+      officerEmail: true,
+      user: {
         select: {
-            officerEmail: true,
-            user: {
-                select: {
-                    id: true,
-                    userName: true,
-                    passwordHash: true
-                }
-            }
-        }
-    })
+          id: true,
+          userName: true,
+          userRole: true,
+          passwordHash: true,
+        },
+      },
+    },
+  });
 
-    if (!selectedOfficer) {
-        return null
-    };
+  if (!selectedOfficer) {
+    return null;
+  }
 
-    return selectedOfficer
-}
+  return selectedOfficer;
+};

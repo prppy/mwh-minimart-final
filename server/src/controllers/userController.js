@@ -1,19 +1,11 @@
-import { validationResult } from 'express-validator';
-import * as userModel from '../models/userModel.js';
-
+import { validationResult } from "express-validator";
+import * as userModel from "../models/userModel.js";
 
 // Get all users with filtering
 export const getAllUsers = async (req, res) => {
   try {
-    const {
-      role,
-      batchNumber,
-      limit,
-      offset,
-      search,
-      sortBy,
-      sortOrder
-    } = req.query;
+    const { role, batchNumber, limit, offset, search, sortBy, sortOrder } =
+      req.query;
 
     const result = await userModel.findMany({
       role,
@@ -22,62 +14,60 @@ export const getAllUsers = async (req, res) => {
       offset,
       search,
       sortBy,
-      sortOrder
+      sortOrder,
     });
 
     // Sanitize user data
-    const sanitizedUsers = result.users.map(user => userModel.sanitize(user));
+    const sanitizedUsers = result.users.map((user) => userModel.sanitize(user));
 
     res.json({
       success: true,
       data: {
         users: sanitizedUsers,
-        pagination: result.pagination
-      }
+        pagination: result.pagination,
+      },
     });
-
   } catch (error) {
-    console.error('Get users error:', error);
-    res.status(500).json({ 
-      error: { message: 'Internal server error' }
+    console.error("Get users error:", error);
+    res.status(500).json({
+      error: { message: "Internal server error" },
     });
   }
-}
+};
 
 // Get user by ID
 export const readUsersByRole = async (req, res) => {
   try {
     const { role } = req.query;
-    const { includeProfilePicture = 'true' } = req.query; // Allow excluding profile pictures for performance
-    console.log(role)
+    const { includeProfilePicture = "true" } = req.query; // Allow excluding profile pictures for performance
+    console.log(role);
 
     if (role !== "developer" && role !== "resident" && role !== "officer") {
       return res.status(400).json({
-        "message": "Please use a valid user role"
-      })
+        message: "Please use a valid user role",
+      });
     }
 
-    const result = await UserModel.findMany({ 
+    const result = await userModel.findMany({
       role,
-      includeProfilePicture: includeProfilePicture === 'true'
+      includeProfilePicture: includeProfilePicture === "true",
     });
-    const sanitizedUsers = result.users.map(user => UserModel.sanitize(user));
+    const sanitizedUsers = result.users.map((user) => UserModel.sanitize(user));
 
     return res.status(200).json({
       message: "List of users of role " + role,
       data: {
         users: sanitizedUsers,
-        pagination: result.pagination
-      }
+        pagination: result.pagination,
+      },
     });
-
   } catch (error) {
-    console.error('Get user error:', error);
-    return res.status(500).json({ 
-      error: { message: 'Internal server error' }
+    console.error("Get user error:", error);
+    return res.status(500).json({
+      error: { message: "Internal server error" },
     });
   }
-}
+};
 
 // Get user by ID
 export const getUserById = async (req, res) => {
@@ -88,12 +78,12 @@ export const getUserById = async (req, res) => {
     const user = await userModel.findById(parseInt(id), {
       includeResident: true,
       includeOfficer: true,
-      includeTransactions: includeTransactions === 'true'
+      includeTransactions: includeTransactions === "true",
     });
 
     if (!user) {
-      return res.status(404).json({ 
-        error: { message: 'User not found' }
+      return res.status(404).json({
+        error: { message: "User not found" },
       });
     }
 
@@ -101,16 +91,15 @@ export const getUserById = async (req, res) => {
 
     res.json({
       success: true,
-      data: sanitizedUser
+      data: sanitizedUser,
     });
-
   } catch (error) {
-    console.error('Get user error:', error);
-    res.status(500).json({ 
-      error: { message: 'Internal server error' }
+    console.error("Get user error:", error);
+    res.status(500).json({
+      error: { message: "Internal server error" },
     });
   }
-}
+};
 
 // Get user by Role
 export const getUserByRole = async (req, res) => {
@@ -121,12 +110,12 @@ export const getUserByRole = async (req, res) => {
     const user = await userModel.findById(parseInt(id), {
       includeResident: true,
       includeOfficer: true,
-      includeTransactions: includeTransactions === 'true'
+      includeTransactions: includeTransactions === "true",
     });
 
     if (!user) {
-      return res.status(404).json({ 
-        error: { message: 'User not found' }
+      return res.status(404).json({
+        error: { message: "User not found" },
       });
     }
 
@@ -134,24 +123,23 @@ export const getUserByRole = async (req, res) => {
 
     res.json({
       success: true,
-      data: sanitizedUser
+      data: sanitizedUser,
     });
-
   } catch (error) {
-    console.error('Get user error:', error);
-    res.status(500).json({ 
-      error: { message: 'Internal server error' }
+    console.error("Get user error:", error);
+    res.status(500).json({
+      error: { message: "Internal server error" },
     });
   }
-}
+};
 
 // Update user profile
 export const updateUser = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        error: { message: 'Validation failed', details: errors.array() }
+      return res.status(400).json({
+        error: { message: "Validation failed", details: errors.array() },
       });
     }
 
@@ -164,21 +152,20 @@ export const updateUser = async (req, res) => {
 
     res.json({
       success: true,
-      data: sanitizedUser
+      data: sanitizedUser,
     });
-
   } catch (error) {
-    console.error('Update user error:', error);
-    if (error.message === 'User not found') {
-      return res.status(404).json({ 
-        error: { message: error.message }
+    console.error("Update user error:", error);
+    if (error.message === "User not found") {
+      return res.status(404).json({
+        error: { message: error.message },
       });
     }
-    res.status(500).json({ 
-      error: { message: 'Internal server error' }
+    res.status(500).json({
+      error: { message: "Internal server error" },
     });
   }
-}
+};
 
 // Delete user
 export const deleteUser = async (req, res) => {
@@ -189,29 +176,30 @@ export const deleteUser = async (req, res) => {
 
     res.json({
       success: true,
-      data: { message: 'User deleted successfully' }
+      data: { message: "User deleted successfully" },
     });
-
   } catch (error) {
-    console.error('Delete user error:', error);
-    if (error.message.includes('Cannot delete user with existing transactions')) {
-      return res.status(400).json({ 
-        error: { message: error.message }
+    console.error("Delete user error:", error);
+    if (
+      error.message.includes("Cannot delete user with existing transactions")
+    ) {
+      return res.status(400).json({
+        error: { message: error.message },
       });
     }
-    res.status(500).json({ 
-      error: { message: 'Internal server error' }
+    res.status(500).json({
+      error: { message: "Internal server error" },
     });
   }
-}
+};
 
 // Change user password
 export const changePassword = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        error: { message: 'Validation failed', details: errors.array() }
+      return res.status(400).json({
+        error: { message: "Validation failed", details: errors.array() },
       });
     }
 
@@ -223,54 +211,59 @@ export const changePassword = async (req, res) => {
     const currentUserId = req.user.userId;
     const userRole = req.user.role;
 
-    if (requestedUserId !== currentUserId && !['officer', 'admin'].includes(userRole)) {
-      return res.status(403).json({ 
-        error: { message: 'Access denied' }
+    if (
+      requestedUserId !== currentUserId &&
+      !["officer", "admin"].includes(userRole)
+    ) {
+      return res.status(403).json({
+        error: { message: "Access denied" },
       });
     }
 
-    await userModel.changePassword(requestedUserId, currentPassword, newPassword);
+    await userModel.changePassword(
+      requestedUserId,
+      currentPassword,
+      newPassword
+    );
 
     res.json({
       success: true,
-      data: { message: 'Password changed successfully' }
+      data: { message: "Password changed successfully" },
     });
-
   } catch (error) {
-    console.error('Change password error:', error);
-    if (error.message === 'User not found') {
-      return res.status(404).json({ 
-        error: { message: error.message }
+    console.error("Change password error:", error);
+    if (error.message === "User not found") {
+      return res.status(404).json({
+        error: { message: error.message },
       });
     }
-    if (error.message === 'Current password is incorrect') {
-      return res.status(400).json({ 
-        error: { message: error.message }
+    if (error.message === "Current password is incorrect") {
+      return res.status(400).json({
+        error: { message: error.message },
       });
     }
-    res.status(500).json({ 
-      error: { message: 'Internal server error' }
+    res.status(500).json({
+      error: { message: "Internal server error" },
     });
   }
-}
+};
 
-  // Get user statistics
+// Get user statistics
 const getUserStatistics = async (req, res) => {
   try {
     const statistics = await userModel.getStatistics();
 
     res.json({
       success: true,
-      data: statistics
+      data: statistics,
     });
-
   } catch (error) {
-    console.error('Get user statistics error:', error);
-    res.status(500).json({ 
-      error: { message: 'Internal server error' }
+    console.error("Get user statistics error:", error);
+    res.status(500).json({
+      error: { message: "Internal server error" },
     });
   }
-}
+};
 
 // Get current user profile
 const getCurrentUser = async (req, res) => {
@@ -279,12 +272,12 @@ const getCurrentUser = async (req, res) => {
 
     const user = await userModel.findById(userId, {
       includeResident: true,
-      includeOfficer: true
+      includeOfficer: true,
     });
 
     if (!user) {
-      return res.status(404).json({ 
-        error: { message: 'User not found' }
+      return res.status(404).json({
+        error: { message: "User not found" },
       });
     }
 
@@ -292,24 +285,23 @@ const getCurrentUser = async (req, res) => {
 
     res.json({
       success: true,
-      data: sanitizedUser
+      data: sanitizedUser,
     });
-
   } catch (error) {
-    console.error('Get current user error:', error);
-    res.status(500).json({ 
-      error: { message: 'Internal server error' }
+    console.error("Get current user error:", error);
+    res.status(500).json({
+      error: { message: "Internal server error" },
     });
   }
-}
+};
 
 // Update current user profile
 const updateCurrentUser = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        error: { message: 'Validation failed', details: errors.array() }
+      return res.status(400).json({
+        error: { message: "Validation failed", details: errors.array() },
       });
     }
 
@@ -327,52 +319,50 @@ const updateCurrentUser = async (req, res) => {
 
     res.json({
       success: true,
-      data: sanitizedUser
+      data: sanitizedUser,
     });
-
   } catch (error) {
-    console.error('Update current user error:', error);
-    if (error.message === 'User not found') {
-      return res.status(404).json({ 
-        error: { message: error.message }
+    console.error("Update current user error:", error);
+    if (error.message === "User not found") {
+      return res.status(404).json({
+        error: { message: error.message },
       });
     }
-    res.status(500).json({ 
-      error: { message: 'Internal server error' }
+    res.status(500).json({
+      error: { message: "Internal server error" },
     });
   }
-}
+};
 
 // Upload profile picture
 const uploadProfilePicture = async (req, res) => {
   try {
     const userId = req.user.userId;
-    
+
     if (!req.file) {
-      return res.status(400).json({ 
-        error: { message: 'No file uploaded' }
+      return res.status(400).json({
+        error: { message: "No file uploaded" },
       });
     }
 
     // Update user with profile picture
     const updatedUser = await userModel.updateProfile(userId, {
-      profilePicture: req.file.buffer
+      profilePicture: req.file.buffer,
     });
 
     const sanitizedUser = userModel.sanitize(updatedUser);
 
     res.json({
       success: true,
-      data: sanitizedUser
+      data: sanitizedUser,
     });
-
   } catch (error) {
-    console.error('Upload profile picture error:', error);
-    res.status(500).json({ 
-      error: { message: 'Internal server error' }
+    console.error("Upload profile picture error:", error);
+    res.status(500).json({
+      error: { message: "Internal server error" },
     });
   }
-}
+};
 
 // Search users
 const searchUsers = async (req, res) => {
@@ -380,8 +370,8 @@ const searchUsers = async (req, res) => {
     const { q: search, role, limit = 20 } = req.query;
 
     if (!search) {
-      return res.status(400).json({ 
-        error: { message: 'Search query is required' }
+      return res.status(400).json({
+        error: { message: "Search query is required" },
       });
     }
 
@@ -389,20 +379,19 @@ const searchUsers = async (req, res) => {
       search,
       role,
       limit,
-      offset: 0
+      offset: 0,
     });
 
-    const sanitizedUsers = result.users.map(user => userModel.sanitize(user));
+    const sanitizedUsers = result.users.map((user) => userModel.sanitize(user));
 
     res.json({
       success: true,
-      data: sanitizedUsers
+      data: sanitizedUsers,
     });
-
   } catch (error) {
-    console.error('Search users error:', error);
-    res.status(500).json({ 
-      error: { message: 'Internal server error' }
+    console.error("Search users error:", error);
+    res.status(500).json({
+      error: { message: "Internal server error" },
     });
   }
-}
+};
