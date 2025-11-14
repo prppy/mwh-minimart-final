@@ -122,6 +122,7 @@ const LeaderboardPage: React.FC = () => {
         );
 
         setResidents(mapped);
+        console.log(mapped);
       } catch (err) {
         console.error("Error fetching leaderboard:", err);
       }
@@ -199,6 +200,7 @@ const styles = StyleSheet.create({
 
   cardBackground: {
     width: "100%",
+    height: "100%",
     flex: 1,
   },
 
