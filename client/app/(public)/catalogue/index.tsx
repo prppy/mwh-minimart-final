@@ -6,12 +6,13 @@ import { Category, Product } from "@/utils/types";
 
 import Checkbox from "@/components/custom-checkbox";
 import SearchableGrid from "@/components/custom-searchable-grid";
+import Spinner from "@/components/custom-spinner";
+
 import { CheckboxGroup } from "@/components/ui/checkbox";
 import { HStack } from "@/components/ui/hstack";
 import * as slider from "@/components/ui/slider";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
-import Spinner from "@/components/custom-spinner";
 
 const CataloguePage: React.FC = () => {
   const router = useRouter();
@@ -44,7 +45,6 @@ const CataloguePage: React.FC = () => {
         const response = await api.get(queryString);
         let fetchedProducts: Product[] = [];
 
-        // TODO: standardize API response structure
         if (Array.isArray(response.data.data)) {
           fetchedProducts = response.data.data;
         } else if (Array.isArray(response.data.data.products)) {

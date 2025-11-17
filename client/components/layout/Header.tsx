@@ -58,7 +58,7 @@ const Header: React.FC = () => {
       return [
         { name: "Catalogue", route: "/(public)/catalogue", icon: ShoppingBag },
         { name: "Vouchers", route: "/(public)/vouchers", icon: TicketCheck },
-        { name: "Users", route: "/(admin)/users", icon: Users }, //TODO: user management page
+        { name: "Users", route: "/(admin)/users", icon: Users }, 
         { name: "Feedback", route: "/(admin)/feedback", icon: MessageSquare },
         { name: "Lottery", route: "/(admin)/lottery", icon: Trophy },
         { name: "Sign Out", route: "/", icon: LogOut, action: "logout" },

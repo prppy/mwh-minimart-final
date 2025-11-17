@@ -287,12 +287,11 @@ class ApiService {
 
       // Validate status
       if (!validateStatus(response.status)) {
-        throw new ApiError(
-          `HTTP ${response.status}: ${response.statusText}`,
-          response.status,
-          data,
-          response
-        );
+        console.log("response not ok", data as any);
+        const backendMessage = (data as any)?.error?.message;
+        const backendDetails = (data as any)?.error?.details;
+
+        throw new ApiError(backendMessage, response.status, backendDetails, response);
       }
 
       return {
