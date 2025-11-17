@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as lucideReactNative from "lucide-react-native";
 
-import api from "@/utils/api";
+import api, { ApiError } from "@/utils/api";
 import { pickImage } from "@/utils/hooks";
 import { Category, Product } from "@/utils/types";
 import { useAuth } from "@/contexts/auth-context";
 
+import ErrorDialogue from "@/components/custom-error-dialogue";
 import Spinner from "@/components/custom-spinner";
+
 import { Badge, BadgeText } from "@/components/ui/badge";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { Center } from "@/components/ui/center";
@@ -29,7 +31,14 @@ const ProductDetailPage: React.FC = () => {
   const [tempProduct, setTempProduct] = useState<Product | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [editing, setEditing] = useState(false);
-  const [showAlertDialog, setShowAlertDialog] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+
+  // error handling
+  const [errorDialogOpen, setErrorDialogOpen] = useState(false);
+  const [errorDialogHeading, setErrorDialogHeading] = useState("");
+  const [errorDialogMessage, setErrorDialogMessage] = useState("");
 
   const isNew = id === "0";
 
@@ -69,6 +78,8 @@ const ProductDetailPage: React.FC = () => {
   }, [id, isNew]);
 
   const handleDiscard = () => {
+    handleDiscardClose();
+
     if (isNew) {
       router.back();
     } else {
@@ -80,16 +91,54 @@ const ProductDetailPage: React.FC = () => {
     try {
       if (!tempProduct) return;
 
+      let res;
+
       if (isNew) {
-        await api.post("products", tempProduct);
+        console.log("Creating product with data:", tempProduct);
+        res = await api.post("products", {
+          ...tempProduct,
+          imageUrl: tempProduct.imageUrl || undefined,
+        });
       } else {
-        await api.put(`products/${id}`, tempProduct);
+        const { id: _ignored, category: _ignored2, ...body } = tempProduct;
+        console.log("Updating product with body:", body);
+
+        res = await api.put(`products/${id}`, {
+          ...body,
+          imageUrl: tempProduct.imageUrl || undefined,
+        });
       }
 
-      setProduct(tempProduct);
+      const savedProduct = res.data.data;
+
+      setProduct(savedProduct);
+      setTempProduct(savedProduct);
       setEditing(false);
+
+      setShowSaveDialog(true);
+      router.setParams({ id: savedProduct.id.toString() });
     } catch (err) {
-      console.error("Save failed", err);
+      if (err instanceof ApiError) {
+        setErrorDialogHeading(
+          err.message ?? `Save failed (HTTP ${err.status})`
+        );
+
+        const message =
+          Array.isArray(err.data) && err.data.length > 0
+            ? err.data.map((item: any) => item.msg).join(". ")
+            : err.message || "Unknown API error";
+
+        setErrorDialogMessage(message);
+        setErrorDialogOpen(true);
+      } else if (err instanceof Error) {
+        setErrorDialogHeading("Save failed");
+        setErrorDialogMessage(err.message);
+        setErrorDialogOpen(true);
+      } else {
+        setErrorDialogHeading("Save failed");
+        setErrorDialogMessage("Unknown error occurred");
+        setErrorDialogOpen(true);
+      }
     }
   };
 
@@ -102,7 +151,9 @@ const ProductDetailPage: React.FC = () => {
     }
   };
 
-  const handleClose = () => setShowAlertDialog(false);
+  const handleSaveClose = () => setShowSaveDialog(false);
+  const handleDeleteClose = () => setShowDeleteDialog(false);
+  const handleDiscardClose = () => setShowDiscardDialog(false);
 
   if (!product) return <Spinner />;
 
@@ -145,7 +196,6 @@ const ProductDetailPage: React.FC = () => {
           />
         )}
       </Center>
-
       {/* details and actions */}
       {editing ? (
         <VStack className="flex-1 p-5 bg-white rounded-lg" space="md">
@@ -238,7 +288,7 @@ const ProductDetailPage: React.FC = () => {
             <Button
               action="negative"
               size="sm"
-              onPress={handleDiscard}
+              onPress={() => setShowDiscardDialog(true)}
             >
               {isNew ? (
                 <>
@@ -252,17 +302,48 @@ const ProductDetailPage: React.FC = () => {
                 </>
               )}
             </Button>
-            {true && (
-              <Button
-                action="positive"
-                size="sm"
-                onPress={handleSave}
-              >
-                <ButtonIcon as={lucideReactNative.Save} />
-                <ButtonText>Save</ButtonText>
-              </Button>
-            )}
+            <Button action="positive" size="sm" onPress={handleSave}>
+              <ButtonIcon as={lucideReactNative.Save} />
+              <ButtonText>Save</ButtonText>
+            </Button>
           </HStack>
+
+          {/* discard alert dialogue */}
+          <alert.AlertDialog
+            isOpen={showDiscardDialog}
+            onClose={handleDiscardClose}
+            size="sm"
+          >
+            <alert.AlertDialogBackdrop />
+            <alert.AlertDialogContent>
+              <alert.AlertDialogHeader>
+                <Heading
+                  className="text-typography-950 font-semibold"
+                  size="md"
+                >
+                  Are you sure you want to discard your changes?
+                </Heading>
+              </alert.AlertDialogHeader>
+              <alert.AlertDialogBody className="mt-3 mb-4">
+                <Text size="sm">
+                  Your changes cannot be restored once discarded.
+                </Text>
+              </alert.AlertDialogBody>
+              <alert.AlertDialogFooter>
+                <Button
+                  variant="outline"
+                  action="secondary"
+                  onPress={handleDiscardClose}
+                  size="sm"
+                >
+                  <ButtonText>Cancel</ButtonText>
+                </Button>
+                <Button action="negative" size="sm" onPress={handleDiscard}>
+                  <ButtonText>Discard</ButtonText>
+                </Button>
+              </alert.AlertDialogFooter>
+            </alert.AlertDialogContent>
+          </alert.AlertDialog>
         </VStack>
       ) : (
         <VStack className="flex-1 p-5 bg-white rounded-lg" space="md">
@@ -271,11 +352,17 @@ const ProductDetailPage: React.FC = () => {
           </Heading>
 
           <HStack space="lg">
+            {product.available ? (
+              <Badge size="lg" className="bg-greenscale-300">
+                <BadgeText>Available</BadgeText>
+              </Badge>
+            ) : (
+              <Badge size="lg" className="bg-redscale-300">
+                <BadgeText>Not Available</BadgeText>
+              </Badge>
+            )}
             <Badge size="lg">
               <BadgeText>{product.category.categoryName}</BadgeText>
-            </Badge>
-            <Badge size="lg">
-              <BadgeText>Daily</BadgeText>
             </Badge>
           </HStack>
 
@@ -312,16 +399,64 @@ const ProductDetailPage: React.FC = () => {
                 <Button
                   action="negative"
                   size="sm"
-                  onPress={() => setShowAlertDialog(true)}
+                  onPress={() => setShowDeleteDialog(true)}
                 >
                   <ButtonIcon as={lucideReactNative.Trash} />
                   <ButtonText>Delete</ButtonText>
                 </Button>
 
-                {/* deletion alert dialogue */}
+                {/* save alert dialogue */}
                 <alert.AlertDialog
-                  isOpen={showAlertDialog}
-                  onClose={handleClose}
+                  isOpen={showSaveDialog}
+                  onClose={handleSaveClose}
+                  size="sm"
+                >
+                  <alert.AlertDialogBackdrop />
+                  <alert.AlertDialogContent>
+                    <alert.AlertDialogHeader>
+                      <Heading
+                        className="text-typography-950 font-semibold"
+                        size="md"
+                      >
+                        Success!
+                      </Heading>
+                    </alert.AlertDialogHeader>
+
+                    <alert.AlertDialogBody className="mt-3 mb-4">
+                      <Text size="sm">
+                        Product has been saved successfully. What would you like
+                        to do next?
+                      </Text>
+                    </alert.AlertDialogBody>
+
+                    <alert.AlertDialogFooter>
+                      <Button
+                        variant="outline"
+                        action="secondary"
+                        size="sm"
+                        onPress={() => setShowSaveDialog(false)}
+                      >
+                        <ButtonText>Stay here</ButtonText>
+                      </Button>
+
+                      <Button
+                        action="primary"
+                        size="sm"
+                        onPress={() => {
+                          setShowSaveDialog(false);
+                          router.push("/(public)/catalogue");
+                        }}
+                      >
+                        <ButtonText>Go to Catalogue</ButtonText>
+                      </Button>
+                    </alert.AlertDialogFooter>
+                  </alert.AlertDialogContent>
+                </alert.AlertDialog>
+
+                {/* delete alert dialogue */}
+                <alert.AlertDialog
+                  isOpen={showDeleteDialog}
+                  onClose={handleDeleteClose}
                   size="sm"
                 >
                   <alert.AlertDialogBackdrop />
@@ -340,11 +475,11 @@ const ProductDetailPage: React.FC = () => {
                         cannot be undone. Please confirm if you want to proceed.
                       </Text>
                     </alert.AlertDialogBody>
-                    <alert.AlertDialogFooter className="">
+                    <alert.AlertDialogFooter>
                       <Button
                         variant="outline"
                         action="secondary"
-                        onPress={handleClose}
+                        onPress={handleDeleteClose}
                         size="sm"
                       >
                         <ButtonText>Cancel</ButtonText>
@@ -364,6 +499,14 @@ const ProductDetailPage: React.FC = () => {
           </HStack>
         </VStack>
       )}
+      
+      {/*  error alert dialogue */}
+      <ErrorDialogue
+        isOpen={errorDialogOpen}
+        onClose={() => setErrorDialogOpen(false)}
+        errorHeading={errorDialogHeading}
+        errorMessage={errorDialogMessage}
+      />
     </HStack>
   );
 };

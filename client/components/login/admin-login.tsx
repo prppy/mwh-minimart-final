@@ -47,7 +47,7 @@ const AdminLoginForm: React.FC = () => {
 
       router.push("/(admin)");
     } catch (error: any) {
-      console.error("Resident login failed:", error.message || error);
+      console.error("Officer login failed:", error);
       // show some error message to user
       alert("Login failed: " + (error.message || "Please try again"));
     } finally {

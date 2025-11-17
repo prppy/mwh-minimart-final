@@ -17,10 +17,6 @@ const productValidation = [
   body('points')
     .isInt({ min: 1 })
     .withMessage('Points must be a positive integer'),
-  body('productType')
-    .optional()
-    .isIn(['physical', 'digital', 'service'])
-    .withMessage('Product type must be physical, digital, or service'),
   body('categoryId')
     .optional()
     .isInt({ min: 1 })
@@ -48,10 +44,6 @@ const productUpdateValidation = [
     .optional()
     .isInt({ min: 1 })
     .withMessage('Points must be a positive integer'),
-  body('productType')
-    .optional()
-    .isIn(['physical', 'digital', 'service'])
-    .withMessage('Product type must be physical, digital, or service'),
   body('categoryId')
     .optional()
     .isInt({ min: 1 })
@@ -60,6 +52,10 @@ const productUpdateValidation = [
     .optional()
     .isBoolean()
     .withMessage('Available must be a boolean'),
+  body('stock')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Points must be a positive integer'),
   body('imageUrl')
     .optional()
     .isURL()

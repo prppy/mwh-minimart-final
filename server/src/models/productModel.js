@@ -1,5 +1,5 @@
 // models/Product.js
-import { prisma } from '../lib/db.js';
+import { prisma } from "../lib/db.js";
 
 /**
  * Get all products
@@ -8,19 +8,18 @@ export const findAll = async () => {
   try {
     const products = await prisma.product.findMany({
       include: {
-        category: true
+        category: true,
       },
       orderBy: {
-        productName: 'asc'
-      }
+        productName: "asc",
+      },
     });
 
     return products;
-
   } catch (error) {
-    if (error.code === 'P2022' || error.code === 'P2032') {
-      console.log('Attempting raw query for findAll due to schema mismatch...');
-      
+    if (error.code === "P2022" || error.code === "P2032") {
+      console.log("Attempting raw query for findAll due to schema mismatch...");
+
       const query = `
         SELECT 
           p."Product_ID" as id,
@@ -39,7 +38,7 @@ export const findAll = async () => {
       const rawProducts = await prisma.$queryRawUnsafe(query);
 
       // Transform raw results to match expected format
-      const products = rawProducts.map(product => ({
+      const products = rawProducts.map((product) => ({
         id: product.id,
         productName: product.productName,
         imageUrl: product.imageUrl,
@@ -47,10 +46,12 @@ export const findAll = async () => {
         points: product.points,
         available: product.available,
         categoryId: product.categoryId,
-        category: product.category_name ? {
-          id: product.categoryId,
-          categoryName: product.category_name
-        } : null
+        category: product.category_name
+          ? {
+              id: product.categoryId,
+              categoryName: product.category_name,
+            }
+          : null,
       }));
 
       return products;
@@ -63,67 +64,68 @@ export const findAll = async () => {
 /**
  * Get popular products (most redeemed)
  */
-export const getPopular = async (limit = 10, timeframe = 'all') => {
+export const getPopular = async (limit = 10, timeframe = "all") => {
   let dateFilter = {};
-  
-  if (timeframe !== 'all') {
+
+  if (timeframe !== "all") {
     const now = new Date();
     let startDate;
-    
+
     switch (timeframe) {
-      case 'week':
+      case "week":
         startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         break;
-      case 'month':
+      case "month":
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
         break;
-      case 'year':
+      case "year":
         startDate = new Date(now.getFullYear(), 0, 1);
         break;
       default:
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
     }
-    
+
     dateFilter = {
       transaction: {
         transactionDate: {
-          gte: startDate
-        }
-      }
+          gte: startDate,
+        },
+      },
     };
   }
 
   const products = await prisma.product.findMany({
     where: {
-      available: true
+      available: true,
     },
     include: {
       category: {
         select: {
-          categoryName: true
-        }
+          categoryName: true,
+        },
       },
       redemptions: {
         where: dateFilter,
         select: {
-          id: true
-        }
-      }
-    }
+          id: true,
+        },
+      },
+    },
   });
 
   // Sort by redemption count and return top products
-  const productsWithCounts = products.map(product => ({
-    id: product.id,
-    productName: product.productName,
-    productDescription: product.productDescription,
-    points: product.points,
-    imageUrl: product.imageUrl,
-    categoryName: product.category?.categoryName,
-    redemptionCount: product.redemptions.length
-  }))
-  .sort((a, b) => b.redemptionCount - a.redemptionCount)
-  .slice(0, parseInt(limit));
+  const productsWithCounts = products
+    .map((product) => ({
+      id: product.id,
+      productName: product.productName,
+      productDescription: product.productDescription,
+      points: product.points,
+      imageUrl: product.imageUrl,
+      categoryName: product.category?.categoryName,
+      redemptionCount: product.redemptions.length,
+    }))
+    .sort((a, b) => b.redemptionCount - a.redemptionCount)
+    .slice(0, parseInt(limit));
 
   return productsWithCounts;
 };
@@ -135,22 +137,23 @@ export const findByCategory = async (categoryId) => {
   try {
     const products = await prisma.product.findMany({
       where: {
-        categoryId: parseInt(categoryId)
+        categoryId: parseInt(categoryId),
       },
       include: {
-        category: true
+        category: true,
       },
       orderBy: {
-        productName: 'asc'
-      }
+        productName: "asc",
+      },
     });
 
     return products;
-
   } catch (error) {
-    if (error.code === 'P2022' || error.code === 'P2032') {
-      console.log('Attempting raw query for findByCategory due to schema mismatch...');
-      
+    if (error.code === "P2022" || error.code === "P2032") {
+      console.log(
+        "Attempting raw query for findByCategory due to schema mismatch..."
+      );
+
       const query = `
         SELECT 
           p."Product_ID" as id,
@@ -167,10 +170,13 @@ export const findByCategory = async (categoryId) => {
         ORDER BY p."Product_Name" ASC
       `;
 
-      const rawProducts = await prisma.$queryRawUnsafe(query, parseInt(categoryId));
+      const rawProducts = await prisma.$queryRawUnsafe(
+        query,
+        parseInt(categoryId)
+      );
 
       // Transform raw results to match expected format
-      const products = rawProducts.map(product => ({
+      const products = rawProducts.map((product) => ({
         id: product.id,
         productName: product.productName,
         imageUrl: product.imageUrl,
@@ -178,10 +184,12 @@ export const findByCategory = async (categoryId) => {
         points: product.points,
         available: product.available,
         categoryId: product.categoryId,
-        category: product.category_name ? {
-          id: product.categoryId,
-          categoryName: product.category_name
-        } : null
+        category: product.category_name
+          ? {
+              id: product.categoryId,
+              categoryName: product.category_name,
+            }
+          : null,
       }));
 
       return products;
@@ -199,16 +207,16 @@ export const findById = async (id, includeAnalytics = false) => {
     category: {
       select: {
         id: true,
-        categoryName: true
-      }
-    }
+        categoryName: true,
+      },
+    },
   };
 
   if (includeAnalytics) {
     include._count = {
       select: {
-        redemptions: true
-      }
+        redemptions: true,
+      },
     };
     include.redemptions = {
       include: {
@@ -216,24 +224,24 @@ export const findById = async (id, includeAnalytics = false) => {
           include: {
             user: {
               select: {
-                userName: true
-              }
-            }
-          }
-        }
+                userName: true,
+              },
+            },
+          },
+        },
       },
       orderBy: {
         transaction: {
-          transactionDate: 'desc'
-        }
+          transactionDate: "desc",
+        },
       },
-      take: 10 // Recent redemptions
+      take: 10, // Recent redemptions
     };
   }
 
   return prisma.product.findUnique({
     where: { id: parseInt(id) },
-    include
+    include,
   });
 };
 
@@ -247,21 +255,23 @@ export const create = async (productData) => {
     points,
     categoryId,
     imageUrl,
-    available = true
+    available = true,
   } = productData;
 
   // Validate required fields
-  if (!productName || !productDescription || !points || !categoryId) {
-    throw new Error('Missing required fields: productName, productDescription, points, categoryId');
+  if (!productName || !points || !categoryId) {
+    throw new Error(
+      "Missing required fields: productName, productDescription, points, categoryId"
+    );
   }
 
   // Check if category exists
   const category = await prisma.category.findUnique({
-    where: { id: parseInt(categoryId) }
+    where: { id: parseInt(categoryId) },
   });
 
   if (!category) {
-    throw new Error('Category not found');
+    throw new Error("Category not found");
   }
 
   return prisma.product.create({
@@ -271,11 +281,11 @@ export const create = async (productData) => {
       points: parseInt(points),
       categoryId: parseInt(categoryId),
       imageUrl,
-      available
+      available,
     },
     include: {
-      category: true
-    }
+      category: true,
+    },
   });
 };
 
@@ -284,36 +294,37 @@ export const create = async (productData) => {
  */
 export const update = async (id, updates) => {
   const product = await prisma.product.findUnique({
-    where: { id: parseInt(id) }
+    where: { id: parseInt(id) },
   });
 
   if (!product) {
-    throw new Error('Product not found');
+    throw new Error("Product not found");
   }
 
   // If updating category, verify it exists
   if (updates.categoryId) {
     const category = await prisma.category.findUnique({
-      where: { id: parseInt(updates.categoryId) }
+      where: { id: parseInt(updates.categoryId) },
     });
 
     if (!category) {
-      throw new Error('Category not found');
+      throw new Error("Category not found");
     }
   }
 
   // Prepare update data
   const updateData = { ...updates };
   if (updateData.points) updateData.points = parseInt(updateData.points);
-  if (updateData.categoryId) updateData.categoryId = parseInt(updateData.categoryId);
+  if (updateData.categoryId)
+    updateData.categoryId = parseInt(updateData.categoryId);
   if (updateData.stock) updateData.stock = parseInt(updateData.stock);
 
   return prisma.product.update({
     where: { id: parseInt(id) },
     data: updateData,
     include: {
-      category: true
-    }
+      category: true,
+    },
   });
 };
 
@@ -322,28 +333,28 @@ export const update = async (id, updates) => {
  */
 export const remove = async (id) => {
   const product = await prisma.product.findUnique({
-    where: { id: parseInt(id) }
+    where: { id: parseInt(id) },
   });
 
   if (!product) {
-    throw new Error('Product not found');
+    throw new Error("Product not found");
   }
 
   // Check if product has redemptions
   const redemptionCount = await prisma.redemption.count({
-    where: { productId: parseInt(id) }
+    where: { productId: parseInt(id) },
   });
 
   if (redemptionCount > 0) {
     // Soft delete by setting available to false
     return prisma.product.update({
       where: { id: parseInt(id) },
-      data: { available: false }
+      data: { available: false },
     });
   } else {
     // Hard delete if no redemptions
     return prisma.product.delete({
-      where: { id: parseInt(id) }
+      where: { id: parseInt(id) },
     });
   }
 };
@@ -351,23 +362,23 @@ export const remove = async (id) => {
 /**
  * Get product analytics
  */
-export const getAnalytics = async (id, period = 'month') => {
+export const getAnalytics = async (id, period = "month") => {
   const product = await findById(id, false);
   if (!product) {
-    throw new Error('Product not found');
+    throw new Error("Product not found");
   }
 
   const now = new Date();
   let startDate;
 
   switch (period) {
-    case 'week':
+    case "week":
       startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       break;
-    case 'month':
+    case "month":
       startDate = new Date(now.getFullYear(), now.getMonth(), 1);
       break;
-    case 'year':
+    case "year":
       startDate = new Date(now.getFullYear(), 0, 1);
       break;
     default:
@@ -379,9 +390,9 @@ export const getAnalytics = async (id, period = 'month') => {
       productId: parseInt(id),
       transaction: {
         transactionDate: {
-          gte: startDate
-        }
-      }
+          gte: startDate,
+        },
+      },
     },
     include: {
       transaction: {
@@ -391,20 +402,22 @@ export const getAnalytics = async (id, period = 'month') => {
               userName: true,
               resident: {
                 select: {
-                  batchNumber: true
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                  batchNumber: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   });
 
   // Group redemptions by day
   const dailyRedemptions = {};
-  redemptions.forEach(redemption => {
-    const date = redemption.transaction.transactionDate.toISOString().split('T')[0];
+  redemptions.forEach((redemption) => {
+    const date = redemption.transaction.transactionDate
+      .toISOString()
+      .split("T")[0];
     if (!dailyRedemptions[date]) {
       dailyRedemptions[date] = 0;
     }
@@ -416,14 +429,14 @@ export const getAnalytics = async (id, period = 'month') => {
     productName: product.productName,
     period,
     totalRedemptions: redemptions.length,
-    uniqueUsers: new Set(redemptions.map(r => r.transaction.userId)).size,
+    uniqueUsers: new Set(redemptions.map((r) => r.transaction.userId)).size,
     dailyBreakdown: dailyRedemptions,
-    redemptions: redemptions.map(r => ({
+    redemptions: redemptions.map((r) => ({
       userId: r.transaction.userId,
       userName: r.transaction.user.userName,
       batchNumber: r.transaction.user.resident?.batchNumber,
-      redemptionDate: r.transaction.transactionDate
-    }))
+      redemptionDate: r.transaction.transactionDate,
+    })),
   };
 };
 
@@ -436,19 +449,19 @@ export const getLowStock = async (threshold = 10) => {
       available: true,
       stock: {
         not: null,
-        lte: threshold
-      }
+        lte: threshold,
+      },
     },
     include: {
       category: {
         select: {
-          categoryName: true
-        }
-      }
+          categoryName: true,
+        },
+      },
     },
     orderBy: {
-      stock: 'asc'
-    }
+      stock: "asc",
+    },
   });
 };
 
@@ -462,15 +475,15 @@ export const getCategoriesWithCounts = async () => {
         select: {
           products: {
             where: {
-              available: true
-            }
-          }
-        }
-      }
+              available: true,
+            },
+          },
+        },
+      },
     },
     orderBy: {
-      categoryName: 'asc'
-    }
+      categoryName: "asc",
+    },
   });
 };
 
@@ -478,37 +491,38 @@ export const getCategoriesWithCounts = async () => {
  * Get product statistics
  */
 export const getStatistics = async () => {
-  const [totalProducts, availableProducts, categoryStats, typeStats] = await Promise.all([
-    prisma.product.count(),
-    prisma.product.count({ where: { available: true } }),
-    prisma.category.findMany({
-      include: {
+  const [totalProducts, availableProducts, categoryStats, typeStats] =
+    await Promise.all([
+      prisma.product.count(),
+      prisma.product.count({ where: { available: true } }),
+      prisma.category.findMany({
+        include: {
+          _count: {
+            select: {
+              products: {
+                where: {
+                  available: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      prisma.product.groupBy({
+        by: ["categoryId"],
+        where: { available: true },
         _count: {
-          select: {
-            products: {
-              where: {
-                available: true
-              }
-            }
-          }
-        }
-      }
-    }),
-    prisma.product.groupBy({
-      by: ['productType'],
-      where: { available: true },
-      _count: {
-        productType: true
-      }
-    })
-  ]);
+          categoryId: true,
+        },
+      }),
+    ]);
 
   const totalRedemptions = await prisma.redemption.count();
   const avgPointsResult = await prisma.product.aggregate({
     where: { available: true },
     _avg: { points: true },
     _max: { points: true },
-    _min: { points: true }
+    _min: { points: true },
   });
 
   return {
@@ -519,15 +533,15 @@ export const getStatistics = async () => {
     averagePoints: Math.round(avgPointsResult._avg.points || 0),
     maxPoints: avgPointsResult._max.points || 0,
     minPoints: avgPointsResult._min.points || 0,
-    byCategory: categoryStats.map(cat => ({
+    byCategory: categoryStats.map((cat) => ({
       categoryId: cat.id,
       categoryName: cat.categoryName,
-      productCount: cat._count.products
+      productCount: cat._count.products,
     })),
     byType: typeStats.reduce((acc, stat) => {
-      acc[stat.productType] = stat._count.productType;
+      acc[stat.categoryId] = stat._count.categoryId;
       return acc;
-    }, {})
+    }, {}),
   };
 };
 
@@ -542,16 +556,16 @@ export const search = async (query, options = {}) => {
       {
         productName: {
           contains: query,
-          mode: 'insensitive'
-        }
+          mode: "insensitive",
+        },
       },
       {
         productDescription: {
           contains: query,
-          mode: 'insensitive'
-        }
-      }
-    ]
+          mode: "insensitive",
+        },
+      },
+    ],
   };
 
   if (!includeUnavailable) {
@@ -563,18 +577,18 @@ export const search = async (query, options = {}) => {
     include: {
       category: {
         select: {
-          categoryName: true
-        }
+          categoryName: true,
+        },
       },
       _count: {
         select: {
-          redemptions: true
-        }
-      }
+          redemptions: true,
+        },
+      },
     },
     orderBy: {
-      productName: 'asc'
+      productName: "asc",
     },
-    take: parseInt(limit)
+    take: parseInt(limit),
   });
 };

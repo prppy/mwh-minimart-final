@@ -1,17 +1,20 @@
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView } from "react-native";
 import { Plus } from "lucide-react-native";
+
+import EmptyAlert from "./custom-empty-alert";
+import SearchBar from "./custom-searchbar";
+
 import { Button, ButtonText } from "./ui/button";
 import { Card } from "./ui/card";
 import { Center } from "./ui/center";
 import { Grid, GridItem } from "./ui/grid";
 import { HStack } from "./ui/hstack";
+import { Icon } from "./ui/icon";
 import { Image } from "./ui/image";
 import { Text } from "./ui/text";
 import { VStack } from "./ui/vstack";
 import { useAuth } from "@/contexts/auth-context";
-import EmptyAlert from "./custom-empty-alert";
-import SearchBar from "./custom-searchbar";
 
 interface SearchableGridProps {
   items: {
@@ -96,11 +99,7 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
                 <Pressable onPress={onAddPress}>
                   <Card className="bg-white" size="md" variant="outline">
                     <Center className="w-full h-64 bg-indigoscale-300 rounded-md mb-5">
-                      <Plus
-                        size={48}
-                        strokeWidth={2}
-                        className="text-indigoscale-700"
-                      />
+                      <Icon as={Plus} size={64} className="text-indigoscale-700" />
                     </Center>
                     <Text
                       size="xl"
@@ -119,12 +118,14 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
                 <Pressable onPress={() => onItemPress(item)}>
                   <Card className="bg-white" size="md" variant="outline">
                     <Center className="w-full h-64 bg-indigoscale-300 rounded-md mb-5">
-                      <Image
-                        source={item.image}
-                        alt={item.name}
-                        className="w-full h-full"
-                        resizeMode="contain"
-                      />
+                      {item.image ? (
+                        <Image
+                          source={{ uri: item.image }}
+                          alt={item.name}
+                          className="w-full h-full"
+                          resizeMode="contain"
+                        />
+                      ) : null}
                     </Center>
                     <Text
                       size="xl"
