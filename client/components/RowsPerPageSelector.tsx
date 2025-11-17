@@ -7,8 +7,8 @@ import {
   SelectPortal,
   SelectContent,
   SelectItem,
-  ChevronDownIcon,
-} from "@gluestack-ui/themed";
+} from "@/components/ui/select";
+import { ChevronDownIcon } from "lucide-react-native";
 
 interface RowsPerPageSelectorProps {
   value: number;
@@ -26,12 +26,11 @@ const RowsPerPageSelector: React.FC<RowsPerPageSelectorProps> = ({
       selectedValue={value.toString()}
       onValueChange={(itemValue) => onChange(parseInt(itemValue))}
     >
-      <SelectTrigger variant="outline" size="sm" w="$16">
+      <SelectTrigger variant="outline" size="sm" >
         <SelectInput
           placeholder={`${value}`} // dynamic placeholder
-          color="$black"
         />
-        <SelectIcon mr="$2" as={ChevronDownIcon} color="$black" />
+        <SelectIcon as={ChevronDownIcon} color="$black" />
       </SelectTrigger>
       <SelectPortal>
         <SelectContent>

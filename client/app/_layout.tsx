@@ -1,34 +1,22 @@
-// import { Stack } from "expo-router";
-// import "@/global.css";
-// import { SafeAreaProvider } from "react-native-safe-area-context";
-// import { config } from "../components/ui/gluestack-ui-provider/config";
-// import { GluestackUIProvider } from "@gluestack-ui/themed";
-// export default function RootLayout() {
-//   return (
-//     <GluestackUIProvider config={config}>
-//       <SafeAreaProvider>
-//         <Stack screenOptions={{ headerShown: false }}>
-//           <Stack.Screen name="(tabs)" />
-//         </Stack>
-//       </SafeAreaProvider>
-//     </GluestackUIProvider>
-//   );
-// }
-
 import { Stack } from "expo-router";
+import "react-native-reanimated";
+import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
 import "@/global.css";
-import { SafeAreaProvider } from "react-native-safe-area-context";
-import { GluestackUIProvider } from "@gluestack-ui/themed";
-import { config } from '@gluestack-ui/config';
+import { SafeAreaView } from "react-native-safe-area-context";
+import { AuthProvider } from "@/contexts/auth-context";
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
 
 export default function RootLayout() {
   return (
-<GluestackUIProvider config={config}>
-      <SafeAreaProvider>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" />
-        </Stack>
-      </SafeAreaProvider>
+    <GluestackUIProvider mode="light">
+      <AuthProvider>
+        <SafeAreaView style={{ flex: 1 }}>
+          <Header />
+          <Stack screenOptions={{ headerShown: false }} />
+          <Footer />
+        </SafeAreaView>
+      </AuthProvider>
     </GluestackUIProvider>
   );
 }

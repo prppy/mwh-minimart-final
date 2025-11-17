@@ -73,7 +73,8 @@ export const getLeaderboardByMonth = async (req, res) => {
     const {
       batchNumber,
       limit = 10,
-      offset = 0
+      offset = 0,
+      month 
     } = req.query;
 
     // Check if batchNumber is provided in route params (for dedicated batch routes)
@@ -86,11 +87,23 @@ export const getLeaderboardByMonth = async (req, res) => {
       });
     }
 
+    let selectedMonth = undefined;
+    if (month !== undefined) {
+      const m = parseInt(month);
+      if (isNaN(m) || m < 1 || m > 12) {
+        return res.status(400).json({
+          error: { message: 'Month must be an integer from 1 to 12' }
+        });
+      }
+      selectedMonth = m;
+    }
+
     const result = await ResidentModel.getLeaderboard({
       batchNumber: finalBatchNumber ? parseInt(finalBatchNumber) : undefined,
       type: 'month',
       limit: parseInt(limit),
-      offset: parseInt(offset)
+      offset: parseInt(offset),
+      month: selectedMonth
     });
 
     res.json({
@@ -185,16 +198,16 @@ export const getUserPosition = async (req, res) => {
 // Get top performers by period
 export const getTopPerformers = async (req, res) => {
   try {
-    const { period = 'month', limit = 10 } = req.query;
-
-    const performers = await ResidentModel.getTopPerformers(period, parseInt(limit));
+    const { period = 'month', limit = 10, month } = req.query;
+    const performers = await ResidentModel.getTopPerformers(period, limit, month);
 
     res.json({
       success: true,
       data: {
         period,
-        performers
-      }
+        month,
+        performers,
+      },
     });
 
   } catch (error) {
