@@ -287,7 +287,6 @@ class ApiService {
 
       // Validate status
       if (!validateStatus(response.status)) {
-        console.log("response not ok", data as any);
         const backendMessage = (data as any)?.error?.message;
         const backendDetails = (data as any)?.error?.details;
 
