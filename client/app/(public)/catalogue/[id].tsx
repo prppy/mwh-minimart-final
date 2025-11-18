@@ -7,9 +7,11 @@ import { pickImage } from "@/utils/hooks";
 import { Category, Product } from "@/utils/types";
 import { useAuth } from "@/contexts/auth-context";
 
-import ErrorDialogue from "@/components/custom-error-dialogue";
+import DiscardDialogue from "@/components/dialogue/custom-discard-dialogue";
+import ErrorDialogue from "@/components/dialogue/custom-error-dialogue";
 import Spinner from "@/components/custom-spinner";
 
+import * as alert from "@/components/ui/alert-dialog";
 import { Badge, BadgeText } from "@/components/ui/badge";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { Center } from "@/components/ui/center";
@@ -20,7 +22,6 @@ import { Input, InputField } from "@/components/ui/input";
 import * as select from "@/components/ui/select";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
-import * as alert from "@/components/ui/alert-dialog";
 
 const ProductDetailPage: React.FC = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -43,27 +44,29 @@ const ProductDetailPage: React.FC = () => {
   const isNew = id === "0";
 
   useEffect(() => {
-    if (!isNew) {
-      api.get(`products/${id}`).then((res) => {
-        const data = res.data.data;
-        setProduct(data);
-        setTempProduct({ ...data });
-      });
-    } else {
-      const emptyProduct: Product = {
-        id: 0,
-        productName: "",
-        productDescription: "",
-        categoryId: 0,
-        category: { id: 0, categoryName: "" },
-        imageUrl: "",
-        available: true,
-        points: 0,
-      };
-      setProduct(emptyProduct);
-      setTempProduct({ ...emptyProduct });
-      setEditing(true);
-    }
+    const fetchProduct = async () => {
+      if (!isNew) {
+        api.get(`products/${id}`).then((res) => {
+          const data = res.data.data;
+          setProduct(data);
+          setTempProduct({ ...data });
+        });
+      } else {
+        const emptyProduct: Product = {
+          id: 0,
+          productName: "",
+          productDescription: "",
+          categoryId: 0,
+          category: { id: 0, categoryName: "" },
+          imageUrl: "",
+          available: true,
+          points: 0,
+        };
+        setProduct(emptyProduct);
+        setTempProduct({ ...emptyProduct });
+        setEditing(true);
+      }
+    };
 
     const fetchCategories = async () => {
       try {
@@ -74,18 +77,9 @@ const ProductDetailPage: React.FC = () => {
       }
     };
 
+    fetchProduct();
     fetchCategories();
   }, [id, isNew]);
-
-  const handleDiscard = () => {
-    handleDiscardClose();
-
-    if (isNew) {
-      router.back();
-    } else {
-      setEditing(false);
-    }
-  };
 
   const handleSave = async () => {
     try {
@@ -94,14 +88,12 @@ const ProductDetailPage: React.FC = () => {
       let res;
 
       if (isNew) {
-        console.log("Creating product with data:", tempProduct);
         res = await api.post("products", {
           ...tempProduct,
           imageUrl: tempProduct.imageUrl || undefined,
         });
       } else {
         const { id: _ignored, category: _ignored2, ...body } = tempProduct;
-        console.log("Updating product with body:", body);
 
         res = await api.put(`products/${id}`, {
           ...body,
@@ -109,7 +101,7 @@ const ProductDetailPage: React.FC = () => {
         });
       }
 
-      const savedProduct = res.data.data;
+      const savedProduct: Product = res.data.data;
 
       setProduct(savedProduct);
       setTempProduct(savedProduct);
@@ -145,9 +137,19 @@ const ProductDetailPage: React.FC = () => {
   const handleDelete = async () => {
     try {
       await api.delete(`products/${id}`);
-      router.back();
+      router.push("/(public)/catalogue");
     } catch (err) {
       console.error("Delete failed", err);
+    }
+  };
+
+  const handleDiscard = () => {
+    handleDiscardClose();
+
+    if (isNew) {
+      router.back();
+    } else {
+      setEditing(false);
     }
   };
 
@@ -155,7 +157,7 @@ const ProductDetailPage: React.FC = () => {
   const handleDeleteClose = () => setShowDeleteDialog(false);
   const handleDiscardClose = () => setShowDiscardDialog(false);
 
-  if (!product) return <Spinner />;
+  if (!product) return <Spinner text="Loading product" />;
 
   return (
     <HStack className="w-full h-full gap-5 p-5 bg-indigoscale-100 items-start">
@@ -309,41 +311,13 @@ const ProductDetailPage: React.FC = () => {
           </HStack>
 
           {/* discard alert dialogue */}
-          <alert.AlertDialog
+          <DiscardDialogue
             isOpen={showDiscardDialog}
             onClose={handleDiscardClose}
-            size="sm"
-          >
-            <alert.AlertDialogBackdrop />
-            <alert.AlertDialogContent>
-              <alert.AlertDialogHeader>
-                <Heading
-                  className="text-typography-950 font-semibold"
-                  size="md"
-                >
-                  Are you sure you want to discard your changes?
-                </Heading>
-              </alert.AlertDialogHeader>
-              <alert.AlertDialogBody className="mt-3 mb-4">
-                <Text size="sm">
-                  Your changes cannot be restored once discarded.
-                </Text>
-              </alert.AlertDialogBody>
-              <alert.AlertDialogFooter>
-                <Button
-                  variant="outline"
-                  action="secondary"
-                  onPress={handleDiscardClose}
-                  size="sm"
-                >
-                  <ButtonText>Cancel</ButtonText>
-                </Button>
-                <Button action="negative" size="sm" onPress={handleDiscard}>
-                  <ButtonText>Discard</ButtonText>
-                </Button>
-              </alert.AlertDialogFooter>
-            </alert.AlertDialogContent>
-          </alert.AlertDialog>
+            onDiscard={handleDiscard}
+            heading="Are you sure you want to discard your changes?"
+            message="Your changes cannot be restored once discarded."
+          />
         </VStack>
       ) : (
         <VStack className="flex-1 p-5 bg-white rounded-lg" space="md">
@@ -499,7 +473,7 @@ const ProductDetailPage: React.FC = () => {
           </HStack>
         </VStack>
       )}
-      
+
       {/*  error alert dialogue */}
       <ErrorDialogue
         isOpen={errorDialogOpen}

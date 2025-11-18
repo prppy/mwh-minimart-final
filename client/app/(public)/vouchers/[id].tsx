@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as lucideReactNative from "lucide-react-native";
 
-import api from "@/utils/api";
+import api, { ApiError } from "@/utils/api";
 import { TaskCategory, Voucher } from "@/utils/types";
 import { useAuth } from "@/contexts/auth-context";
 
 import Spinner from "@/components/custom-spinner";
+
+import * as alert from "@/components/ui/alert-dialog";
 import { Badge, BadgeText } from "@/components/ui/badge";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { Center } from "@/components/ui/center";
@@ -16,6 +18,8 @@ import { Input, InputField } from "@/components/ui/input";
 import * as select from "@/components/ui/select";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
+import ErrorDialogue from "@/components/dialogue/custom-error-dialogue";
+import DiscardDialogue from "@/components/dialogue/custom-discard-dialogue";
 
 const VoucherDetailPage: React.FC = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -26,6 +30,14 @@ const VoucherDetailPage: React.FC = () => {
   const [tempVoucher, setTempVoucher] = useState<Voucher | null>(null);
   const [taskCategories, setTaskCategories] = useState<TaskCategory[]>([]);
   const [editing, setEditing] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+
+  // error handling
+  const [errorDialogOpen, setErrorDialogOpen] = useState(false);
+  const [errorDialogHeading, setErrorDialogHeading] = useState("");
+  const [errorDialogMessage, setErrorDialogMessage] = useState("");
 
   const isNew = id === "0";
 
@@ -33,17 +45,10 @@ const VoucherDetailPage: React.FC = () => {
     const fetchVoucher = async () => {
       try {
         if (!isNew) {
-          const res = await api.get("tasks"); // TODO: configure getting tasks by id (`tasks/${id}`)
-          const data: Voucher[] = res.data.data.tasks || [];
-          const found = data.find((d) => d.id.toString() === id);
-
-          if (found) {
-            setVoucher(found);
-            setTempVoucher({ ...found });
-          } else {
-            // TODO: popup toast
-            console.warn(`Voucher with id ${id} not found`);
-          }
+          const res = await api.get(`tasks/${id}`);
+          const data = res.data.data;
+          setVoucher(data);
+          setTempVoucher({ ...data });
         } else {
           const emptyVoucher: Voucher = {
             id: 0,
@@ -55,7 +60,9 @@ const VoucherDetailPage: React.FC = () => {
               taskCategoryName: "",
               taskCategoryDescription: "",
             },
+            imageUrl: "",
             points: 0,
+            completions: [],
             _count: { completions: 0 },
           };
           setVoucher(emptyVoucher);
@@ -70,18 +77,11 @@ const VoucherDetailPage: React.FC = () => {
     // TODO: configure getting task categories (`taskCategory`)
     const fetchTaskCategories = async () => {
       try {
-        const res = await api.get("tasks");
-        const data: Voucher[] = res.data.data.tasks || [];
-        const foundTaskCategories = data
-          .map((v) => v.taskCategory)
-          .filter((c): c is TaskCategory => !!c)
-          .filter(
-            (cat, index, self) =>
-              index === self.findIndex((c) => c.id === cat.id)
-          );
-        setTaskCategories(foundTaskCategories);
-      } catch (error) {
-        console.error("Error fetching task categories:", error);
+        const response = await api.get("taskCategories");
+        console.log("Fetched task categories:", response.data.data);
+        setTaskCategories(response.data.data || []);
+      } catch (err) {
+        console.error("Error fetching task categories:", err);
       }
     };
 
@@ -89,7 +89,95 @@ const VoucherDetailPage: React.FC = () => {
     fetchTaskCategories();
   }, [id, isNew]);
 
+  const handleSave = async () => {
+    try {
+      if (!tempVoucher) return;
+
+      let res;
+
+      if (isNew) {
+        res = await api.post("tasks", {
+          ...tempVoucher,
+          imageUrl: tempVoucher.imageUrl || undefined,
+        });
+      } else {
+        const {
+          id: _ignored,
+          taskCategory: _ignored2,
+          completions: _ignored3,
+          _count: _ignored4,
+          ...body
+        } = tempVoucher;
+        console.log("Updating voucher with body:", body);
+        res = await api.put(`tasks/${id}`, {
+          ...body,
+          imageUrl: tempVoucher.imageUrl || undefined,
+        });
+      }
+
+      const savedVoucher: Voucher = res.data.data;
+      setVoucher(savedVoucher);
+      setTempVoucher(savedVoucher);
+      setEditing(false);
+
+      setShowSaveDialog(true);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setErrorDialogHeading(
+          err.message ?? `Save failed (HTTP ${err.status})`
+        );
+
+        const message =
+          Array.isArray(err.data) && err.data.length > 0
+            ? err.data.map((item: any) => item.msg).join(". ")
+            : err.data || "Unknown API error";
+
+        setErrorDialogMessage(message);
+        setErrorDialogOpen(true);
+      } else if (err instanceof Error) {
+        setErrorDialogHeading("Save failed");
+        setErrorDialogMessage(err.message);
+        setErrorDialogOpen(true);
+      } else {
+        setErrorDialogHeading("Save failed");
+        setErrorDialogMessage("Unknown error occurred");
+        setErrorDialogOpen(true);
+      }
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await api.delete(`tasks/${id}`);
+      router.push("/(public)/vouchers");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setErrorDialogHeading(
+          err.message ?? `Save failed (HTTP ${err.status})`
+        );
+
+        const message =
+          Array.isArray(err.data) && err.data.length > 0
+            ? err.data.map((item: any) => item.msg).join(". ")
+            : err.data || "Unknown API error";
+
+        setErrorDialogMessage(message);
+        setErrorDialogOpen(true);
+      } else if (err instanceof Error) {
+        setErrorDialogHeading("Save failed");
+        setErrorDialogMessage(err.message);
+        setErrorDialogOpen(true);
+      } else {
+        setErrorDialogHeading("Save failed");
+        setErrorDialogMessage("Unknown error occurred");
+        setErrorDialogOpen(true);
+      }
+    }
+  };
+
   const handleDiscard = () => {
+    handleDiscardClose();
+
     if (isNew) {
       router.back();
     } else {
@@ -97,31 +185,9 @@ const VoucherDetailPage: React.FC = () => {
     }
   };
 
-  const handleSave = async () => {
-    try {
-      if (!tempVoucher) return;
-
-      if (isNew) {
-        await api.post("tasks", tempVoucher);
-      } else {
-        await api.put(`tasks/${id}`, tempVoucher);
-      }
-
-      setVoucher(tempVoucher);
-      setEditing(false);
-    } catch (error) {
-      console.error("Save failed", error);
-    }
-  };
-
-  const handleDelete = async () => {
-    try {
-      await api.delete(`tasks/${id}`);
-      router.back();
-    } catch (error) {
-      console.error("Delete failed", error);
-    }
-  };
+  const handleSaveClose = () => setShowSaveDialog(false);
+  const handleDeleteClose = () => setShowDeleteDialog(false);
+  const handleDiscardClose = () => setShowDiscardDialog(false);
 
   if (!voucher) return <Spinner />;
 
@@ -253,12 +319,11 @@ const VoucherDetailPage: React.FC = () => {
               }
             />
           </Input>
-
           <HStack space="md">
             <Button
-              className="bg-error-400 border border-error-500"
+              action="negative"
               size="sm"
-              onPress={handleDiscard}
+              onPress={() => setShowDiscardDialog(true)}
             >
               {isNew ? (
                 <>
@@ -272,17 +337,20 @@ const VoucherDetailPage: React.FC = () => {
                 </>
               )}
             </Button>
-            {isAuthenticated && isAdmin && (
-              <Button
-                className="bg-success-400 border border-success-500"
-                size="sm"
-                onPress={handleSave}
-              >
-                <ButtonIcon as={lucideReactNative.Save} />
-                <ButtonText>Save</ButtonText>
-              </Button>
-            )}
+            <Button action="positive" size="sm" onPress={handleSave}>
+              <ButtonIcon as={lucideReactNative.Save} />
+              <ButtonText>Save</ButtonText>
+            </Button>
           </HStack>
+
+          {/* discard alert dialogue */}
+          <DiscardDialogue
+            isOpen={showDiscardDialog}
+            onClose={handleDiscardClose}
+            onDiscard={handleDiscard}
+            heading="Are you sure you want to discard your changes?"
+            message="Your changes cannot be restored once discarded."
+          />
         </VStack>
       ) : (
         <VStack className="flex-1 p-5 bg-white rounded-lg" space="md">
@@ -340,8 +408,102 @@ const VoucherDetailPage: React.FC = () => {
               </>
             )}
           </HStack>
+
+          {/* save alert dialogue */}
+          <alert.AlertDialog
+            isOpen={showSaveDialog}
+            onClose={handleSaveClose}
+            size="sm"
+          >
+            <alert.AlertDialogBackdrop />
+            <alert.AlertDialogContent>
+              <alert.AlertDialogHeader>
+                <Heading
+                  className="text-typography-950 font-semibold"
+                  size="md"
+                >
+                  Success!
+                </Heading>
+              </alert.AlertDialogHeader>
+
+              <alert.AlertDialogBody className="mt-3 mb-4">
+                <Text size="sm">
+                  Voucher has been saved successfully. What would you like to do
+                  next?
+                </Text>
+              </alert.AlertDialogBody>
+
+              <alert.AlertDialogFooter>
+                <Button
+                  variant="outline"
+                  action="secondary"
+                  size="sm"
+                  onPress={() => setShowSaveDialog(false)}
+                >
+                  <ButtonText>Stay here</ButtonText>
+                </Button>
+
+                <Button
+                  action="primary"
+                  size="sm"
+                  onPress={() => {
+                    setShowSaveDialog(false);
+                    router.push("/(public)/vouchers");
+                  }}
+                >
+                  <ButtonText>Go to Vouchers</ButtonText>
+                </Button>
+              </alert.AlertDialogFooter>
+            </alert.AlertDialogContent>
+          </alert.AlertDialog>
+
+          {/* delete alert dialogue */}
+          <alert.AlertDialog
+            isOpen={showDeleteDialog}
+            onClose={handleDeleteClose}
+            size="sm"
+          >
+            <alert.AlertDialogBackdrop />
+            <alert.AlertDialogContent>
+              <alert.AlertDialogHeader>
+                <Heading
+                  className="text-typography-950 font-semibold"
+                  size="md"
+                >
+                  Are you sure you want to delete this voucher?
+                </Heading>
+              </alert.AlertDialogHeader>
+              <alert.AlertDialogBody className="mt-3 mb-4">
+                <Text size="sm">
+                  Deleting the voucher will remove it permanently and cannot be
+                  undone. Please confirm if you want to proceed.
+                </Text>
+              </alert.AlertDialogBody>
+              <alert.AlertDialogFooter>
+                <Button
+                  variant="outline"
+                  action="secondary"
+                  onPress={handleDeleteClose}
+                  size="sm"
+                >
+                  <ButtonText>Cancel</ButtonText>
+                </Button>
+                <Button action="negative" size="sm" onPress={handleDelete}>
+                  <ButtonText>Delete</ButtonText>
+                </Button>
+              </alert.AlertDialogFooter>
+            </alert.AlertDialogContent>
+          </alert.AlertDialog>
         </VStack>
       )}
+
+      {/*  error alert dialogue */}
+      <ErrorDialogue
+        isOpen={errorDialogOpen}
+        onClose={() => setErrorDialogOpen(false)}
+        errorHeading={errorDialogHeading}
+        errorMessage={errorDialogMessage}
+      />
     </HStack>
   );
 };

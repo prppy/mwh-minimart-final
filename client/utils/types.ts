@@ -1,3 +1,5 @@
+import { User } from "./auth";
+
 type Resident = {
   id: number;
   userName: string;
@@ -29,7 +31,7 @@ type Officer = {
   updatedAt: Date;
 
   officerEmail: string;
-}
+};
 
 interface Category {
   id: number;
@@ -59,8 +61,25 @@ interface Voucher {
   taskDescription: string;
   taskCategoryId: number;
   taskCategory: TaskCategory;
+  imageUrl: string;
   points: number;
   _count: { completions: number };
+  completions: Completion[];
+}
+
+interface Transaction {
+  id: number;
+  transactionDate: Date;
+  pointsChange: number;
+  transactionType: "completion" | "redemption" | "abscondence";
+  userId: number;
+  user: User;
+}
+
+interface Completion {
+  transactionId: number;
+  taskId: number;
+  transaction: Transaction;
 }
 
 type Performer = {
@@ -83,4 +102,15 @@ interface WheelParticipant {
   profilePicture?: string;
 }
 
-export type { Category, Officer, Product, Performer, Resident, TaskCategory, Voucher, WheelParticipant };
+export type {
+  Category,
+  Completion,
+  Officer,
+  Product,
+  Performer,
+  Resident,
+  TaskCategory,
+  Transaction,
+  Voucher,
+  WheelParticipant,
+};
