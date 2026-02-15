@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
+import { ScrollView } from "react-native";
 
 import api from "@/utils/api";
 import { Category, Product } from "@/utils/types";
@@ -71,90 +72,92 @@ const CataloguePage: React.FC = () => {
   }, [points, selectedCategories]);
 
   return (
-    <HStack className="flex-1 gap-5 p-5 pb-0 bg-indigoscale-100 items-start">
-      <VStack
-        className="w-1/4 h-auto p-5 bg-white border border-gray-300 rounded-lg"
-        space="xl"
-      >
-        {/* category filter */}
-        <VStack space="xs">
-          <Text className="text-indigoscale-700" size={"lg"}>
-            Category
-          </Text>
-          <VStack space="sm">
-            <CheckboxGroup
-              value={selectedCategories}
-              onChange={setSelectedCategories}
+    <ScrollView className="flex-1 bg-indigoscale-100">
+      <HStack className="gap-5 p-5 pb-0 items-start">
+        <VStack
+          className="w-1/4 h-auto p-5 bg-white border border-gray-300 rounded-lg"
+          space="xl"
+        >
+          {/* category filter */}
+          <VStack space="xs">
+            <Text className="text-indigoscale-700" size={"lg"}>
+              Category
+            </Text>
+            <VStack space="sm">
+              <CheckboxGroup
+                value={selectedCategories}
+                onChange={setSelectedCategories}
+              >
+                {categories.map((category) => (
+                  <Checkbox key={category.id} value={category.id.toString()}>
+                    {category.categoryName}
+                  </Checkbox>
+                ))}
+              </CheckboxGroup>
+            </VStack>
+          </VStack>
+
+          {/* type filter */}
+          <VStack space="xs">
+            <Text className="text-indigoscale-700" size={"lg"}>
+              Type
+            </Text>
+            <VStack space="sm">
+              <Checkbox value="Daily">Daily</Checkbox>
+              <Checkbox value="Showcase">Showcase</Checkbox>
+            </VStack>
+          </VStack>
+
+          {/* points filter */}
+          <VStack space="xs">
+            <Text className="text-indigoscale-700" size={"lg"}>
+              Points (0 - {points})
+            </Text>
+            <slider.Slider
+              minValue={0}
+              maxValue={4000}
+              step={50}
+              defaultValue={4000}
+              onChange={setPoints}
             >
-              {categories.map((category) => (
-                <Checkbox key={category.id} value={category.id.toString()}>
-                  {category.categoryName}
-                </Checkbox>
-              ))}
-            </CheckboxGroup>
-          </VStack>
-        </VStack>
-
-        {/* type filter */}
-        <VStack space="xs">
-          <Text className="text-indigoscale-700" size={"lg"}>
-            Type
-          </Text>
-          <VStack space="sm">
-            <Checkbox value="Daily">Daily</Checkbox>
-            <Checkbox value="Showcase">Showcase</Checkbox>
-          </VStack>
-        </VStack>
-
-        {/* points filter */}
-        <VStack space="xs">
-          <Text className="text-indigoscale-700" size={"lg"}>
-            Points (0 - {points})
-          </Text>
-          <slider.Slider
-            minValue={0}
-            maxValue={4000}
-            step={50}
-            defaultValue={4000}
-            onChange={setPoints}
-          >
-            <slider.SliderTrack>
-              <slider.SliderFilledTrack
+              <slider.SliderTrack>
+                <slider.SliderFilledTrack
+                  className="
+                  bg-indigoscale-500 rounded-full
+                  data-[active=true]:bg-indigoscale-500
+                  data-[hover=true]:bg-indigoscale-500
+                "
+                />
+              </slider.SliderTrack>
+              <slider.SliderThumb
                 className="
-                bg-indigoscale-500 rounded-full
-                data-[active=true]:bg-indigoscale-500
-                data-[hover=true]:bg-indigoscale-500
-              "
+                  w-5 h-5 rounded-full shadow
+                  bg-indigoscale-700
+                  data-[active=true]:bg-indigoscale-700
+                  data-[hover=true]:bg-indigoscale-700
+                "
               />
-            </slider.SliderTrack>
-            <slider.SliderThumb
-              className="
-                w-5 h-5 rounded-full shadow
-                bg-indigoscale-700
-                data-[active=true]:bg-indigoscale-700
-                data-[hover=true]:bg-indigoscale-700
-              "
-            />
-          </slider.Slider>
+            </slider.Slider>
+          </VStack>
         </VStack>
-      </VStack>
-      {/* products grid */}
-      {loading ? (
-        <Spinner text="Loading products..." />
-      ) : (
-        <SearchableGrid
-          items={products.map((product) => ({
-            id: product.id,
-            name: product.productName,
-            points: product.points,
-            image: product.imageUrl,
-          }))}
-          onItemPress={(item) => router.push(`/catalogue/${item.id}`)}
-          onAddPress={() => router.push(`/catalogue/0`)}
-          noItemsAlert="No products found!"
-        />
-      )}
-    </HStack>
+        {/* products grid */}
+        {loading ? (
+          <Spinner text="Loading products..." />
+        ) : (
+          <SearchableGrid
+            items={products.map((product) => ({
+              id: product.id,
+              name: product.productName,
+              points: product.points,
+              image: product.imageUrl,
+            }))}
+            onItemPress={(item) => router.push(`/catalogue/${item.id}`)}
+            onAddPress={() => router.push(`/catalogue/0`)}
+            noItemsAlert="No products found!"
+          />
+        )}
+      </HStack>
+    </ScrollView>
   );
 };
 

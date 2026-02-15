@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { ScrollView } from "react-native";
 import * as lucideReactNative from "lucide-react-native";
 
 import api, { ApiError } from "@/utils/api";
@@ -23,6 +24,25 @@ import * as select from "@/components/ui/select";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
 
+// Dummy data
+const DUMMY_CATEGORIES: Category[] = [
+  { id: 1, categoryName: "Electronics" },
+  { id: 2, categoryName: "Home & Living" },
+  { id: 3, categoryName: "Food & Beverage" },
+  { id: 4, categoryName: "Personal Care" },
+];
+
+const DUMMY_PRODUCT: Product = {
+  id: 1,
+  productName: "Sample Product",
+  productDescription: "This is a sample product description. The actual product data could not be loaded.",
+  categoryId: 1,
+  category: { id: 1, categoryName: "Electronics" },
+  imageUrl: "https://via.placeholder.com/400x300?text=Sample+Product",
+  available: true,
+  points: 1000,
+};
+
 const ProductDetailPage: React.FC = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -35,6 +55,8 @@ const ProductDetailPage: React.FC = () => {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   // error handling
   const [errorDialogOpen, setErrorDialogOpen] = useState(false);
@@ -45,12 +67,22 @@ const ProductDetailPage: React.FC = () => {
 
   useEffect(() => {
     const fetchProduct = async () => {
+      setLoading(true);
+      setLoadError(false);
+
       if (!isNew) {
-        api.get(`products/${id}`).then((res) => {
+        try {
+          const res = await api.get(`products/${id}`);
           const data = res.data.data;
           setProduct(data);
           setTempProduct({ ...data });
-        });
+        } catch (error) {
+          console.error("Error fetching product:", error);
+          setLoadError(true);
+          // Set dummy data as fallback
+          setProduct(DUMMY_PRODUCT);
+          setTempProduct({ ...DUMMY_PRODUCT });
+        }
       } else {
         const emptyProduct: Product = {
           id: 0,
@@ -66,6 +98,8 @@ const ProductDetailPage: React.FC = () => {
         setTempProduct({ ...emptyProduct });
         setEditing(true);
       }
+
+      setLoading(false);
     };
 
     const fetchCategories = async () => {
@@ -74,6 +108,8 @@ const ProductDetailPage: React.FC = () => {
         setCategories(response.data.data || []);
       } catch (error) {
         console.error("Error fetching categories:", error);
+        // Set dummy categories as fallback
+        setCategories(DUMMY_CATEGORIES);
       }
     };
 
@@ -157,331 +193,347 @@ const ProductDetailPage: React.FC = () => {
   const handleDeleteClose = () => setShowDeleteDialog(false);
   const handleDiscardClose = () => setShowDiscardDialog(false);
 
+  if (loading) return <Spinner text="Loading product" />;
+
   if (!product) return <Spinner text="Loading product" />;
 
   return (
-    <HStack className="w-full h-full gap-5 p-5 bg-indigoscale-100 items-start">
-      {/* image */}
-      <Center className="w-1/2 min-h-64 p-5 bg-white rounded-lg">
-        {editing ? (
-          <>
-            {tempProduct?.imageUrl ? (
-              <Image
-                source={tempProduct.imageUrl}
-                alt={tempProduct.productName}
-                className="w-full h-64 rounded-lg"
-                resizeMode="contain"
-              />
-            ) : (
-              <Text>No image selected</Text>
-            )}
-            <Button
-              className="mt-3 bg-indigoscale-700 border border-indigoscale-900"
-              size="sm"
-              onPress={() =>
-                pickImage((uri) =>
-                  setTempProduct((p) => ({ ...p!, imageUrl: uri }))
-                )
-              }
-            >
-              <ButtonText>
-                {tempProduct?.imageUrl ? "Change Image" : "Upload Image"}
-              </ButtonText>
-            </Button>
-          </>
-        ) : (
-          <Image
-            source={product.imageUrl}
-            alt={product.productName}
-            className="w-full h-full rounded-lg"
-            resizeMode="contain"
-          />
+    <ScrollView className="flex-1 bg-indigoscale-100">
+      <HStack className="w-full gap-5 p-5 items-start">
+        {/* Show warning banner if using dummy data */}
+        {loadError && (
+          <VStack className="w-full p-4 mb-3 bg-yellow-100 border border-yellow-400 rounded-lg">
+            <Text className="text-yellow-800 font-semibold">
+              ⚠️ Unable to load product data
+            </Text>
+            <Text className="text-yellow-700 text-sm">
+              Showing sample data. Please check your connection and try again.
+            </Text>
+          </VStack>
         )}
-      </Center>
-      {/* details and actions */}
-      {editing ? (
-        <VStack className="flex-1 p-5 bg-white rounded-lg" space="md">
-          <Text>Name</Text>
-          <Input>
-            <InputField
-              type="text"
-              placeholder="Name"
-              value={tempProduct?.productName || ""}
-              onChangeText={(text) =>
-                setTempProduct((p) => ({ ...p!, productName: text }))
-              }
-            />
-          </Input>
 
-          <Text>Category</Text>
-          <select.Select
-            selectedValue={tempProduct?.category.categoryName.toString()}
-            onValueChange={(value) => {
-              const selectedCategory = categories.find(
-                (c) => c.id.toString() === value
-              );
-              if (selectedCategory) {
-                setTempProduct((p) => ({
-                  ...p!,
-                  categoryId: selectedCategory.id,
-                  category: selectedCategory,
-                }));
-              }
-            }}
-          >
-            <select.SelectTrigger>
-              <select.SelectInput className="flex-1" placeholder="Category" />
-              <select.SelectIcon
-                className="mr-3"
-                as={lucideReactNative.ChevronDown}
-              />
-              <select.SelectPortal>
-                <select.SelectBackdrop />
-                <select.SelectContent>
-                  <select.SelectDragIndicatorWrapper>
-                    <select.SelectDragIndicator />
-                  </select.SelectDragIndicatorWrapper>
-                  {categories.map((category) => (
-                    <select.SelectItem
-                      key={category.id}
-                      value={category.id.toString()}
-                      label={category.categoryName}
-                      onPress={() =>
-                        setTempProduct((p) => ({
-                          ...p!,
-                          categoryId: category.id,
-                          category: category,
-                        }))
-                      }
-                    />
-                  ))}
-                </select.SelectContent>
-              </select.SelectPortal>
-            </select.SelectTrigger>
-          </select.Select>
-
-          <Text>Points</Text>
-          <Input>
-            <InputField
-              type="text"
-              keyboardType="numeric"
-              inputMode="numeric"
-              placeholder="Points"
-              value={tempProduct?.points.toString() || "0"}
-              onChangeText={(text) =>
-                setTempProduct((p) => ({ ...p!, points: parseInt(text) || 0 }))
-              }
-            />
-          </Input>
-
-          <Text>Description</Text>
-          <Input>
-            <InputField
-              type="text"
-              placeholder="Description"
-              value={tempProduct?.productDescription || ""}
-              onChangeText={(text) =>
-                setTempProduct((p) => ({ ...p!, productDescription: text }))
-              }
-            />
-          </Input>
-
-          <HStack space="md">
-            <Button
-              action="negative"
-              size="sm"
-              onPress={() => setShowDiscardDialog(true)}
-            >
-              {isNew ? (
-                <>
-                  <ButtonIcon as={lucideReactNative.ChevronLeft} />
-                  <ButtonText>Back</ButtonText>
-                </>
+        {/* image */}
+        <Center className="w-1/2 min-h-64 p-5 bg-white rounded-lg">
+          {editing ? (
+            <>
+              {tempProduct?.imageUrl ? (
+                <Image
+                  source={tempProduct.imageUrl}
+                  alt={tempProduct.productName}
+                  className="w-full h-64 rounded-lg"
+                  resizeMode="contain"
+                />
               ) : (
+                <Text>No image selected</Text>
+              )}
+              <Button
+                className="mt-3 bg-indigoscale-700 border border-indigoscale-900"
+                size="sm"
+                onPress={() =>
+                  pickImage((uri) =>
+                    setTempProduct((p) => ({ ...p!, imageUrl: uri }))
+                  )
+                }
+              >
+                <ButtonText>
+                  {tempProduct?.imageUrl ? "Change Image" : "Upload Image"}
+                </ButtonText>
+              </Button>
+            </>
+          ) : (
+            <Image
+              source={product.imageUrl}
+              alt={product.productName}
+              className="w-full h-full rounded-lg"
+              resizeMode="contain"
+            />
+          )}
+        </Center>
+        {/* details and actions */}
+        {editing ? (
+          <VStack className="flex-1 p-5 bg-white rounded-lg" space="md">
+            <Text>Name</Text>
+            <Input>
+              <InputField
+                type="text"
+                placeholder="Name"
+                value={tempProduct?.productName || ""}
+                onChangeText={(text) =>
+                  setTempProduct((p) => ({ ...p!, productName: text }))
+                }
+              />
+            </Input>
+
+            <Text>Category</Text>
+            <select.Select
+              selectedValue={tempProduct?.categoryId.toString()}
+              onValueChange={(value) => {
+                const selectedCategory = categories.find(
+                  (c) => c.id.toString() === value
+                );
+                if (selectedCategory) {
+                  setTempProduct((p) => ({
+                    ...p!,
+                    categoryId: selectedCategory.id,
+                    category: selectedCategory,
+                  }));
+                }
+              }}
+            >
+              <select.SelectTrigger>
+                <select.SelectInput className="flex-1" placeholder="Category" />
+                <select.SelectIcon
+                  className="mr-3"
+                  as={lucideReactNative.ChevronDown}
+                />
+                <select.SelectPortal>
+                  <select.SelectBackdrop />
+                  <select.SelectContent>
+                    <select.SelectDragIndicatorWrapper>
+                      <select.SelectDragIndicator />
+                    </select.SelectDragIndicatorWrapper>
+                    {categories.map((category) => (
+                      <select.SelectItem
+                        key={category.id}
+                        value={category.id.toString()}
+                        label={category.categoryName}
+                        onPress={() =>
+                          setTempProduct((p) => ({
+                            ...p!,
+                            categoryId: category.id,
+                            category: category,
+                          }))
+                        }
+                      />
+                    ))}
+                  </select.SelectContent>
+                </select.SelectPortal>
+              </select.SelectTrigger>
+            </select.Select>
+
+            <Text>Points</Text>
+            <Input>
+              <InputField
+                type="text"
+                keyboardType="numeric"
+                inputMode="numeric"
+                placeholder="Points"
+                value={tempProduct?.points.toString() || "0"}
+                onChangeText={(text) =>
+                  setTempProduct((p) => ({ ...p!, points: parseInt(text) || 0 }))
+                }
+              />
+            </Input>
+
+            <Text>Description</Text>
+            <Input>
+              <InputField
+                type="text"
+                placeholder="Description"
+                value={tempProduct?.productDescription || ""}
+                onChangeText={(text) =>
+                  setTempProduct((p) => ({ ...p!, productDescription: text }))
+                }
+              />
+            </Input>
+
+            <HStack space="md">
+              <Button
+                action="negative"
+                size="sm"
+                onPress={() => setShowDiscardDialog(true)}
+              >
+                {isNew ? (
+                  <>
+                    <ButtonIcon as={lucideReactNative.ChevronLeft} />
+                    <ButtonText>Back</ButtonText>
+                  </>
+                ) : (
+                  <>
+                    <ButtonIcon as={lucideReactNative.Trash} />
+                    <ButtonText>Discard</ButtonText>
+                  </>
+                )}
+              </Button>
+              <Button action="positive" size="sm" onPress={handleSave}>
+                <ButtonIcon as={lucideReactNative.Save} />
+                <ButtonText>Save</ButtonText>
+              </Button>
+            </HStack>
+
+            {/* discard alert dialogue */}
+            <DiscardDialogue
+              isOpen={showDiscardDialog}
+              onClose={handleDiscardClose}
+              onDiscard={handleDiscard}
+              heading="Are you sure you want to discard your changes?"
+              message="Your changes cannot be restored once discarded."
+            />
+          </VStack>
+        ) : (
+          <VStack className="flex-1 p-5 bg-white rounded-lg" space="md">
+            <Heading className="text-2xl text-indigoscale-700">
+              {product.productName}
+            </Heading>
+
+            <HStack space="lg">
+              {product.available ? (
+                <Badge size="lg" className="bg-greenscale-300">
+                  <BadgeText>Available</BadgeText>
+                </Badge>
+              ) : (
+                <Badge size="lg" className="bg-redscale-300">
+                  <BadgeText>Not Available</BadgeText>
+                </Badge>
+              )}
+              <Badge size="lg">
+                <BadgeText>{product.category.categoryName}</BadgeText>
+              </Badge>
+            </HStack>
+
+            <HStack>
+              <Heading className="text-3xl text-indigoscale-700">
+                {product.points}
+              </Heading>
+              <Text className="text-indigoscale-700" bold>
+                pts
+              </Text>
+            </HStack>
+            <Text className="text-gray-500">{product.productDescription}</Text>
+
+            <HStack space="md">
+              <Button
+                className="bg-indigoscale-700 border border-indigoscale-900"
+                size="sm"
+                onPress={() => router.back()}
+              >
+                <ButtonIcon as={lucideReactNative.ChevronLeft} />
+                <ButtonText>Back</ButtonText>
+              </Button>
+              {isAuthenticated && isAdmin && (
                 <>
-                  <ButtonIcon as={lucideReactNative.Trash} />
-                  <ButtonText>Discard</ButtonText>
+                  <Button
+                    action="positive"
+                    size="sm"
+                    onPress={() => setEditing(true)}
+                  >
+                    <ButtonIcon as={lucideReactNative.Edit} />
+                    <ButtonText>Edit</ButtonText>
+                  </Button>
+
+                  <Button
+                    action="negative"
+                    size="sm"
+                    onPress={() => setShowDeleteDialog(true)}
+                  >
+                    <ButtonIcon as={lucideReactNative.Trash} />
+                    <ButtonText>Delete</ButtonText>
+                  </Button>
+
+                  {/* save alert dialogue */}
+                  <alert.AlertDialog
+                    isOpen={showSaveDialog}
+                    onClose={handleSaveClose}
+                    size="sm"
+                  >
+                    <alert.AlertDialogBackdrop />
+                    <alert.AlertDialogContent>
+                      <alert.AlertDialogHeader>
+                        <Heading
+                          className="text-typography-950 font-semibold"
+                          size="md"
+                        >
+                          Success!
+                        </Heading>
+                      </alert.AlertDialogHeader>
+
+                      <alert.AlertDialogBody className="mt-3 mb-4">
+                        <Text size="sm">
+                          Product has been saved successfully. What would you like
+                          to do next?
+                        </Text>
+                      </alert.AlertDialogBody>
+
+                      <alert.AlertDialogFooter>
+                        <Button
+                          variant="outline"
+                          action="secondary"
+                          size="sm"
+                          onPress={() => setShowSaveDialog(false)}
+                        >
+                          <ButtonText>Stay here</ButtonText>
+                        </Button>
+
+                        <Button
+                          action="primary"
+                          size="sm"
+                          onPress={() => {
+                            setShowSaveDialog(false);
+                            router.push("/(public)/catalogue");
+                          }}
+                        >
+                          <ButtonText>Go to Catalogue</ButtonText>
+                        </Button>
+                      </alert.AlertDialogFooter>
+                    </alert.AlertDialogContent>
+                  </alert.AlertDialog>
+
+                  {/* delete alert dialogue */}
+                  <alert.AlertDialog
+                    isOpen={showDeleteDialog}
+                    onClose={handleDeleteClose}
+                    size="sm"
+                  >
+                    <alert.AlertDialogBackdrop />
+                    <alert.AlertDialogContent>
+                      <alert.AlertDialogHeader>
+                        <Heading
+                          className="text-typography-950 font-semibold"
+                          size="md"
+                        >
+                          Are you sure you want to delete this product?
+                        </Heading>
+                      </alert.AlertDialogHeader>
+                      <alert.AlertDialogBody className="mt-3 mb-4">
+                        <Text size="sm">
+                          Deleting the product will remove it permanently and
+                          cannot be undone. Please confirm if you want to proceed.
+                        </Text>
+                      </alert.AlertDialogBody>
+                      <alert.AlertDialogFooter>
+                        <Button
+                          variant="outline"
+                          action="secondary"
+                          onPress={handleDeleteClose}
+                          size="sm"
+                        >
+                          <ButtonText>Cancel</ButtonText>
+                        </Button>
+                        <Button
+                          action="negative"
+                          size="sm"
+                          onPress={handleDelete}
+                        >
+                          <ButtonText>Delete</ButtonText>
+                        </Button>
+                      </alert.AlertDialogFooter>
+                    </alert.AlertDialogContent>
+                  </alert.AlertDialog>
                 </>
               )}
-            </Button>
-            <Button action="positive" size="sm" onPress={handleSave}>
-              <ButtonIcon as={lucideReactNative.Save} />
-              <ButtonText>Save</ButtonText>
-            </Button>
-          </HStack>
+            </HStack>
+          </VStack>
+        )}
 
-          {/* discard alert dialogue */}
-          <DiscardDialogue
-            isOpen={showDiscardDialog}
-            onClose={handleDiscardClose}
-            onDiscard={handleDiscard}
-            heading="Are you sure you want to discard your changes?"
-            message="Your changes cannot be restored once discarded."
-          />
-        </VStack>
-      ) : (
-        <VStack className="flex-1 p-5 bg-white rounded-lg" space="md">
-          <Heading className="text-2xl text-indigoscale-700">
-            {product.productName}
-          </Heading>
-
-          <HStack space="lg">
-            {product.available ? (
-              <Badge size="lg" className="bg-greenscale-300">
-                <BadgeText>Available</BadgeText>
-              </Badge>
-            ) : (
-              <Badge size="lg" className="bg-redscale-300">
-                <BadgeText>Not Available</BadgeText>
-              </Badge>
-            )}
-            <Badge size="lg">
-              <BadgeText>{product.category.categoryName}</BadgeText>
-            </Badge>
-          </HStack>
-
-          <HStack>
-            <Heading className="text-3xl text-indigoscale-700">
-              {product.points}
-            </Heading>
-            <Text className="text-indigoscale-700" bold>
-              pts
-            </Text>
-          </HStack>
-          <Text className="text-gray-500">{product.productDescription}</Text>
-
-          <HStack space="md">
-            <Button
-              className="bg-indigoscale-700 border border-indigoscale-900"
-              size="sm"
-              onPress={() => router.back()}
-            >
-              <ButtonIcon as={lucideReactNative.ChevronLeft} />
-              <ButtonText>Back</ButtonText>
-            </Button>
-            {isAuthenticated && isAdmin && (
-              <>
-                <Button
-                  action="positive"
-                  size="sm"
-                  onPress={() => setEditing(true)}
-                >
-                  <ButtonIcon as={lucideReactNative.Edit} />
-                  <ButtonText>Edit</ButtonText>
-                </Button>
-
-                <Button
-                  action="negative"
-                  size="sm"
-                  onPress={() => setShowDeleteDialog(true)}
-                >
-                  <ButtonIcon as={lucideReactNative.Trash} />
-                  <ButtonText>Delete</ButtonText>
-                </Button>
-
-                {/* save alert dialogue */}
-                <alert.AlertDialog
-                  isOpen={showSaveDialog}
-                  onClose={handleSaveClose}
-                  size="sm"
-                >
-                  <alert.AlertDialogBackdrop />
-                  <alert.AlertDialogContent>
-                    <alert.AlertDialogHeader>
-                      <Heading
-                        className="text-typography-950 font-semibold"
-                        size="md"
-                      >
-                        Success!
-                      </Heading>
-                    </alert.AlertDialogHeader>
-
-                    <alert.AlertDialogBody className="mt-3 mb-4">
-                      <Text size="sm">
-                        Product has been saved successfully. What would you like
-                        to do next?
-                      </Text>
-                    </alert.AlertDialogBody>
-
-                    <alert.AlertDialogFooter>
-                      <Button
-                        variant="outline"
-                        action="secondary"
-                        size="sm"
-                        onPress={() => setShowSaveDialog(false)}
-                      >
-                        <ButtonText>Stay here</ButtonText>
-                      </Button>
-
-                      <Button
-                        action="primary"
-                        size="sm"
-                        onPress={() => {
-                          setShowSaveDialog(false);
-                          router.push("/(public)/catalogue");
-                        }}
-                      >
-                        <ButtonText>Go to Catalogue</ButtonText>
-                      </Button>
-                    </alert.AlertDialogFooter>
-                  </alert.AlertDialogContent>
-                </alert.AlertDialog>
-
-                {/* delete alert dialogue */}
-                <alert.AlertDialog
-                  isOpen={showDeleteDialog}
-                  onClose={handleDeleteClose}
-                  size="sm"
-                >
-                  <alert.AlertDialogBackdrop />
-                  <alert.AlertDialogContent>
-                    <alert.AlertDialogHeader>
-                      <Heading
-                        className="text-typography-950 font-semibold"
-                        size="md"
-                      >
-                        Are you sure you want to delete this product?
-                      </Heading>
-                    </alert.AlertDialogHeader>
-                    <alert.AlertDialogBody className="mt-3 mb-4">
-                      <Text size="sm">
-                        Deleting the product will remove it permanently and
-                        cannot be undone. Please confirm if you want to proceed.
-                      </Text>
-                    </alert.AlertDialogBody>
-                    <alert.AlertDialogFooter>
-                      <Button
-                        variant="outline"
-                        action="secondary"
-                        onPress={handleDeleteClose}
-                        size="sm"
-                      >
-                        <ButtonText>Cancel</ButtonText>
-                      </Button>
-                      <Button
-                        action="negative"
-                        size="sm"
-                        onPress={handleDelete}
-                      >
-                        <ButtonText>Delete</ButtonText>
-                      </Button>
-                    </alert.AlertDialogFooter>
-                  </alert.AlertDialogContent>
-                </alert.AlertDialog>
-              </>
-            )}
-          </HStack>
-        </VStack>
-      )}
-
-      {/*  error alert dialogue */}
-      <ErrorDialogue
-        isOpen={errorDialogOpen}
-        onClose={() => setErrorDialogOpen(false)}
-        errorHeading={errorDialogHeading}
-        errorMessage={errorDialogMessage}
-      />
-    </HStack>
+        {/*  error alert dialogue */}
+        <ErrorDialogue
+          isOpen={errorDialogOpen}
+          onClose={() => setErrorDialogOpen(false)}
+          errorHeading={errorDialogHeading}
+          errorMessage={errorDialogMessage}
+        />
+      </HStack>
+    </ScrollView>
   );
 };
 

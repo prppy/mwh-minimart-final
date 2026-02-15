@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ScrollView, StyleSheet } from "react-native";
 
 import AdminLoginForm from "@/components/login/admin-login";
 import ResidentLoginForm from "@/components/login/resident-login";
@@ -17,44 +18,58 @@ const LoginPage: React.FC = () => {
   return (
     <ImageBackground
       source={background}
-      className="flex-1"
+      style={styles.background}
       imageStyle={{ opacity: 0.5 }}
+      resizeMode="cover"
     >
-      <Center className="flex-1 gap-5">
-        <HStack space="md" className="justify-around">
-          <Button
-            size="lg"
-            onPress={() => setActiveRole("resident")}
-            className={
-              activeRole === "resident" ? "bg-indigoscale-700" : "bg-white"
-            }
-          >
-            <ButtonText
+      <ScrollView 
+        className="flex-1" 
+        contentContainerStyle={{ flexGrow: 1, minHeight: '100%' }}
+      >
+        <Center className="flex-1 p-10">
+          <HStack space="md" className="justify-center mb-8">
+            <Button
+              size="lg"
+              onPress={() => setActiveRole("resident")}
               className={
-                activeRole === "resident" ? "" : "text-indigoscale-700"
+                activeRole === "resident" ? "bg-indigoscale-700" : "bg-white"
               }
             >
-              Resident
-            </ButtonText>
-          </Button>
-          <Button
-            size="lg"
-            onPress={() => setActiveRole("officer")}
-            className={
-              activeRole === "officer" ? "bg-indigoscale-700" : "bg-white"
-            }
-          >
-            <ButtonText
-              className={activeRole === "officer" ? "" : "text-indigoscale-700"}
+              <ButtonText
+                className={
+                  activeRole === "resident" ? "text-white" : "text-indigoscale-700"
+                }
+              >
+                Resident
+              </ButtonText>
+            </Button>
+            <Button
+              size="lg"
+              onPress={() => setActiveRole("officer")}
+              className={
+                activeRole === "officer" ? "bg-indigoscale-700" : "bg-white"
+              }
             >
-              Officer
-            </ButtonText>
-          </Button>
-        </HStack>
-        {activeRole === "officer" ? <AdminLoginForm /> : <ResidentLoginForm />}
-      </Center>
+              <ButtonText
+                className={activeRole === "officer" ? "text-white" : "text-indigoscale-700"}
+              >
+                Officer
+              </ButtonText>
+            </Button>
+          </HStack>
+          {activeRole === "officer" ? <AdminLoginForm /> : <ResidentLoginForm />}
+        </Center>
+      </ScrollView>
     </ImageBackground>
   );
 };
+
+const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+});
 
 export default LoginPage;

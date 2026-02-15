@@ -59,27 +59,39 @@ const AdminLoginForm: React.FC = () => {
   const handleForgotPassword = () => {};
 
   return (
-    <VStack space="lg" className="w-1/3 p-5 bg-white rounded-lg">
-      <Image source={logo} alt="logo" className="w-full" />
+    <VStack space="lg" className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
+      <Image 
+        source={logo} 
+        alt="logo" 
+        className="w-full h-20" 
+        resizeMode="contain"
+      />
 
       <FormControl isInvalid={isEmailInvalid}>
-        <Text className="text-indigoscale-700">Email</Text>
+        <Text className="text-indigoscale-700 mb-2">Email</Text>
         <Input>
           <InputField
             placeholder="Email"
             value={officerEmail}
-            onChangeText={(text) => setOfficerEmail(text)}
+            onChangeText={(text) => {
+              setOfficerEmail(text);
+              setIsEmailInvalid(false);
+            }}
           />
         </Input>
       </FormControl>
 
       <FormControl isInvalid={isPasswordInvalid}>
-        <Text className="text-indigoscale-700">Password</Text>
+        <Text className="text-indigoscale-700 mb-2">Password</Text>
         <Input>
           <InputField
             placeholder="Password"
+            type="password"
             value={password}
-            onChangeText={(text) => setPassword(text)}
+            onChangeText={(text) => {
+              setPassword(text);
+              setIsPasswordInvalid(false);
+            }}
           />
         </Input>
       </FormControl>
@@ -88,7 +100,7 @@ const AdminLoginForm: React.FC = () => {
         <Pressable
           onPress={handleOfficerLogin}
           disabled={loading}
-          className="bg-indigoscale-700 p-2 rounded-full"
+          className="bg-indigoscale-700 p-3 rounded-full"
         >
           <Icon as={Fingerprint} size="xl" className="text-white" />
         </Pressable>
@@ -96,7 +108,7 @@ const AdminLoginForm: React.FC = () => {
           action="primary"
           onPress={handleOfficerLogin}
           isDisabled={loading}
-          className="bg-indigoscale-700"
+          className="bg-indigoscale-700 flex-1"
         >
           <ButtonIcon as={UserRound} size="xl" />
           <ButtonText>Sign In</ButtonText>

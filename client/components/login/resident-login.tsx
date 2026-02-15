@@ -121,35 +121,36 @@ const ResidentLoginForm: React.FC = () => {
 
   return (
     <>
-      <Center className="w-1/2 h-2/3 p-5 bg-white rounded-lg">
+      <Center className="w-full max-w-2xl p-8 bg-white rounded-lg shadow-lg">
         {loading ? (
           <CustomSpinner text="Loading residents..." />
         ) : residents.length === 0 ? (
           <EmptyAlert text="No residents found!" />
         ) : (
-          <VStack className="w-full h-full" space="lg">
-            <Box className="w-full h-12">
+          <VStack className="w-full" space="lg">
+            <Box className="w-full">
               <SearchBar search={search} setSearch={setSearch} />
             </Box>
-            <ScrollView>
-              <VStack space="lg">
+            <ScrollView className="max-h-96">
+              <VStack space="md">
                 {filteredResidents.map((res) => (
                   <Pressable
                     key={res.id}
                     onPress={() => handleResidentSelect(res)}
                   >
                     <HStack
-                      className={`bg-${res.wallpaperType}scale-300 p-3 justify-between items-center rounded-md`}
+                      className={`bg-${res.wallpaperType}scale-300 p-4 justify-between items-center rounded-lg`}
                       space="md"
                     >
                       <Avatar
+                        size="md"
                         className={`border-2 border-${res.wallpaperType}scale-500 bg-${res.wallpaperType}scale-700`}
                       >
                         <AvatarFallbackText>{res.userName}</AvatarFallbackText>
                         <AvatarImage source={{ uri: res.profilePicture }} />
                       </Avatar>
-                      <HStack className="flex-1 justify-between" space="md">
-                        <Text className="text-white" bold>
+                      <HStack className="flex-1 justify-between items-center" space="md">
+                        <Text className="text-white text-lg" bold>
                           {res.userName}
                         </Text>
 
@@ -172,64 +173,67 @@ const ResidentLoginForm: React.FC = () => {
         isOpen={showModal}
         onClose={() => {
           setShowModal(false);
+          setPassword("");
         }}
         avoidKeyboard
-        size="sm"
+        size="md"
       >
         <ModalBackdrop />
         {resident && (
-          <>
-            <ModalContent>
-              <ModalHeader>
-                <Heading size="lg">Resident Login</Heading>
-                <ModalCloseButton>
-                  <Icon as={X} />
-                </ModalCloseButton>
-              </ModalHeader>
-              <ModalBody>
-                <VStack className="justify-center items-center" space="md">
-                  <Avatar
-                    className={`border-2 border-${resident.wallpaperType}scale-500 bg-${resident.wallpaperType}scale-700`}
-                  >
-                    <AvatarFallbackText>{resident.userName}</AvatarFallbackText>
-                    <AvatarImage source={{ uri: resident.profilePicture }} />
-                  </Avatar>
-                  <Text
-                    size="xl"
-                    className={`text-${resident.wallpaperType}scale-500`}
-                    bold
-                  >
-                    {resident.userName}
-                  </Text>
-                  <Input variant="outline" size="lg">
-                    <InputField
-                      placeholder="Enter password here..."
-                      value={password}
-                      onChangeText={setPassword}
-                    />
-                  </Input>
-                </VStack>
-              </ModalBody>
-              <ModalFooter>
-                <Button
-                  variant="outline"
-                  action="secondary"
-                  className="mr-3"
-                  onPress={() => {
-                    setShowModal(false);
-                  }}
+          <ModalContent>
+            <ModalHeader>
+              <Heading size="lg">Resident Login</Heading>
+              <ModalCloseButton>
+                <Icon as={X} />
+              </ModalCloseButton>
+            </ModalHeader>
+            <ModalBody>
+              <VStack className="justify-center items-center py-4" space="lg">
+                <Avatar
+                  size="xl"
+                  className={`border-4 border-${resident.wallpaperType}scale-500 bg-${resident.wallpaperType}scale-700`}
                 >
-                  <ButtonText>Cancel</ButtonText>
-                </Button>
-                <Button
-                  onPress={handleResidentLogin}
-                  className={`bg-${resident.wallpaperType}scale-500`}
+                  <AvatarFallbackText>{resident.userName}</AvatarFallbackText>
+                  <AvatarImage source={{ uri: resident.profilePicture }} />
+                </Avatar>
+                <Text
+                  size="xl"
+                  className={`text-${resident.wallpaperType}scale-500`}
+                  bold
                 >
-                  <ButtonText>Login</ButtonText>
-                </Button>
-              </ModalFooter>
-            </ModalContent>
-          </>
+                  {resident.userName}
+                </Text>
+                <Input variant="outline" size="lg" className="w-full">
+                  <InputField
+                    placeholder="Enter password here..."
+                    type="password"
+                    value={password}
+                    onChangeText={setPassword}
+                  />
+                </Input>
+              </VStack>
+            </ModalBody>
+            <ModalFooter>
+              <Button
+                variant="outline"
+                action="secondary"
+                className="mr-3"
+                onPress={() => {
+                  setShowModal(false);
+                  setPassword("");
+                }}
+              >
+                <ButtonText>Cancel</ButtonText>
+              </Button>
+              <Button
+                onPress={handleResidentLogin}
+                className={`bg-${resident.wallpaperType}scale-500`}
+                isDisabled={loading}
+              >
+                <ButtonText>{loading ? "Logging in..." : "Login"}</ButtonText>
+              </Button>
+            </ModalFooter>
+          </ModalContent>
         )}
       </Modal>
     </>
