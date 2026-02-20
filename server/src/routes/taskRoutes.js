@@ -4,6 +4,13 @@ import { body, param, query } from 'express-validator';
 const taskRouter = express.Router();
 import * as TasksController from '../controllers/taskController.js';
 
+// Validation middleware for getting a task
+const taskIdValidation = [
+  param('id')
+    .isInt({ min: 1 })
+    .withMessage('Task ID must be a positive integer')
+];
+
 // Validation middleware for creating tasks
 const createTaskValidation = [
   body('taskName')
@@ -66,6 +73,8 @@ const updateTaskValidation = [
 
 taskRouter.get('/', TasksController.getAllTasks);
 taskRouter.get('/category/:categoryId', TasksController.getTasksByCategory);
+taskRouter.get('/:id', taskIdValidation, TasksController.getTaskById);
+
 taskRouter.post('/', createTaskValidation, TasksController.createTask);
 taskRouter.put('/:id', updateTaskValidation, TasksController.updateTask);
 taskRouter.delete('/:id', TasksController.deleteTask);

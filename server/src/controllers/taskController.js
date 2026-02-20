@@ -1,39 +1,31 @@
 // controllers/taskController.js (Refactored)
-import { validationResult } from 'express-validator';
-import * as TaskModel from '../models/taskModel.js';
+import { validationResult } from "express-validator";
+import * as TaskModel from "../models/taskModel.js";
 
 // Get all tasks
 export const getAllTasks = async (req, res) => {
   try {
-    const {
-      active,
-      categoryId,
-      search,
-      limit,
-      offset,
-      sortBy,
-      sortOrder
-    } = req.query;
+    const { active, categoryId, search, limit, offset, sortBy, sortOrder } =
+      req.query;
 
     const result = await TaskModel.findMany({
-      active: active === 'false' ? false : true,
+      active: active === "false" ? false : true,
       categoryId,
       search,
       limit,
       offset,
       sortBy,
-      sortOrder
+      sortOrder,
     });
 
     res.json({
       success: true,
-      data: result
+      data: result,
     });
-
   } catch (error) {
-    console.error('Get all tasks error:', error);
-    res.status(500).json({ 
-      error: { message: 'Internal server error' }
+    console.error("Get all tasks error:", error);
+    res.status(500).json({
+      error: { message: "Internal server error" },
     });
   }
 };
@@ -46,25 +38,22 @@ export const getTaskById = async (req, res) => {
     const task = await TaskModel.findById(id);
 
     if (!task) {
-      return res.status(404).json({ 
-        error: { message: 'Task not found' }
+      return res.status(404).json({
+        error: { message: "Task not found" },
       });
     }
 
     res.json({
       success: true,
-      data: task
+      data: task,
     });
-
   } catch (error) {
-    console.error('Get task error:', error);
-    res.status(500).json({ 
-      error: { message: 'Internal server error' }
+    console.error("Get task error:", error);
+    res.status(500).json({
+      error: { message: "Internal server error" },
     });
   }
 };
-
-// Add this method to your existing taskController.js
 
 /**
  * Get tasks by category
@@ -72,12 +61,17 @@ export const getTaskById = async (req, res) => {
 export const getTasksByCategory = async (req, res) => {
   try {
     const { categoryId } = req.params;
-    const { limit = 50, offset = 0, sortBy = 'taskName', sortOrder = 'asc' } = req.query;
+    const {
+      limit = 50,
+      offset = 0,
+      sortBy = "taskName",
+      sortOrder = "asc",
+    } = req.query;
 
     // Validate categoryId
     if (!categoryId || isNaN(parseInt(categoryId))) {
       return res.status(400).json({
-        error: { message: 'Invalid category ID' }
+        error: { message: "Invalid category ID" },
       });
     }
 
@@ -86,7 +80,7 @@ export const getTasksByCategory = async (req, res) => {
       limit: parseInt(limit),
       offset: parseInt(offset),
       sortBy,
-      sortOrder
+      sortOrder,
     };
 
     const result = await TaskModel.findByCategory(options);
@@ -97,21 +91,20 @@ export const getTasksByCategory = async (req, res) => {
         tasks: result.tasks,
         categoryId: parseInt(categoryId),
         total: result.totalCount,
-        pagination: result.pagination
-      }
+        pagination: result.pagination,
+      },
     });
-
   } catch (error) {
-    console.error('Get tasks by category error:', error);
-    
-    if (error.message.includes('not found')) {
-      return res.status(404).json({ 
-        error: { message: error.message }
+    console.error("Get tasks by category error:", error);
+
+    if (error.message.includes("not found")) {
+      return res.status(404).json({
+        error: { message: error.message },
       });
     }
 
-    res.status(500).json({ 
-      error: { message: 'Internal server error' }
+    res.status(500).json({
+      error: { message: "Internal server error" },
     });
   }
 };
@@ -121,8 +114,8 @@ export const createTask = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        error: { message: 'Validation failed', details: errors.array() }
+      return res.status(400).json({
+        error: { message: "Validation failed", details: errors.array() },
       });
     }
 
@@ -130,18 +123,20 @@ export const createTask = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      data: task
+      data: task,
     });
-
   } catch (error) {
-    console.error('Create task error:', error);
-    if (error.message.includes('not found') || error.message.includes('Missing required fields')) {
-      return res.status(400).json({ 
-        error: { message: error.message }
+    console.error("Create task error:", error);
+    if (
+      error.message.includes("not found") ||
+      error.message.includes("Missing required fields")
+    ) {
+      return res.status(400).json({
+        error: { message: error.message },
       });
     }
-    res.status(500).json({ 
-      error: { message: 'Internal server error' }
+    res.status(500).json({
+      error: { message: "Internal server error" },
     });
   }
 };
@@ -151,8 +146,8 @@ export const updateTask = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        error: { message: 'Validation failed', details: errors.array() }
+      return res.status(400).json({
+        error: { message: "Validation failed", details: errors.array() },
       });
     }
 
@@ -161,18 +156,20 @@ export const updateTask = async (req, res) => {
 
     res.json({
       success: true,
-      data: task
+      data: task,
     });
-
   } catch (error) {
-    console.error('Update task error:', error);
-    if (error.message === 'Task not found' || error.message === 'Task category not found') {
-      return res.status(404).json({ 
-        error: { message: error.message }
+    console.error("Update task error:", error);
+    if (
+      error.message === "Task not found" ||
+      error.message === "Task category not found"
+    ) {
+      return res.status(404).json({
+        error: { message: error.message },
       });
     }
-    res.status(500).json({ 
-      error: { message: 'Internal server error' }
+    res.status(500).json({
+      error: { message: "Internal server error" },
     });
   }
 };
@@ -186,18 +183,22 @@ export const deleteTask = async (req, res) => {
 
     res.json({
       success: true,
-      data: { message: result.active === false ? 'Task deactivated successfully' : 'Task deleted successfully' }
+      data: {
+        message:
+          result.active === false
+            ? "Task deactivated successfully"
+            : "Task deleted successfully",
+      },
     });
-
   } catch (error) {
-    console.error('Delete task error:', error);
-    if (error.message === 'Task not found') {
-      return res.status(404).json({ 
-        error: { message: error.message }
+    console.error("Delete task error:", error);
+    if (error.message === "Task not found") {
+      return res.status(404).json({
+        error: { message: error.message },
       });
     }
-    res.status(500).json({ 
-      error: { message: 'Internal server error' }
+    res.status(500).json({
+      error: { message: "Internal server error", details: error.message },
     });
   }
 };
@@ -205,20 +206,18 @@ export const deleteTask = async (req, res) => {
 // Get popular tasks
 export const getPopularTasks = async (req, res) => {
   try {
-    const { limit = 10, timeframe = 'month' } = req.query;
+    const { limit = 10, timeframe = "month" } = req.query;
 
     const tasks = await TaskModel.getPopular(limit, timeframe);
 
     res.json({
       success: true,
-      data: tasks
+      data: tasks,
     });
-
   } catch (error) {
-    console.error('Get popular tasks error:', error);
-    res.status(500).json({ 
-      error: { message: 'Internal server error' }
+    console.error("Get popular tasks error:", error);
+    res.status(500).json({
+      error: { message: "Internal server error" },
     });
   }
 };
-

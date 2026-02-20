@@ -1,7 +1,7 @@
-import * as alert from "./ui/alert-dialog";
-import { Button, ButtonText } from "./ui/button";
-import { Heading } from "./ui/heading";
-import { Text } from "./ui/text";
+import * as alert from "../ui/alert-dialog";
+import { Button, ButtonText } from "../ui/button";
+import { Heading } from "../ui/heading";
+import { Text } from "../ui/text";
 
 interface ErrorDialogueProps {
   isOpen: boolean;
