@@ -55,7 +55,7 @@ const CataloguePage: React.FC = () => {
 
         // TODO: implement points range filtering in backend
         fetchedProducts = fetchedProducts.filter(
-          (product) => product.points <= points
+          (product) => product.points <= points,
         );
 
         setProducts(fetchedProducts);
@@ -71,9 +71,9 @@ const CataloguePage: React.FC = () => {
   }, [points, selectedCategories]);
 
   return (
-    <HStack className="flex-1 gap-5 p-5 pb-0 bg-indigoscale-100 items-start">
+    <HStack className="flex-1 gap-5 p-5 pb-5 bg-indigoscale-100 items-stretch">
       <VStack
-        className="w-1/4 h-auto p-5 bg-white border border-gray-300 rounded-lg"
+        className="w-1/4 self-start p-5 bg-white border border-gray-300 rounded-lg"
         space="xl"
       >
         {/* category filter */}

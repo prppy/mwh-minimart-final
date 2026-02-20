@@ -179,7 +179,7 @@ const VoucherDetailPage: React.FC = () => {
     handleDiscardClose();
 
     if (isNew) {
-      router.back();
+      router.push("/(public)/vouchers");
     } else {
       setEditing(false);
     }
@@ -381,7 +381,7 @@ const VoucherDetailPage: React.FC = () => {
             <Button
               className="bg-indigoscale-700 border border-indigoscale-900"
               size="sm"
-              onPress={() => router.back()}
+              onPress={() => router.push("/(public)/vouchers")}
             >
               <ButtonIcon as={lucideReactNative.ChevronLeft} />
               <ButtonText>Back</ButtonText>
