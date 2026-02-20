@@ -77,16 +77,6 @@ const ProductDetailPage: React.FC = () => {
     fetchCategories();
   }, [id, isNew]);
 
-  const handleDiscard = () => {
-    handleDiscardClose();
-
-    if (isNew) {
-      router.back();
-    } else {
-      setEditing(false);
-    }
-  };
-
   const handleSave = async () => {
     try {
       if (!tempProduct) return;
@@ -120,7 +110,7 @@ const ProductDetailPage: React.FC = () => {
     } catch (err) {
       if (err instanceof ApiError) {
         setErrorDialogHeading(
-          err.message ?? `Save failed (HTTP ${err.status})`
+          err.message ?? `Save failed (HTTP ${err.status})`,
         );
 
         const message =
@@ -151,11 +141,21 @@ const ProductDetailPage: React.FC = () => {
     }
   };
 
+  const handleDiscard = () => {
+    handleDiscardClose();
+
+    if (isNew) {
+      router.push("/(public)/catalogue");
+    } else {
+      setEditing(false);
+    }
+  };
+
   const handleSaveClose = () => setShowSaveDialog(false);
   const handleDeleteClose = () => setShowDeleteDialog(false);
   const handleDiscardClose = () => setShowDiscardDialog(false);
 
-  if (!product) return <Spinner />;
+  if (!product) return <Spinner text="Loading product..." />;
 
   return (
     <HStack className="w-full h-full gap-5 p-5 bg-indigoscale-100 items-start">
@@ -178,7 +178,7 @@ const ProductDetailPage: React.FC = () => {
               size="sm"
               onPress={() =>
                 pickImage((uri) =>
-                  setTempProduct((p) => ({ ...p!, imageUrl: uri }))
+                  setTempProduct((p) => ({ ...p!, imageUrl: uri })),
                 )
               }
             >
@@ -216,7 +216,7 @@ const ProductDetailPage: React.FC = () => {
             selectedValue={tempProduct?.category.categoryName.toString()}
             onValueChange={(value) => {
               const selectedCategory = categories.find(
-                (c) => c.id.toString() === value
+                (c) => c.id.toString() === value,
               );
               if (selectedCategory) {
                 setTempProduct((p) => ({
@@ -267,7 +267,10 @@ const ProductDetailPage: React.FC = () => {
               placeholder="Points"
               value={tempProduct?.points.toString() || "0"}
               onChangeText={(text) =>
-                setTempProduct((p) => ({ ...p!, points: parseInt(text) || 0 }))
+                setTempProduct((p) => ({
+                  ...p!,
+                  points: parseInt(text) || 0,
+                }))
               }
             />
           </Input>
@@ -380,7 +383,7 @@ const ProductDetailPage: React.FC = () => {
             <Button
               className="bg-indigoscale-700 border border-indigoscale-900"
               size="sm"
-              onPress={() => router.back()}
+              onPress={() => router.push("/(public)/catalogue")}
             >
               <ButtonIcon as={lucideReactNative.ChevronLeft} />
               <ButtonText>Back</ButtonText>
@@ -499,7 +502,7 @@ const ProductDetailPage: React.FC = () => {
           </HStack>
         </VStack>
       )}
-      
+
       {/*  error alert dialogue */}
       <ErrorDialogue
         isOpen={errorDialogOpen}

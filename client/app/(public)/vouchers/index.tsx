@@ -29,7 +29,7 @@ const VouchersPage: React.FC = () => {
   }, []);
 
   return (
-    <HStack className="flex-1 gap-5 p-5 pb-0 bg-indigoscale-100 items-start">
+    <HStack className="flex-1 gap-5 p-5 pb-5 bg-indigoscale-100 items-stretch">
       {loading ? (
         <Spinner text="Loading vouchers..." />
       ) : (

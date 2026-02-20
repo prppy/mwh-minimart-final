@@ -45,11 +45,11 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
 
   const visibleItems = useMemo(() => {
     const filtered = items.filter((item) =>
-      item.name.toLowerCase().includes(search.toLowerCase())
+      item.name.toLowerCase().includes(search.toLowerCase()),
     );
 
     return filtered.sort((a, b) =>
-      sortOrder === "asc" ? a.points - b.points : b.points - a.points
+      sortOrder === "asc" ? a.points - b.points : b.points - a.points,
     );
   }, [items, search, sortOrder]);
 
@@ -92,61 +92,59 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
       {visibleItems.length === 0 ? (
         <EmptyAlert text={noItemsAlert} />
       ) : (
-        <ScrollView>
-          <Grid className="gap-5" _extra={{ className: "grid-cols-2" }}>
-            {isAuthenticated && isAdmin && (
-              <GridItem _extra={{ className: "col-span-1" }}>
-                <Pressable onPress={onAddPress}>
-                  <Card className="bg-white" size="md" variant="outline">
-                    <Center className="w-full h-64 bg-indigoscale-300 rounded-md mb-5">
-                      <Icon as={Plus} size={64} className="text-indigoscale-700" />
-                    </Center>
-                    <Text
-                      size="xl"
-                      className="text-indigoscale-700"
-                      numberOfLines={1}
-                    >
-                      Add New Item
-                    </Text>
-                    <Text></Text>
-                  </Card>
-                </Pressable>
-              </GridItem>
-            )}
-            {visibleItems.map((item) => (
-              <GridItem key={item.id} _extra={{ className: "col-span-1" }}>
-                <Pressable onPress={() => onItemPress(item)}>
-                  <Card className="bg-white" size="md" variant="outline">
-                    <Center className="w-full h-64 bg-indigoscale-300 rounded-md mb-5">
-                      {item.image ? (
-                        <Image
-                          source={{ uri: item.image }}
-                          alt={item.name}
-                          className="w-full h-full"
-                          resizeMode="contain"
+        <VStack className="flex-1 overflow-hidden">
+          <ScrollView>
+            <Grid className="gap-5" _extra={{ className: "grid-cols-2" }}>
+              {isAuthenticated && isAdmin && (
+                <GridItem _extra={{ className: "col-span-1" }}>
+                  <Pressable onPress={onAddPress}>
+                    <Card className="bg-white" size="md" variant="outline">
+                      <Center className="w-full h-64 bg-indigoscale-300 rounded-md mb-5">
+                        <Icon
+                          as={Plus}
+                          size={64}
+                          className="text-indigoscale-700"
                         />
-                      ) : null}
-                    </Center>
-                    <Text
-                      size="xl"
-                      className="text-indigoscale-700"
-                      numberOfLines={1}
-                    >
-                      {item.name}
-                    </Text>
-                    <Text bold className="text-gray-500">
-                      {item.points} pts
-                    </Text>
-                  </Card>
-                </Pressable>
-              </GridItem>
-            ))}
-            {/* filler if odd to prevent weird ui */}
-            {visibleItems.length % 2 !== 0 && (
-              <GridItem _extra={{ className: "col-span-1" }}></GridItem>
-            )}
-          </Grid>
-        </ScrollView>
+                      </Center>
+                      <Text size="xl" className="text-indigoscale-700">
+                        Add New Item
+                      </Text>
+                      <Text></Text>
+                    </Card>
+                  </Pressable>
+                </GridItem>
+              )}
+              {visibleItems.map((item) => (
+                <GridItem key={item.id} _extra={{ className: "col-span-1" }}>
+                  <Pressable onPress={() => onItemPress(item)}>
+                    <Card className="bg-white" size="md" variant="outline">
+                      <Center className="w-full h-64 bg-indigoscale-300 rounded-md mb-5">
+                        {item.image ? (
+                          <Image
+                            source={{ uri: item.image }}
+                            alt={item.name}
+                            className="w-full h-full"
+                            resizeMode="contain"
+                          />
+                        ) : null}
+                      </Center>
+                      <Text size="xl" className="text-indigoscale-700">
+                        {item.name}
+                      </Text>
+                      <Text bold className="text-gray-500">
+                        {item.points} pts
+                      </Text>
+                    </Card>
+                  </Pressable>
+                </GridItem>
+              ))}
+              {/* TODO: filler if odd to prevent weird ui */}
+              {(visibleItems.length + (isAuthenticated && isAdmin ? 1 : 0)) %
+                2 !==
+                0 && <GridItem _extra={{ className: "col-span-1" }}></GridItem>}
+            </Grid>
+          </ScrollView>
+        </VStack>
       )}
     </VStack>
   );
