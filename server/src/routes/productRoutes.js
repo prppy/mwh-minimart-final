@@ -27,8 +27,8 @@ const productValidation = [
     .withMessage('Available must be a boolean'),
   body('imageUrl')
     .optional()
-    .isURL()
-    .withMessage('Image URL must be a valid URL')
+    .isString()
+    .withMessage('Image URL must be a string')
 ];
 
 const productUpdateValidation = [
@@ -55,11 +55,11 @@ const productUpdateValidation = [
   body('stock')
     .optional()
     .isInt({ min: 1 })
-    .withMessage('Points must be a positive integer'),
+    .withMessage('Stock must be a positive integer'),
   body('imageUrl')
     .optional()
-    .isURL()
-    .withMessage('Image URL must be a valid URL')
+    .isString()
+    .withMessage('Image URL must be a string')
 ];
 
 const productIdValidation = [
@@ -115,7 +115,7 @@ const popularProductsValidation = [
 ];
 
 // Public routes (authenticated users)
-productRouter.get('/', productQueryValidation, ProductController.getAllProducts); 
+productRouter.get('/', productQueryValidation, ProductController.getAllProducts);
 productRouter.get('/category/:categoryId', productIdValidation, ProductController.getProductsByCategory);
 productRouter.get('/:id', productIdValidation, ProductController.getProductById);
 

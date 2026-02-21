@@ -193,7 +193,7 @@ const ProductDetailPage: React.FC = () => {
           <Image
             source={product.imageUrl}
             alt={product.productName}
-            className="w-full h-full rounded-lg"
+            className="w-full h-64 rounded-lg"
             resizeMode="contain"
           />
         )}
