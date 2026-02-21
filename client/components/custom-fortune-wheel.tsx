@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Text, Animated, Easing } from "react-native";
+import { Text, Animated, Easing, Platform } from "react-native";
 import { Box } from "./ui/box";
 import Svg, { Circle, G, Path, Text as RNSVGText } from "react-native-svg";
 
@@ -18,6 +18,8 @@ const FortuneWheel: React.FC<FortuneWheelProps> = ({
   isSpinning,
   size = 500,
 }) => {
+  // useNativeDriver is not supported for transform animations on React Native Web
+  const nativeDriver = Platform.OS !== "web";
   const spinValue = useRef(new Animated.Value(0)).current;
   const arrowBounce = useRef(new Animated.Value(0)).current;
   const [currentRotation, setCurrentRotation] = useState(0);
@@ -34,9 +36,8 @@ const FortuneWheel: React.FC<FortuneWheelProps> = ({
     const createSegmentPath = (index: number, total: number) => {
       if (total === 1) {
         const r = radius - 20;
-        return `M ${center} ${center} m -${r},0 a ${r},${r} 0 1,1 ${
-          r * 2
-        },0 a ${r},${r} 0 1,1 -${r * 2},0`;
+        return `M ${center} ${center} m -${r},0 a ${r},${r} 0 1,1 ${r * 2
+          },0 a ${r},${r} 0 1,1 -${r * 2},0`;
       }
 
       const angle = ((360 / total) * Math.PI) / 180;
@@ -50,9 +51,8 @@ const FortuneWheel: React.FC<FortuneWheelProps> = ({
 
       const largeArc = angle > Math.PI ? 1 : 0;
 
-      return `M ${center} ${center} L ${x1} ${y1} A ${radius - 20} ${
-        radius - 20
-      } 0 ${largeArc} 1 ${x2} ${y2} Z`;
+      return `M ${center} ${center} L ${x1} ${y1} A ${radius - 20} ${radius - 20
+        } 0 ${largeArc} 1 ${x2} ${y2} Z`;
     };
 
     const getTextPosition = (index: number, total: number) => {
@@ -119,19 +119,19 @@ const FortuneWheel: React.FC<FortuneWheelProps> = ({
           toValue: 1,
           duration: 150,
           easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
+          useNativeDriver: nativeDriver,
         }),
         Animated.timing(arrowBounce, {
           toValue: -1,
           duration: 300,
           easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
+          useNativeDriver: nativeDriver,
         }),
         Animated.timing(arrowBounce, {
           toValue: 0,
           duration: 150,
           easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
+          useNativeDriver: nativeDriver,
         }),
       ])
     );
@@ -142,7 +142,7 @@ const FortuneWheel: React.FC<FortuneWheelProps> = ({
       toValue: totalRotation,
       duration: 10000,
       easing: Easing.out(Easing.exp),
-      useNativeDriver: true,
+      useNativeDriver: nativeDriver,
     }).start(() => {
       bounceAnimation.stop();
       spinValue.removeListener(listenerId);
@@ -165,7 +165,7 @@ const FortuneWheel: React.FC<FortuneWheelProps> = ({
           duration: 2000 + Math.random() * 1000,
           delay: p.delay,
           easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
+          useNativeDriver: nativeDriver,
         }).start();
       });
       setTimeout(() => setShowCelebration(false), 3500);
@@ -292,11 +292,10 @@ const FortuneWheel: React.FC<FortuneWheelProps> = ({
                 fontSize={12}
                 textAnchor="middle"
                 alignmentBaseline="middle"
-                transform={`rotate(${
-                  s.textPos.rotation > 180
-                    ? s.textPos.rotation + 180
-                    : s.textPos.rotation
-                }, ${s.textPos.x}, ${s.textPos.y})`}
+                transform={`rotate(${s.textPos.rotation > 180
+                  ? s.textPos.rotation + 180
+                  : s.textPos.rotation
+                  }, ${s.textPos.x}, ${s.textPos.y})`}
               >
                 {s.option.length > 10 ? s.option.slice(0, 8) + "..." : s.option}
               </RNSVGText>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, ScrollView } from "react-native";
+import { Check } from "lucide-react-native";
 
 import api from "@/utils/api";
 import { Resident, WheelParticipant } from "@/utils/types";
@@ -14,7 +15,6 @@ import { Heading } from "@/components/ui/heading";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
-import { Pressable } from "@/components/ui/pressable";
 import Checkbox from "@/components/custom-checkbox";
 import { CheckboxGroup } from "@/components/ui/checkbox";
 import { Center } from "@/components/ui/center";
@@ -144,6 +144,14 @@ const LotteryPage: React.FC = () => {
     Alert.alert("🎉 Congratulations!", winnerName);
   };
 
+  const toggleResident = (resId: string) => {
+    setSelectedResidents((prev) =>
+      prev.includes(resId)
+        ? prev.filter((id) => id !== resId)
+        : [...prev, resId]
+    );
+  };
+
   return (
     <HStack className="flex-1 bg-indigoscale-500 gap-5 p-5">
       {/* lottery wheel */}
@@ -196,38 +204,40 @@ const LotteryPage: React.FC = () => {
         ) : filteredResidents.length === 0 ? (
           <EmptyAlert text="No residents found!" />
         ) : (
-          <ScrollView>
-            <VStack>
-              <CheckboxGroup
-                value={selectedResidents}
-                onChange={setSelectedResidents}
-              >
-                {filteredResidents.map((res) => (
-                  <Pressable key={res.id} className="mb-2">
+          <ScrollView className="flex-1 mt-2" contentContainerStyle={{ paddingBottom: 20 }}>
+            <VStack space="sm">
+              {filteredResidents.map((res) => {
+                const isSelected = selectedResidents.includes(
+                  res.id.toString()
+                );
+                return (
+                  <Checkbox
+                    key={res.id}
+                    value={res.id.toString()}
+                    isChecked={isSelected}
+                    onChange={() => toggleResident(res.id.toString())}
+                    className="w-full"
+                  >
                     <VStack
-                      className={`bg-${res.wallpaperType}scale-300 p-3 border-2 border-${res.wallpaperType}scale-500 rounded-xl`}
+                      className={`flex-1 bg-${res.wallpaperType}scale-300 p-3 border-2 border-${res.wallpaperType}scale-500 rounded-xl`}
                     >
-                      <Checkbox key={res.id} value={res.id.toString()}>
-                        <VStack>
-                          <Heading
-                            size="lg"
-                            className={`text-${res.wallpaperType}scale-700`}
-                            bold
-                          >
-                            {res.userName}
-                          </Heading>
-                          <Text
-                            className={`text-${res.wallpaperType}scale-700`}
-                          >
-                            Points: {res.currentPoints ?? 0} | Batch:{" "}
-                            {res.batchNumber || "-"}
-                          </Text>
-                        </VStack>
-                      </Checkbox>
+                      <Heading
+                        size="lg"
+                        className={`text-${res.wallpaperType}scale-700`}
+                        bold
+                      >
+                        {res.userName}
+                      </Heading>
+                      <Text
+                        className={`text-${res.wallpaperType}scale-700`}
+                      >
+                        Points: {res.currentPoints ?? 0} | Batch:{" "}
+                        {res.batchNumber || "-"}
+                      </Text>
                     </VStack>
-                  </Pressable>
-                ))}
-              </CheckboxGroup>
+                  </Checkbox>
+                );
+              })}
             </VStack>
           </ScrollView>
         )}
