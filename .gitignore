@@ -36,7 +36,3 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
-
-# ui
-*/components/ui/*
-!*/components/ui/gluestack-ui-provider.tsx
