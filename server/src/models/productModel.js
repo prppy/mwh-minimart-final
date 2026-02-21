@@ -48,9 +48,9 @@ export const findAll = async () => {
         categoryId: product.categoryId,
         category: product.category_name
           ? {
-              id: product.categoryId,
-              categoryName: product.category_name,
-            }
+            id: product.categoryId,
+            categoryName: product.category_name,
+          }
           : null,
       }));
 
@@ -186,9 +186,9 @@ export const findByCategory = async (categoryId) => {
         categoryId: product.categoryId,
         category: product.category_name
           ? {
-              id: product.categoryId,
-              categoryName: product.category_name,
-            }
+            id: product.categoryId,
+            categoryName: product.category_name,
+          }
           : null,
       }));
 
@@ -332,8 +332,10 @@ export const update = async (id, updates) => {
  * Delete product
  */
 export const remove = async (id) => {
+  const productId = parseInt(id);
+
   const product = await prisma.product.findUnique({
-    where: { id: parseInt(id) },
+    where: { id: productId },
   });
 
   if (!product) {
@@ -342,19 +344,24 @@ export const remove = async (id) => {
 
   // Check if product has redemptions
   const redemptionCount = await prisma.redemption.count({
-    where: { productId: parseInt(id) },
+    where: { productId },
   });
 
   if (redemptionCount > 0) {
-    // Soft delete by setting available to false
+    // Soft delete by setting available to false if there are redemptions
     return prisma.product.update({
-      where: { id: parseInt(id) },
+      where: { id: productId },
       data: { available: false },
     });
   } else {
     // Hard delete if no redemptions
+    // First delete relations in MWH_Product_Category if they exist
+    await prisma.productCategory.deleteMany({
+      where: { productId },
+    });
+
     return prisma.product.delete({
-      where: { id: parseInt(id) },
+      where: { id: productId },
     });
   }
 };

@@ -136,10 +136,14 @@ const ProductDetailPage: React.FC = () => {
 
   const handleDelete = async () => {
     try {
+      setShowDeleteDialog(false);
       await api.delete(`products/${id}`);
       router.push("/(public)/catalogue");
     } catch (err) {
       console.error("Delete failed", err);
+      setErrorDialogHeading("Delete failed");
+      setErrorDialogMessage(err instanceof Error ? err.message : "Unknown error occurred");
+      setErrorDialogOpen(true);
     }
   };
 

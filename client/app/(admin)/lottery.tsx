@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, ScrollView } from "react-native";
+import { ScrollView } from "react-native";
 import { Check } from "lucide-react-native";
 
 import api from "@/utils/api";
@@ -16,8 +16,8 @@ import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
 import Checkbox from "@/components/custom-checkbox";
-import { CheckboxGroup } from "@/components/ui/checkbox";
 import { Center } from "@/components/ui/center";
+import * as alert from "@/components/ui/alert-dialog";
 
 const LotteryPage: React.FC = () => {
   const [search, setSearch] = useState("");
@@ -25,6 +25,7 @@ const LotteryPage: React.FC = () => {
   const [selectedResidents, setSelectedResidents] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [spinning, setSpinning] = useState(false);
+  const [winner, setWinner] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchResidents = async () => {
@@ -133,7 +134,7 @@ const LotteryPage: React.FC = () => {
 
   const handleSpin = () => {
     if (wheelParticipants.length < 1) {
-      Alert.alert("Error", "Please select at least 1 participant");
+      setWinner("Error: Please select at least 1 participant");
       return;
     }
     setSpinning(true);
@@ -141,7 +142,9 @@ const LotteryPage: React.FC = () => {
 
   const handleSpinEnd = (winnerName: string) => {
     setSpinning(false);
-    Alert.alert("🎉 Congratulations!", winnerName);
+    setTimeout(() => {
+      setWinner(winnerName);
+    }, 500);
   };
 
   const toggleResident = (resId: string) => {
@@ -242,6 +245,36 @@ const LotteryPage: React.FC = () => {
           </ScrollView>
         )}
       </VStack>
+
+      {/* winner announcement dialog */}
+      <alert.AlertDialog
+        isOpen={!!winner}
+        onClose={() => setWinner(null)}
+      >
+        <alert.AlertDialogBackdrop />
+        <alert.AlertDialogContent>
+          <alert.AlertDialogHeader>
+            <Heading size="lg" className="text-indigoscale-700">
+              {winner?.startsWith("Error") ? "Oops!" : "🎉 Congratulations!"}
+            </Heading>
+          </alert.AlertDialogHeader>
+          <alert.AlertDialogBody className="mt-2 mb-4">
+            <Text className="text-xl text-center" bold>
+              {winner}
+            </Text>
+          </alert.AlertDialogBody>
+          <alert.AlertDialogFooter>
+            <Button
+              action="primary"
+              size="sm"
+              onPress={() => setWinner(null)}
+              className="bg-indigoscale-700"
+            >
+              <ButtonText>Awesome!</ButtonText>
+            </Button>
+          </alert.AlertDialogFooter>
+        </alert.AlertDialogContent>
+      </alert.AlertDialog>
     </HStack>
   );
 };
