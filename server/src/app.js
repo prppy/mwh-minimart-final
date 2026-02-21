@@ -7,7 +7,8 @@ import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
 
-// Load environment variables
+// Load environment variables (try local .env first, then parent directory)
+dotenv.config();
 dotenv.config({ path: "../.env" });
 
 import { connectDB } from "./lib/db.js";
@@ -16,6 +17,13 @@ import { scheduleArchiveJob } from "./jobs/archiveJob.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Allowed origins for CORS
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  "http://localhost:8081",
+  "http://localhost:8082",
+].filter(Boolean);
 
 // Rate limiting
 const limiter = rateLimit({
@@ -34,10 +42,7 @@ const limiter = rateLimit({
 app.use(helmet());
 app.use(
   cors({
-    origin:
-      process.env.FRONTEND_URL ||
-      "http://localhost:8081" ||
-      "http://localhost:8082",
+    origin: allowedOrigins,
     credentials: true,
   })
 );
