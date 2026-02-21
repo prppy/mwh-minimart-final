@@ -38,14 +38,16 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Middleware
-app.use(helmet());
+// Middleware — cors MUST come before helmet
 app.use(
   cors({
     origin: allowedOrigins,
     credentials: true,
   })
 );
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+}));
 app.use(compression());
 app.use(morgan("combined"));
 app.use(limiter);
