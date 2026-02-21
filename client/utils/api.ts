@@ -495,7 +495,7 @@ class ApiError extends Error {
 
 // Create and configure the API instance
 const api = new ApiService({
-  baseURL: process.env.BACKEND_URL || "http://localhost:3000/api", // TODO: replace back to previous url (http://192.168.18.7:3000/api"),
+  baseURL: process.env.EXPO_PUBLIC_BACKEND_URL || "http://localhost:3000/api",
   defaultHeaders: {
     "Content-Type": "application/json",
     Accept: "application/json",
