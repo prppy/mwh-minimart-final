@@ -11,21 +11,17 @@ import { HStack } from "../ui/hstack";
 import { Avatar, AvatarFallbackText, AvatarImage } from "../ui/avatar";
 import { Pressable } from "../ui/pressable";
 import { Icon } from "../ui/icon";
-import { ChevronRight, X } from "lucide-react-native";
+import { ChevronRight, Eye, EyeOff } from "lucide-react-native";
 import api from "@/utils/api";
-import { Box } from "../ui/box";
 import {
   Modal,
   ModalBackdrop,
   ModalBody,
-  ModalCloseButton,
   ModalContent,
   ModalFooter,
-  ModalHeader,
 } from "../ui/modal";
-import { Heading } from "../ui/heading";
 import { Button, ButtonText } from "../ui/button";
-import { Input, InputField } from "../ui/input";
+import { Input, InputField, InputIcon, InputSlot } from "../ui/input";
 import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "expo-router";
 
@@ -37,6 +33,7 @@ const ResidentLoginForm: React.FC = () => {
   const [resident, setResident] = useState<Resident>();
   const [showModal, setShowModal] = useState(false);
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const { loginResident } = useAuth();
@@ -60,6 +57,7 @@ const ResidentLoginForm: React.FC = () => {
       console.log("Resident logged in:", resident.userName);
       setShowModal(false);
       setPassword("");
+      setShowPassword(false);
 
       router.push("/(resident)");
     } catch (error: any) {
@@ -115,22 +113,22 @@ const ResidentLoginForm: React.FC = () => {
 
   const filteredResidents = useMemo(() => {
     return residents.filter((res) =>
-      res.userName.toLowerCase().includes(search.toLowerCase())
+      res.userName.toLowerCase().includes(search.toLowerCase()),
     );
   }, [residents, search]);
 
   return (
     <>
-      <Center className="w-1/2 h-2/3 p-5 bg-white rounded-lg">
+      <Center className="w-1/2 p-5 bg-white rounded-lg">
         {loading ? (
           <CustomSpinner text="Loading residents..." />
         ) : residents.length === 0 ? (
           <EmptyAlert text="No residents found!" />
         ) : (
-          <VStack className="w-full h-full" space="lg">
-            <Box className="w-full h-12">
+          <VStack className="w-full max-h-[60vh]" space="lg">
+            <HStack className="w-full h-12">
               <SearchBar search={search} setSearch={setSearch} />
-            </Box>
+            </HStack>
             <ScrollView>
               <VStack space="lg">
                 {filteredResidents.map((res) => (
@@ -180,12 +178,6 @@ const ResidentLoginForm: React.FC = () => {
         {resident && (
           <>
             <ModalContent>
-              <ModalHeader>
-                <Heading size="lg">Resident Login</Heading>
-                <ModalCloseButton>
-                  <Icon as={X} />
-                </ModalCloseButton>
-              </ModalHeader>
               <ModalBody>
                 <VStack className="justify-center items-center" space="md">
                   <Avatar
@@ -203,10 +195,17 @@ const ResidentLoginForm: React.FC = () => {
                   </Text>
                   <Input variant="outline" size="lg">
                     <InputField
-                      placeholder="Enter password here..."
+                      placeholder="Password"
                       value={password}
                       onChangeText={setPassword}
+                      secureTextEntry={!showPassword}
                     />
+                    <InputSlot
+                      className="pr-3"
+                      onPress={() => setShowPassword((prev) => !prev)}
+                    >
+                      <InputIcon as={showPassword ? EyeOff : Eye } />
+                    </InputSlot>
                   </Input>
                 </VStack>
               </ModalBody>
@@ -216,6 +215,8 @@ const ResidentLoginForm: React.FC = () => {
                   action="secondary"
                   className="mr-3"
                   onPress={() => {
+                    setPassword("");
+                    setShowPassword(false);
                     setShowModal(false);
                   }}
                 >
@@ -223,7 +224,7 @@ const ResidentLoginForm: React.FC = () => {
                 </Button>
                 <Button
                   onPress={handleResidentLogin}
-                  className={`bg-${resident.wallpaperType}scale-500`}
+                  className={`bg-${resident.wallpaperType}scale-500 data-[hover=true]:bg-${resident.wallpaperType}scale-700`}
                 >
                   <ButtonText>Login</ButtonText>
                 </Button>
