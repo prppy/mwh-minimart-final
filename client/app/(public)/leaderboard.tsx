@@ -71,7 +71,7 @@ const LeaderboardPage: React.FC = () => {
   }, [monthIndex, cache]);
 
   return (
-    <Center className="w-full h-full p-5 pb-0 bg-white">
+    <Center className="w-full h-full p-5 pb-5 bg-white">
       <VStack
         className="w-full p-5 border border-gray-300 rounded-lg"
         space="md"

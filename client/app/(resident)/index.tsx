@@ -18,9 +18,11 @@ import * as lucide from "lucide-react-native";
 import { useEffect, useState } from "react";
 
 const ProfilePage: React.FC = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
   const router = useRouter();
   const [resident, setResident] = useState<Resident>();
+  const [showExpiryModal, setShowExpiryModal] = useState(false);
+  const [countdown, setCountdown] = useState(10);
 
   // helper methods:
   const mapResident = (data: any): Resident => {
@@ -66,6 +68,40 @@ const ProfilePage: React.FC = () => {
       }
     })();
   }, [isAuthenticated, router, user]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let logoutTimeout: ReturnType<typeof setTimeout>;
+    let countdownInterval: ReturnType<typeof setInterval>;
+
+    const warningTimeout = setTimeout(() => {
+      setShowExpiryModal(true);
+      setCountdown(10);
+
+      countdownInterval = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(countdownInterval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }, 50 * 1000);
+
+    logoutTimeout = setTimeout(async () => {
+      clearInterval(countdownInterval);
+      await logout();
+      router.replace("/(public)/catalogue");
+    }, 60 * 1000);
+
+    return () => {
+      clearTimeout(warningTimeout);
+      clearTimeout(logoutTimeout);
+      clearInterval(countdownInterval);
+    };
+  }, [isAuthenticated, logout, router]);
 
   if (!isAuthenticated || !resident) {
     return (
@@ -160,6 +196,15 @@ const ProfilePage: React.FC = () => {
           </HStack>
         </VStack>
       </ImageBackground>
+      {/* TODO: expiry modal */}
+      {showExpiryModal && (
+        <VStack className="absolute inset-0 justify-center items-center bg-black/60">
+          <VStack className="bg-white p-8 rounded-lg items-center gap-4">
+            <Heading size="lg">Session Expiring</Heading>
+            <Text size="lg">You will be logged out in {countdown} seconds</Text>
+          </VStack>
+        </VStack>
+      )}
     </VStack>
   );
 };

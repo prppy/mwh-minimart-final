@@ -4,15 +4,15 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
 
 import { Button, ButtonIcon, ButtonText } from "../ui/button";
-import { FormControl } from "../ui/form-control";
+import { FormControl, FormControlError, FormControlErrorText } from "../ui/form-control";
 import { HStack } from "../ui/hstack";
 import { Icon } from "../ui/icon";
 import { Image } from "../ui/image";
-import { Input, InputField } from "../ui/input";
+import { Input, InputField, InputIcon, InputSlot } from "../ui/input";
 import { Pressable } from "../ui/pressable";
 import { Text } from "../ui/text";
 import { VStack } from "../ui/vstack";
-import { Fingerprint, UserRound } from "lucide-react-native";
+import { Eye, EyeOff, Fingerprint, UserRound } from "lucide-react-native";
 
 const AdminLoginForm: React.FC = () => {
   const logo = require("@/assets/horizontal_logo_with_words.png");
@@ -21,6 +21,7 @@ const AdminLoginForm: React.FC = () => {
 
   const [officerEmail, setOfficerEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isEmailInvalid, setIsEmailInvalid] = useState(false);
   const [isPasswordInvalid, setIsPasswordInvalid] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -71,6 +72,11 @@ const AdminLoginForm: React.FC = () => {
             onChangeText={(text) => setOfficerEmail(text)}
           />
         </Input>
+        <FormControlError>
+          <FormControlErrorText className="text-redscale-500">
+            Please use a valid email address.
+          </FormControlErrorText>
+        </FormControlError>
       </FormControl>
 
       <FormControl isInvalid={isPasswordInvalid}>
@@ -80,8 +86,20 @@ const AdminLoginForm: React.FC = () => {
             placeholder="Password"
             value={password}
             onChangeText={(text) => setPassword(text)}
+            secureTextEntry={!showPassword}
           />
+          <InputSlot
+            className="pr-3"
+            onPress={() => setShowPassword((prev) => !prev)}
+          >
+            <InputIcon as={showPassword ? EyeOff : Eye} />
+          </InputSlot>
         </Input>
+        <FormControlError>
+          <FormControlErrorText className="text-redscale-500">
+            Please use a valid password.
+          </FormControlErrorText>
+        </FormControlError>
       </FormControl>
 
       <HStack className="w-full justify-center" space="lg">

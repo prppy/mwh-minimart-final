@@ -45,7 +45,7 @@ const Header: React.FC = () => {
         { name: "Vouchers", route: "/(public)/vouchers", icon: TicketCheck },
         { name: "Feedback", route: "/(public)/feedback", icon: MessageSquare },
         { name: "Leaderboard", route: "/leaderboard", icon: Trophy },
-        { name: "Sign In", route: "/login", icon: LogIn },
+        { name: "Sign In", route: "/login", icon: LogIn, action: "login" },
       ];
     }
     if (role === "resident") {
@@ -58,7 +58,7 @@ const Header: React.FC = () => {
       return [
         { name: "Catalogue", route: "/(public)/catalogue", icon: ShoppingBag },
         { name: "Vouchers", route: "/(public)/vouchers", icon: TicketCheck },
-        { name: "Users", route: "/(admin)/users", icon: Users }, 
+        { name: "Users", route: "/(admin)/users", icon: Users },
         { name: "Feedback", route: "/(admin)/feedback", icon: MessageSquare },
         { name: "Lottery", route: "/(admin)/lottery", icon: Trophy },
         { name: "Sign Out", route: "/", icon: LogOut, action: "logout" },
@@ -96,7 +96,9 @@ const Header: React.FC = () => {
   const handleTabPress = async (tab: any) => {
     if (tab.action === "logout") {
       await logout();
-      router.push("/(public)/catalogue");
+      router.replace("/(public)/catalogue");
+    } else if (isActiveTab(tab.route)) {
+      return;
     } else {
       router.push(tab.route as any);
     }
@@ -139,11 +141,11 @@ const Header: React.FC = () => {
                   className={
                     isAuthButton
                       ? isActive
-                        ? "bg-redscale-500 border-redscale-700"
-                        : "border-redscale-700"
+                        ? "bg-redscale-500 border-redscale-700 data-[hover=true]:border-redscale-700"
+                        : "border-redscale-700 data-[hover=true]:border-redscale-700"
                       : isActive
-                      ? "bg-indigoscale-700 border-indigoscale-900"
-                      : "border-indigoscale-900"
+                        ? "bg-indigoscale-700 border-indigoscale-900"
+                        : "border-indigoscale-900"
                   }
                   variant="outline"
                   size="sm"
@@ -156,8 +158,8 @@ const Header: React.FC = () => {
                           ? "text-white"
                           : "text-redscale-500" // redscale-500
                         : isActive
-                        ? "text-white"
-                        : "text-indigoscale-700" // indigoscale-700
+                          ? "text-white"
+                          : "text-indigoscale-700" // indigoscale-700
                     }
                   />
                   {!isCompact && (
@@ -165,11 +167,11 @@ const Header: React.FC = () => {
                       className={
                         isAuthButton
                           ? isActive
-                            ? "text-white text-md"
-                            : "text-redscale-500 text-md"
+                            ? "text-white text-md data-[hover=true]:text-redscale-500"
+                            : "text-redscale-500 text-md data-[hover=true]:text-redscale-500"
                           : isActive
-                          ? "text-white text-md"
-                          : "text-indigoscale-700 text-md"
+                            ? "text-white text-md data-[hover=true]:text-indigoscale-700"
+                            : "text-indigoscale-700 text-md data-[hover=true]:text-indigoscale-700"
                       }
                     >
                       {tab.name}
