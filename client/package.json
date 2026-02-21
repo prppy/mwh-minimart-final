@@ -9,8 +9,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "build:web": "expo export --platform web",
-    "lint": "expo lint",
-    "postinstall": "npx gluestack-ui add --all"
+    "lint": "expo lint"
   },
   "dependencies": {
     "@expo/html-elements": "^0.12.5",
