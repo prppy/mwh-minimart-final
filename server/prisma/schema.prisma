@@ -91,7 +91,7 @@ model Task {
   taskName        String?       @map("Task_Name") @db.VarChar(127)
   taskDescription String?       @map("Task_Description")
   points          Int?          @map("Points")
-  Image_URL       String?
+  imageUrl        String?       @map("Image_URL")
   completions     Completion[]
   taskCategory    TaskCategory? @relation(fields: [taskCategoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -195,11 +195,6 @@ model MWH_Rating_Feedback {
   Feedback_Category feedback_category?
   Submitted_At      DateTime           @default(now()) @db.Timestamptz(6)
   MWH_Resident      Resident           @relation(fields: [User_ID], references: [userId], onDelete: NoAction, onUpdate: NoAction)
-}
-
-enum product_type_enum {
-  physical
-  digital
 }
 
 enum transaction_type_enum {

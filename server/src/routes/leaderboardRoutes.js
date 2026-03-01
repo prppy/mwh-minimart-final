@@ -121,4 +121,6 @@ leaderboardRouter.get('/user/:userId/profile', userIdValidation, leaderboardCont
 leaderboardRouter.get('/compare', compareResidentsValidation, leaderboardController.compareResidents);
 leaderboardRouter.get('/recent-changes', recentChangesValidation, leaderboardController.getRecentChanges);
 
+leaderboardRouter.get('/top-performers', leaderboardController.getTopPerformers);
+
 export default leaderboardRouter;

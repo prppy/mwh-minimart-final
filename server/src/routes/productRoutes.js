@@ -17,10 +17,6 @@ const productValidation = [
   body('points')
     .isInt({ min: 1 })
     .withMessage('Points must be a positive integer'),
-  body('productType')
-    .optional()
-    .isIn(['physical', 'digital', 'service'])
-    .withMessage('Product type must be physical, digital, or service'),
   body('categoryId')
     .optional()
     .isInt({ min: 1 })
@@ -31,8 +27,8 @@ const productValidation = [
     .withMessage('Available must be a boolean'),
   body('imageUrl')
     .optional()
-    .isURL()
-    .withMessage('Image URL must be a valid URL')
+    .isString()
+    .withMessage('Image URL must be a string')
 ];
 
 const productUpdateValidation = [
@@ -48,10 +44,6 @@ const productUpdateValidation = [
     .optional()
     .isInt({ min: 1 })
     .withMessage('Points must be a positive integer'),
-  body('productType')
-    .optional()
-    .isIn(['physical', 'digital', 'service'])
-    .withMessage('Product type must be physical, digital, or service'),
   body('categoryId')
     .optional()
     .isInt({ min: 1 })
@@ -60,10 +52,14 @@ const productUpdateValidation = [
     .optional()
     .isBoolean()
     .withMessage('Available must be a boolean'),
+  body('stock')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Stock must be a positive integer'),
   body('imageUrl')
     .optional()
-    .isURL()
-    .withMessage('Image URL must be a valid URL')
+    .isString()
+    .withMessage('Image URL must be a string')
 ];
 
 const productIdValidation = [
@@ -119,7 +115,7 @@ const popularProductsValidation = [
 ];
 
 // Public routes (authenticated users)
-productRouter.get('/', productQueryValidation, ProductController.getAllProducts); 
+productRouter.get('/', productQueryValidation, ProductController.getAllProducts);
 productRouter.get('/category/:categoryId', productIdValidation, ProductController.getProductsByCategory);
 productRouter.get('/:id', productIdValidation, ProductController.getProductById);
 

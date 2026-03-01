@@ -1,5 +1,5 @@
 // models/Resident.js
-import { prisma } from '../lib/db.js';
+import { prisma } from "../lib/db.js";
 
 /**
  * Find resident by user ID
@@ -13,10 +13,10 @@ export const findByUserId = async (userId) => {
           id: true,
           userName: true,
           profilePicture: true,
-          createdAt: true
-        }
-      }
-    }
+          createdAt: true,
+        },
+      },
+    },
   });
 };
 
@@ -26,9 +26,9 @@ export const findByUserId = async (userId) => {
 export const canAfford = async (userId, points) => {
   const resident = await prisma.resident.findUnique({
     where: { userId: parseInt(userId) },
-    select: { currentPoints: true }
+    select: { currentPoints: true },
   });
-  
+
   return resident ? resident.currentPoints >= points : false;
 };
 
@@ -37,17 +37,17 @@ export const canAfford = async (userId, points) => {
  */
 export const addPoints = async (userId, points, transaction = null) => {
   const dbTransaction = transaction || prisma;
-  
+
   return dbTransaction.resident.update({
     where: { userId: parseInt(userId) },
     data: {
       currentPoints: {
-        increment: points
+        increment: points,
       },
       totalPoints: {
-        increment: points
-      }
-    }
+        increment: points,
+      },
+    },
   });
 };
 
@@ -56,24 +56,24 @@ export const addPoints = async (userId, points, transaction = null) => {
  */
 export const deductPoints = async (userId, points, transaction = null) => {
   const dbTransaction = transaction || prisma;
-  
+
   // First check if resident has enough points
   const resident = await dbTransaction.resident.findUnique({
     where: { userId: parseInt(userId) },
-    select: { currentPoints: true }
+    select: { currentPoints: true },
   });
 
   if (!resident || resident.currentPoints < points) {
-    throw new Error('Insufficient points');
+    throw new Error("Insufficient points");
   }
 
   return dbTransaction.resident.update({
     where: { userId: parseInt(userId) },
     data: {
       currentPoints: {
-        decrement: points
-      }
-    }
+        decrement: points,
+      },
+    },
   });
 };
 
@@ -83,26 +83,26 @@ export const deductPoints = async (userId, points, transaction = null) => {
 export const getLeaderboard = async (options = {}) => {
   const {
     batchNumber,
-    type = 'current', // 'current', 'total', 'month', 'year'
+    type = "current", // 'current', 'total', 'month', 'year'
     limit = 10,
     offset = 0,
-    includeArchived = false // New option to include archived residents
+    includeArchived = false, // New option to include archived residents
   } = options;
 
   const where = {
-    isActive: includeArchived ? undefined : true // Only show active residents by default
+    isActive: includeArchived ? undefined : true, // Only show active residents by default
   };
-  
+
   if (batchNumber) {
     where.batchNumber = parseInt(batchNumber);
   }
 
   // Handle different leaderboard types
-  if (type === 'month' || type === 'year') {
+  if (type === "month" || type === "year") {
     return getLeaderboardByPeriod(options);
   }
 
-  const orderField = type === 'total' ? 'totalPoints' : 'currentPoints';
+  const orderField = type === "total" ? "totalPoints" : "currentPoints";
 
   const [residents, totalCount] = await Promise.all([
     prisma.resident.findMany({
@@ -111,17 +111,19 @@ export const getLeaderboard = async (options = {}) => {
         user: {
           select: {
             userName: true,
-            profilePicture: true
-          }
-        }
+            profilePicture: true,
+          },
+        },
+        Wallpaper_Colour: true,
+        Wallpaper_Theme: true,
       },
       orderBy: {
-        [orderField]: 'desc'
+        [orderField]: "desc",
       },
       take: parseInt(limit),
-      skip: parseInt(offset)
+      skip: parseInt(offset),
     }),
-    prisma.resident.count({ where })
+    prisma.resident.count({ where }),
   ]);
 
   // Add ranking
@@ -133,7 +135,9 @@ export const getLeaderboard = async (options = {}) => {
     currentPoints: resident.currentPoints,
     totalPoints: resident.totalPoints,
     batchNumber: resident.batchNumber,
-    dateOfAdmission: resident.dateOfAdmission
+    dateOfAdmission: resident.dateOfAdmission,
+    wallpaperType: resident.Wallpaper_Colour,
+    backgroundType: resident.Wallpaper_Theme,
   }));
 
   return {
@@ -143,8 +147,8 @@ export const getLeaderboard = async (options = {}) => {
       total: totalCount,
       limit: parseInt(limit),
       offset: parseInt(offset),
-      pages: Math.ceil(totalCount / parseInt(limit))
-    }
+      pages: Math.ceil(totalCount / parseInt(limit)),
+    },
   };
 };
 
@@ -154,18 +158,22 @@ export const getLeaderboard = async (options = {}) => {
 export const getLeaderboardByPeriod = async (options = {}) => {
   const {
     batchNumber,
-    type = 'month', // 'month' or 'year'
+    type = "month", // 'month' or 'year'
     limit = 10,
-    offset = 0
+    offset = 0,
+    month,
   } = options;
 
   const now = new Date();
   let startDate, endDate;
 
-  if (type === 'month') {
-    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-  } else if (type === 'year') {
+  if (type === "month") {
+    const targetMonth = month ? month - 1 : now.getMonth();
+    const year = now.getFullYear();
+
+    startDate = new Date(year, targetMonth, 1);
+    endDate = new Date(year, targetMonth + 1, 0, 23, 59, 59);
+  } else if (type === "year") {
     startDate = new Date(now.getFullYear(), 0, 1);
     endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
   }
@@ -180,6 +188,8 @@ export const getLeaderboardByPeriod = async (options = {}) => {
       r."Total_Points" as "totalPoints",
       r."Batch_Number" as "batchNumber",
       r."Date_Of_Admission" as "dateOfAdmission",
+      r."Wallpaper_Theme" as "backgroundType",
+      r."Wallpaper_Colour" as "wallpaperType",
       COALESCE(SUM(CASE 
         WHEN t."Transaction_Type" = 'completion' AND t."Transaction_Date" >= $1 AND t."Transaction_Date" <= $2 
         THEN t."Points_Change" 
@@ -202,7 +212,8 @@ export const getLeaderboardByPeriod = async (options = {}) => {
 
   query += `
     GROUP BY r."User_ID", u."User_Name", u."Profile_Picture", r."Current_Points", 
-             r."Total_Points", r."Batch_Number", r."Date_Of_Admission"
+             r."Total_Points", r."Batch_Number", r."Date_Of_Admission", 
+             r."Wallpaper_Theme", r."Wallpaper_Colour"
     ORDER BY "periodPoints" DESC
     LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
   `;
@@ -226,7 +237,7 @@ export const getLeaderboardByPeriod = async (options = {}) => {
 
   const [rawResidents, countResult] = await Promise.all([
     prisma.$queryRawUnsafe(query, ...params),
-    prisma.$queryRawUnsafe(countQuery, ...countParams)
+    prisma.$queryRawUnsafe(countQuery, ...countParams),
   ]);
 
   const totalCount = parseInt(countResult[0].total);
@@ -241,7 +252,9 @@ export const getLeaderboardByPeriod = async (options = {}) => {
     totalPoints: resident.totalPoints,
     batchNumber: resident.batchNumber,
     dateOfAdmission: resident.dateOfAdmission,
-    periodPoints: parseInt(resident.periodPoints)
+    backgroundType: resident.backgroundType,
+    wallpaperType: resident.wallpaperType,
+    periodPoints: parseInt(resident.periodPoints),
   }));
 
   return {
@@ -254,74 +267,79 @@ export const getLeaderboardByPeriod = async (options = {}) => {
       total: totalCount,
       limit: parseInt(limit),
       offset: parseInt(offset),
-      pages: Math.ceil(totalCount / parseInt(limit))
-    }
+      pages: Math.ceil(totalCount / parseInt(limit)),
+    },
   };
 };
 
 /**
  * Get top performers by period
  */
-export const getTopPerformers = async (period = 'month', limit = 10) => {
-  let dateFilter = {};
-  
-  if (period !== 'all') {
+export const getTopPerformers = async (period = "month", limit = 10, month) => {
+  let transactionDateFilter;
+
+  if (period !== "all") {
     const now = new Date();
+    const year = now.getFullYear();
     let startDate;
-    
+
     switch (period) {
-      case 'week':
+      case "week":
         startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        transactionDateFilter = { gte: startDate };
         break;
-      case 'month':
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      case "month": {
+        const targetMonth = month ? month - 1 : now.getMonth();
+        const start = new Date(year, targetMonth, 1);
+        const end = new Date(year, targetMonth + 1, 1);
+        transactionDateFilter = { gte: start, lt: end };
         break;
-      case 'year':
-        startDate = new Date(now.getFullYear(), 0, 1);
+      }
+
+      case "year":
+        startDate = new Date(year, 0, 1);
+        transactionDateFilter = { gte: startDate };
         break;
-    }
-    
-    if (startDate) {
-      dateFilter = {
-        transactions: {
-          some: {
-            transactionType: 'completion',
-            transactionDate: {
-              gte: startDate
-            }
-          }
-        }
-      };
     }
   }
 
+  // Fetch residents with filtered user transactions
   const residents = await prisma.resident.findMany({
-    where: dateFilter,
+    where: {
+      user: {
+        transactions: {
+          some: {
+            transactionType: "completion",
+            ...(transactionDateFilter && {
+              transactionDate: transactionDateFilter,
+            }),
+          },
+        },
+      },
+    },
     include: {
       user: {
         select: {
           userName: true,
-          profilePicture: true
-        }
-      },
-      transactions: {
-        where: {
-          transactionType: 'completion',
-          ...(dateFilter.transactions?.some?.transactionDate && {
-            transactionDate: dateFilter.transactions.some.transactionDate
-          })
+          profilePicture: true,
+          transactions: {
+            where: {
+              transactionType: "completion",
+              ...(transactionDateFilter && {
+                transactionDate: transactionDateFilter,
+              }),
+            },
+            select: { pointsChange: true },
+          },
         },
-        select: {
-          pointsChange: true
-        }
-      }
+      },
     },
-    orderBy: {
-      currentPoints: 'desc'
-    },
-    take: parseInt(limit)
+    orderBy: { currentPoints: "desc" },
+    take: parseInt(limit),
   });
 
+  // Compute period points and flatten
   return residents.map((resident, index) => ({
     rank: index + 1,
     userId: resident.userId,
@@ -330,7 +348,11 @@ export const getTopPerformers = async (period = 'month', limit = 10) => {
     currentPoints: resident.currentPoints,
     totalPoints: resident.totalPoints,
     batchNumber: resident.batchNumber,
-    periodPoints: resident.transactions.reduce((sum, t) => sum + t.pointsChange, 0)
+    periodPoints:
+      resident.user.transactions.reduce(
+        (sum, t) => sum + (t.pointsChange || 0),
+        0
+      ) || 0,
   }));
 };
 
@@ -341,13 +363,13 @@ export const getPointsHistory = async (userId, options = {}) => {
   const { limit = 20, offset = 0, startDate, endDate } = options;
 
   const where = {
-    userId: parseInt(userId)
+    userId: parseInt(userId),
   };
 
   if (startDate && endDate) {
     where.transactionDate = {
       gte: new Date(startDate),
-      lte: new Date(endDate)
+      lte: new Date(endDate),
     };
   }
 
@@ -361,10 +383,10 @@ export const getPointsHistory = async (userId, options = {}) => {
               select: {
                 id: true,
                 productName: true,
-                points: true
-              }
-            }
-          }
+                points: true,
+              },
+            },
+          },
         },
         completions: {
           include: {
@@ -372,25 +394,25 @@ export const getPointsHistory = async (userId, options = {}) => {
               select: {
                 id: true,
                 taskName: true,
-                points: true
-              }
-            }
-          }
+                points: true,
+              },
+            },
+          },
         },
         abscondence: true,
         officer: {
           select: {
-            userName: true
-          }
-        }
+            userName: true,
+          },
+        },
       },
       orderBy: {
-        transactionDate: 'desc'
+        transactionDate: "desc",
       },
       take: parseInt(limit),
-      skip: parseInt(offset)
+      skip: parseInt(offset),
     }),
-    prisma.transaction.count({ where })
+    prisma.transaction.count({ where }),
   ]);
 
   return {
@@ -400,8 +422,8 @@ export const getPointsHistory = async (userId, options = {}) => {
       total: totalCount,
       limit: parseInt(limit),
       offset: parseInt(offset),
-      pages: Math.ceil(totalCount / parseInt(limit))
-    }
+      pages: Math.ceil(totalCount / parseInt(limit)),
+    },
   };
 };
 
@@ -411,10 +433,10 @@ export const getPointsHistory = async (userId, options = {}) => {
 export const getRecentChanges = async (limit = 20) => {
   const recentTransactions = await prisma.transaction.findMany({
     where: {
-      transactionType: 'completion',
+      transactionType: "completion",
       pointsChange: {
-        gt: 0
-      }
+        gt: 0,
+      },
     },
     include: {
       user: {
@@ -423,89 +445,90 @@ export const getRecentChanges = async (limit = 20) => {
           resident: {
             select: {
               currentPoints: true,
-              batchNumber: true
-            }
-          }
-        }
+              batchNumber: true,
+            },
+          },
+        },
       },
       completions: {
         include: {
           task: {
             select: {
               taskName: true,
-              points: true
-            }
-          }
-        }
-      }
+              points: true,
+            },
+          },
+        },
+      },
     },
     orderBy: {
-      transactionDate: 'desc'
+      transactionDate: "desc",
     },
-    take: parseInt(limit)
+    take: parseInt(limit),
   });
 
   // Format the data
-  return recentTransactions.map(transaction => ({
+  return recentTransactions.map((transaction) => ({
     transactionId: transaction.id,
     userId: transaction.userId,
     userName: transaction.user.userName,
     pointsEarned: transaction.pointsChange,
     currentPoints: transaction.user.resident?.currentPoints || 0,
     batchNumber: transaction.user.resident?.batchNumber,
-    tasksCompleted: transaction.completions.map(completion => ({
+    tasksCompleted: transaction.completions.map((completion) => ({
       taskName: completion.task.taskName,
-      points: completion.task.points
+      points: completion.task.points,
     })),
-    transactionDate: transaction.transactionDate
+    transactionDate: transaction.transactionDate,
   }));
 };
 
 /**
  * Get resident position in leaderboard
  */
-export const getPosition = async (userId, type = 'current') => {
+export const getPosition = async (userId, type = "current") => {
   const resident = await findByUserId(userId);
   if (!resident) {
-    throw new Error('Resident not found');
+    throw new Error("Resident not found");
   }
 
   // Check if resident is archived
   if (!resident.isActive) {
-    throw new Error('Resident is archived and not included in leaderboard');
+    throw new Error("Resident is archived and not included in leaderboard");
   }
 
-  const pointsField = type === 'total' ? 'totalPoints' : 'currentPoints';
+  const pointsField = type === "total" ? "totalPoints" : "currentPoints";
   const userPoints = resident[pointsField];
 
   // Count active residents with higher points
-  const position = await prisma.resident.count({
-    where: {
-      isActive: true,
-      [pointsField]: {
-        gt: userPoints
-      }
-    }
-  }) + 1;
+  const position =
+    (await prisma.resident.count({
+      where: {
+        isActive: true,
+        [pointsField]: {
+          gt: userPoints,
+        },
+      },
+    })) + 1;
 
   // Get nearby residents (3 above, 3 below) - only active residents
   const nearbyResidents = await prisma.resident.findMany({
     where: {
-      isActive: true
+      isActive: true,
     },
     include: {
       user: {
         select: {
           userName: true,
-          profilePicture: true
-        }
-      }
+          profilePicture: true,
+        },
+      },
     },
     orderBy: {
-      [pointsField]: 'desc'
+      [pointsField]: "desc",
     },
     take: 7,
-    skip: Math.max(0, position - 4)
+    skip: Math.max(0, position - 4),
   });
 
   const rankedNearby = nearbyResidents.map((r, index) => ({
@@ -515,7 +538,7 @@ export const getPosition = async (userId, type = 'current') => {
     profilePicture: r.user.profilePicture,
     currentPoints: r.currentPoints,
     totalPoints: r.totalPoints,
-    isCurrentUser: r.userId === parseInt(userId)
+    isCurrentUser: r.userId === parseInt(userId),
   }));
 
   return {
@@ -527,9 +550,9 @@ export const getPosition = async (userId, type = 'current') => {
       profilePicture: resident.user.profilePicture,
       currentPoints: resident.currentPoints,
       totalPoints: resident.totalPoints,
-      batchNumber: resident.batchNumber
+      batchNumber: resident.batchNumber,
     },
-    nearby: rankedNearby
+    nearby: rankedNearby,
   };
 };
 
@@ -542,7 +565,7 @@ export const getByBatch = async (batchNumber, options = {}) => {
   return getLeaderboard({
     batchNumber,
     limit,
-    offset
+    offset,
   });
 };
 
@@ -554,42 +577,42 @@ export const getStatistics = async () => {
     // Overall statistics
     prisma.resident.aggregate({
       _count: {
-        userId: true
+        userId: true,
       },
       _avg: {
         currentPoints: true,
-        totalPoints: true
+        totalPoints: true,
       },
       _max: {
         currentPoints: true,
-        totalPoints: true
+        totalPoints: true,
       },
       _sum: {
         currentPoints: true,
-        totalPoints: true
-      }
+        totalPoints: true,
+      },
     }),
     // Batch statistics
     prisma.resident.groupBy({
-      by: ['batchNumber'],
+      by: ["batchNumber"],
       where: {
         batchNumber: {
-          not: null
-        }
+          not: null,
+        },
       },
       _count: {
-        userId: true
+        userId: true,
       },
       _avg: {
-        currentPoints: true
+        currentPoints: true,
       },
       _max: {
-        currentPoints: true
+        currentPoints: true,
       },
       orderBy: {
-        batchNumber: 'asc'
-      }
-    })
+        batchNumber: "asc",
+      },
+    }),
   ]);
 
   return {
@@ -600,14 +623,14 @@ export const getStatistics = async () => {
       totalCurrentPoints: overallStats._sum.currentPoints || 0,
       avgTotalPoints: Math.round(overallStats._avg.totalPoints || 0),
       maxTotalPoints: overallStats._max.totalPoints || 0,
-      totalAllTimePoints: overallStats._sum.totalPoints || 0
+      totalAllTimePoints: overallStats._sum.totalPoints || 0,
     },
-    byBatch: batchStats.map(batch => ({
+    byBatch: batchStats.map((batch) => ({
       batchNumber: batch.batchNumber,
       residentCount: batch._count.userId,
       avgPoints: Math.round(batch._avg.currentPoints || 0),
-      maxPoints: batch._max.currentPoints || 0
-    }))
+      maxPoints: batch._max.currentPoints || 0,
+    })),
   };
 };
 
@@ -616,7 +639,7 @@ export const getStatistics = async () => {
  */
 export const updateProfile = async (userId, updates) => {
   const updateData = {};
-  
+
   if (updates.dateOfBirth) {
     updateData.dateOfBirth = new Date(updates.dateOfBirth);
   }
@@ -634,10 +657,10 @@ export const updateProfile = async (userId, updates) => {
       user: {
         select: {
           userName: true,
-          profilePicture: true
-        }
-      }
-    }
+          profilePicture: true,
+        },
+      },
+    },
   });
 };
 
@@ -650,8 +673,8 @@ export const recordAbscondence = async (userId, reason, officerId) => {
     await tx.resident.update({
       where: { userId: parseInt(userId) },
       data: {
-        lastAbscondence: new Date()
-      }
+        lastAbscondence: new Date(),
+      },
     });
 
     // Create abscondence transaction
@@ -660,16 +683,16 @@ export const recordAbscondence = async (userId, reason, officerId) => {
         userId: parseInt(userId),
         officerId: parseInt(officerId),
         pointsChange: 0, // Abscondence doesn't change points directly
-        transactionType: 'abscondence'
-      }
+        transactionType: "abscondence",
+      },
     });
 
     // Create abscondence record
     await tx.abscondence.create({
       data: {
         transactionId: transaction.id,
-        reason
-      }
+        reason,
+      },
     });
 
     return transaction;
@@ -681,29 +704,29 @@ export const recordAbscondence = async (userId, reason, officerId) => {
  */
 export const getLeaderboardByBatch = async (batchNumber, options = {}) => {
   const {
-    type = 'current', // 'current', 'total', 'month', 'year'
+    type = "current", // 'current', 'total', 'month', 'year'
     limit = 50,
-    offset = 0
+    offset = 0,
   } = options;
 
   return getLeaderboard({
     batchNumber: parseInt(batchNumber),
     type,
     limit,
-    offset
+    offset,
   });
 };
 
 /**
  * Get batch statistics with period comparison
  */
-export const getBatchStatistics = async (batchNumber, period = 'month') => {
+export const getBatchStatistics = async (batchNumber, period = "month") => {
   const now = new Date();
   let startDate;
 
-  if (period === 'month') {
+  if (period === "month") {
     startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-  } else if (period === 'year') {
+  } else if (period === "year") {
     startDate = new Date(now.getFullYear(), 0, 1);
   } else {
     startDate = new Date(0); // All time
@@ -742,7 +765,7 @@ export const getBatchStatistics = async (batchNumber, period = 'month') => {
   return {
     batchNumber: parseInt(batchNumber),
     period,
-    statistics: result[0]
+    statistics: result[0],
   };
 };
 
@@ -750,11 +773,7 @@ export const getBatchStatistics = async (batchNumber, period = 'month') => {
  * Get recent point changes for leaderboard
  */
 export const getRecentPointChanges = async (options = {}) => {
-  const {
-    batchNumber,
-    limit = 20,
-    hours = 24
-  } = options;
+  const { batchNumber, limit = 20, hours = 24 } = options;
 
   const since = new Date(Date.now() - hours * 60 * 60 * 1000);
 
@@ -797,14 +816,14 @@ export const getRecentPointChanges = async (options = {}) => {
 
   const changes = await prisma.$queryRawUnsafe(query, ...params);
 
-  return changes.map(change => ({
+  return changes.map((change) => ({
     userId: change.userId,
     userName: change.userName,
     batchNumber: change.batchNumber,
     pointsChange: change.pointsChange,
     transactionType: change.transactionType,
     transactionDate: change.transactionDate,
-    itemName: change.itemName
+    itemName: change.itemName,
   }));
 };
 
@@ -812,8 +831,8 @@ export const getRecentPointChanges = async (options = {}) => {
  * Compare residents performance
  */
 export const compareResidents = async (userIds) => {
-  const userIdArray = userIds.map(id => parseInt(id));
-  
+  const userIdArray = userIds.map((id) => parseInt(id));
+
   const now = new Date();
   const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const thisYear = new Date(now.getFullYear(), 0, 1);
@@ -851,9 +870,14 @@ export const compareResidents = async (userIds) => {
     ORDER BY r."Current_Points" DESC
   `;
 
-  const residents = await prisma.$queryRawUnsafe(query, userIdArray, thisMonth, thisYear);
+  const residents = await prisma.$queryRawUnsafe(
+    query,
+    userIdArray,
+    thisMonth,
+    thisYear
+  );
 
-  return residents.map(resident => ({
+  return residents.map((resident) => ({
     userId: resident.userId,
     userName: resident.userName,
     currentPoints: resident.currentPoints,
@@ -862,6 +886,6 @@ export const compareResidents = async (userIds) => {
     monthPoints: parseInt(resident.monthPoints),
     yearPoints: parseInt(resident.yearPoints),
     monthCompletions: parseInt(resident.monthCompletions),
-    yearCompletions: parseInt(resident.yearCompletions)
+    yearCompletions: parseInt(resident.yearCompletions),
   }));
 };
