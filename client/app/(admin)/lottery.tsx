@@ -144,6 +144,14 @@ const LotteryPage: React.FC = () => {
     setSpinning(false);
     setTimeout(() => {
       setWinner(winnerName);
+      
+      // Remove winner from selected residents to prevent winning again
+      const winnerParticipant = wheelParticipants.find(p => p.name === winnerName);
+      if (winnerParticipant) {
+        setSelectedResidents((prev) => 
+          prev.filter((id) => id !== winnerParticipant.id)
+        );
+      }
     }, 500);
   };
 
@@ -157,7 +165,7 @@ const LotteryPage: React.FC = () => {
 
   return (
     <HStack className="flex-1 bg-indigoscale-500 gap-5 p-5">
-      {/* lottery wheel */}
+      {/* spin & win wheel */}
       <VStack className="flex-1" space="lg">
         <Center className="w-full h-full gap-5 p-5">
           <FortuneWheel

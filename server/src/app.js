@@ -52,6 +52,12 @@ app.use(urlencoded({ extended: true, limit: "10mb" }));
 // Static files for images
 app.use("/uploads", express.static("uploads"));
 
+// Debug middleware - log all requests
+app.use((req, res, next) => {
+  console.log(`📨 ${req.method} ${req.originalUrl} - Body:`, req.body);
+  next();
+});
+
 // API Routes
 app.get("/", (req, res) => {
   res.status(200).json({

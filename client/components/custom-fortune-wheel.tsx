@@ -150,10 +150,21 @@ const FortuneWheel: React.FC<FortuneWheelProps> = ({
       const finalAngle = totalRotation % 360;
       setCurrentRotation(finalAngle);
 
+      // Calculate winner based on arrow position at TOP
+      // Segments are drawn starting at 0° (right/3 o'clock) going counter-clockwise
+      // Arrow is at 270° (top/12 o'clock) in standard coordinates
       const segmentAngle = 360 / options.length;
-      const winnerIndex = Math.floor(
-        ((360 - finalAngle + segmentAngle / 2) % 360) / segmentAngle
-      );
+      
+      // After spinning, we need to find which segment is under the arrow at the top
+      // The wheel has rotated finalAngle degrees clockwise
+      // Arrow position in segment space: 270° - finalAngle (adjusted for rotation)
+      // Then normalize to 0-360 and convert to segment index
+      const arrowAngle = (270 - finalAngle) % 360;
+      const normalizedArrowAngle = arrowAngle < 0 ? arrowAngle + 360 : arrowAngle;
+      
+      // Find which segment the arrow is pointing at
+      const winnerIndex = Math.floor(normalizedArrowAngle / segmentAngle) % options.length;
+      
       setCurrentPointerName(options[winnerIndex]);
 
       // show confetti
