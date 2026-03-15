@@ -8,6 +8,7 @@ import {
   LogIn,
   LogOut,
   Users,
+  UserCircle,
 } from "lucide-react-native";
 import { HStack } from "../ui/hstack";
 import { Image } from "../ui/image";
@@ -50,7 +51,11 @@ const Header: React.FC = () => {
     }
     if (role === "resident") {
       return [
-        { name: "Profile", route: "/(resident)/", icon: null },
+        { name: "Catalogue", route: "/(public)/catalogue", icon: ShoppingBag },
+        { name: "Vouchers", route: "/(public)/vouchers", icon: TicketCheck },
+        { name: "Feedback", route: "/(public)/feedback", icon: MessageSquare },
+        { name: "Leaderboard", route: "/leaderboard", icon: Trophy },
+        { name: "Profile", route: "/(resident)/", icon: UserCircle },
         { name: "Sign Out", route: "/", icon: LogOut, action: "logout" },
       ];
     }
@@ -125,7 +130,7 @@ const Header: React.FC = () => {
           </HStack>
         </Pressable>
 
-        <HStack space={"md"}>
+        <HStack space={"md"} className="items-center">
           {tabs
             .filter((tab) => tab.icon != null)
             .map((tab) => {
