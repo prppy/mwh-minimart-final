@@ -122,12 +122,12 @@ const ProfilePage: React.FC = () => {
             {resident.userName}
           </Heading>
           <Heading size="2xl" className={darkText}>
-            Leaderboard: #1
+            You are #1 on the Leaderboard!
           </Heading>
           <Heading
             size="2xl"
             className={darkText}
-          >{`Points: ${resident.totalPoints}pts`}</Heading>
+          >{`You have ${resident.totalPoints} points`}</Heading>
           <HStack className="w-full" space="md">
             {/* colour selectors */}
             <Selector title="Colour" colorTheme={darkText}>
@@ -155,7 +155,7 @@ const ProfilePage: React.FC = () => {
           </HStack>
           {/* TODO: recent transactions */}
           <HStack className="w-full gap-2 p-5 justify-between items-center bg-white rounded-lg">
-            <Heading className={darkText}>Recent Transactions</Heading>
+            <Heading className={darkText}>Your Recent Transactions</Heading>
             <Icon as={lucide.ChevronDown} size="xl" className={darkText} />
           </HStack>
         </VStack>
