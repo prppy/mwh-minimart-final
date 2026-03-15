@@ -56,21 +56,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const loginResident = async (userId: number, password: string) => {
-    console.log(userId, password);
-    const res = await authAPI.loginResident({
-      userId,
-      password,
-    });
-    if (!res.accessToken || !res.refreshToken)
-      throw new Error("Invalid login response");
+    console.log("🔐 AuthContext loginResident called with:", { userId, passwordLength: password.length });
+    
+    try {
+      const res = await authAPI.loginResident({
+        userId,
+        password,
+      });
+      
+      console.log("✅ AuthAPI response received:", {
+        hasAccessToken: !!res.accessToken,
+        hasRefreshToken: !!res.refreshToken,
+        user: res.user,
+      });
+      
+      if (!res.accessToken || !res.refreshToken)
+        throw new Error("Invalid login response");
 
-    await AsyncStorage.setItem("token", res.accessToken);
-    await AsyncStorage.setItem("user", JSON.stringify(res.user));
+      await AsyncStorage.setItem("token", res.accessToken);
+      await AsyncStorage.setItem("user", JSON.stringify(res.user));
 
-    api.setAuthToken(res.accessToken);
-    setUser(res.user);
-    setRole(res.user.userRole);
-    console.log(res);
+      api.setAuthToken(res.accessToken);
+      setUser(res.user);
+      setRole(res.user.userRole);
+      console.log("✅ Login successful, stored in AsyncStorage");
+    } catch (error) {
+      console.error("❌ AuthContext loginResident error:", error);
+      throw error; // Re-throw to be caught by calling function
+    }
   };
 
   const loginOfficer = async (officerEmail: string, password: string) => {

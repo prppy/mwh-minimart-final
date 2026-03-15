@@ -58,6 +58,13 @@ export const authAPI = {
     loginData: ResidentLoginRequest
   ): Promise<AuthResponse> => {
     try {
+      console.log("🌐 authAPI.loginResident - Making request to /authentication/login/resident");
+      console.log("📤 Request payload:", {
+        userId: loginData.userId,
+        passwordLength: loginData.password.length,
+        endpoint: "/authentication/login/resident",
+      });
+      
       const response = await api.post<AuthResponse>(
         "/authentication/login/resident",
         {
@@ -65,10 +72,20 @@ export const authAPI = {
           password: loginData.password,
         }
       );
-      console.log("auth response:", response);
+      
+      console.log("📥 authAPI response received:", {
+        status: response.status,
+        data: response.data,
+      });
+      
       return response.data;
-    } catch (error) {
-      console.error("Resident login failed:", error);
+    } catch (error: any) {
+      console.error("❌ authAPI.loginResident failed:", {
+        error,
+        status: error.status,
+        message: error.message,
+        data: error.data,
+      });
       throw error;
     }
   },

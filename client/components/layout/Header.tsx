@@ -60,7 +60,7 @@ const Header: React.FC = () => {
         { name: "Vouchers", route: "/(public)/vouchers", icon: TicketCheck },
         { name: "Users", route: "/(admin)/users", icon: Users },
         { name: "Feedback", route: "/(admin)/feedback", icon: MessageSquare },
-        { name: "Lottery", route: "/(admin)/lottery", icon: Trophy },
+        { name: "Spin & Win", route: "/(admin)/lottery", icon: Trophy },
         { name: "Sign Out", route: "/", icon: LogOut, action: "logout" },
         // { name: "Settings", route: "/(admin)/settings", icon: Settings }, // TODO: settings page
       ];

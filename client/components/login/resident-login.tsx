@@ -45,25 +45,52 @@ const ResidentLoginForm: React.FC = () => {
 
   const handleResidentLogin = async () => {
     if (!resident || !password.trim()) {
-      console.log("Please enter your password");
+      console.log("❌ Please enter your password");
+      alert("Please enter your password");
       return;
     }
 
     setLoading(true);
     try {
+      console.log("🔑 Login attempt:", {
+        userId: resident.id,
+        userName: resident.userName,
+        passwordLength: password.length,
+      });
+
       await loginResident(resident.id, password.trim());
 
       // login successful
-      console.log("Resident logged in:", resident.userName);
+      console.log("✅ Resident logged in:", resident.userName);
       setShowModal(false);
       setPassword("");
       setShowPassword(false);
 
       router.push("/(resident)");
     } catch (error: any) {
-      console.error("Resident login failed:", error.message || error);
-      // show some error message to user
-      alert("Login failed: " + (error.message || "Please try again"));
+      // Log all error details
+      console.error("❌ Resident login failed - Full error:", error);
+      console.error("Error type:", error.constructor.name);
+      console.error("Error message:", error.message);
+      console.error("Error status:", error.status);
+      console.error("Error response:", error.response);
+      console.error("Error data:", error.data);
+      console.error("Error stack:", error.stack);
+      
+      // Extract error message
+      let errorMessage = "Login failed. Please try again.";
+      
+      if (error.status === 404) {
+        errorMessage = "Login endpoint not found. Please check server connection.";
+      } else if (error.status === 400) {
+        errorMessage = error.data?.message || "Invalid credentials. Please check your password.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      } else if (error.data?.message) {
+        errorMessage = error.data.message;
+      }
+      
+      alert("Login failed: " + errorMessage);
     } finally {
       setLoading(false);
     }
