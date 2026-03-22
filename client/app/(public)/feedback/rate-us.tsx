@@ -1,13 +1,32 @@
 import SmileyRating from "@/components/custom-smiley-rating";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { Center } from "@/components/ui/center";
+import {
+  Select,
+  SelectTrigger,
+  SelectInput,
+  SelectIcon,
+  SelectPortal,
+  SelectBackdrop,
+  SelectContent,
+  SelectDragIndicatorWrapper,
+  SelectDragIndicator,
+  SelectItem,
+} from "@/components/ui/select";
 import { Text } from "@/components/ui/text";
 import { Textarea, TextareaInput } from "@/components/ui/textarea";
 import { VStack } from "@/components/ui/vstack";
 import { useRouter } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
+import { ChevronDown, ChevronLeft } from "lucide-react-native";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+
+const FEEDBACK_CATEGORIES = [
+  { label: "Suggestion", value: "suggestion" },
+  { label: "Complaints", value: "complaint" },
+  { label: "Compliments", value: "compliment" },
+  { label: "Technical Issues", value: "technical_issue" },
+];
 
 const RateUsPage: React.FC = () => {
   const router = useRouter();
@@ -15,12 +34,14 @@ const RateUsPage: React.FC = () => {
   const [productRating, setProductRating] = useState(0);
   const [websiteRating, setWebsiteRating] = useState(0);
   const [description, setDescription] = useState("");
+  const [feedbackCategory, setFeedbackCategory] = useState("");
 
   // TODO: send `payload` to server endpoint
   const handleSubmit = () => {
     const payload = {
       productSelection: productRating,
       websiteExperience: websiteRating,
+      feedbackCategory: feedbackCategory,
       additionalFeedback: description,
     };
 
@@ -54,6 +75,31 @@ const RateUsPage: React.FC = () => {
               onChange={setWebsiteRating}
             />
 
+            <Text className="text-indigoscale-700">Feedback Type</Text>
+            <Select onValueChange={setFeedbackCategory}>
+              <SelectTrigger
+                size="md"
+              >
+                <SelectInput placeholder="Select a category" />
+                <SelectIcon className="mr-3" as={ChevronDown} />
+              </SelectTrigger>
+              <SelectPortal>
+                <SelectBackdrop />
+                <SelectContent>
+                  <SelectDragIndicatorWrapper>
+                    <SelectDragIndicator />
+                  </SelectDragIndicatorWrapper>
+                  {FEEDBACK_CATEGORIES.map((item) => (
+                    <SelectItem
+                      key={item.value}
+                      label={item.label}
+                      value={item.value}
+                    />
+                  ))}
+                </SelectContent>
+              </SelectPortal>
+            </Select>
+
             <Text className="text-indigoscale-700">Details</Text>
             <Textarea className="data-[focus=true]:border-indigoscale-700">
               <TextareaInput
@@ -63,10 +109,18 @@ const RateUsPage: React.FC = () => {
               />
             </Textarea>
 
-            <Button action="primary" className="bg-redscale-500" onPress={handleSubmit}>
+            <Button
+              action="primary"
+              className="bg-redscale-500"
+              onPress={handleSubmit}
+            >
               <ButtonText>Submit</ButtonText>
             </Button>
-            <Button action="secondary" variant="link" onPress={() => router.back()}>
+            <Button
+              action="secondary"
+              variant="link"
+              onPress={() => router.back()}
+            >
               <ButtonIcon as={ChevronLeft} className="text-indigoscale-700" />
               <ButtonText className="text-indigoscale-700">Back</ButtonText>
             </Button>
