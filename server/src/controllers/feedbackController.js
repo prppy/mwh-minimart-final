@@ -1,4 +1,4 @@
-import { getFeedbackList, getFeedbackStats } from "../models/feedbackModel.js";
+import { getFeedbackList, getFeedbackStats, getAllFeedbackForExport, updateFeedbackStatus } from "../models/feedbackModel.js";
 
 export const listFeedback = async (req, res) => {
   try {
@@ -7,6 +7,7 @@ export const listFeedback = async (req, res) => {
       category = "all",
       rating   = "0",
       sortBy   = "newest",
+      status   = "new",
       page     = "1",
       pageSize = "5",
     } = req.query;
@@ -16,6 +17,7 @@ export const listFeedback = async (req, res) => {
       category,
       rating:   parseInt(rating),
       sortBy,
+      status,
       page:     parseInt(page),
       pageSize: parseInt(pageSize),
     });
@@ -34,5 +36,32 @@ export const feedbackStats = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch feedback stats" });
+  }
+};
+
+export const exportFeedback = async (req, res) => {
+  try {
+    const data = await getAllFeedbackForExport();
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to export feedback" });
+  }
+};
+
+export const patchFeedbackStatus = async (req, res) => {
+  try {
+    const { id }     = req.params;
+    const { status } = req.body;
+
+    if (!["new", "reviewed"].includes(status)) {
+      return res.status(400).json({ error: "Invalid status. Must be 'new' or 'reviewed'" });
+    }
+
+    await updateFeedbackStatus(id, status);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update feedback status" });
   }
 };

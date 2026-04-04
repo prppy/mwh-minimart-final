@@ -10,6 +10,7 @@ export interface FeedbackItem {
   rating:           number;
   feedback:         string | null;
   feedbackCategory: FeedbackCategory | null;
+  feedbackStatus:   FeedbackStatus;
   submittedAt:      string;
 }
 
@@ -30,6 +31,7 @@ export interface FeedbackFilters {
   sortBy?:   string;
   page?:     number;
   pageSize?: number;
+  status:    string;
 }
 
 export const CATEGORY_STYLES: Record<FeedbackCategory, { bg: string; text: string }> = {
@@ -66,4 +68,12 @@ export const SORT_OPTIONS: { value: string; label: string }[] = [
   { value: "oldest",      label: "Oldest first" },
   { value: "rating_desc", label: "Highest rated" },
   { value: "rating_asc",  label: "Lowest rated" },
+];
+
+export type FeedbackStatus = "new" | "reviewed";
+
+export const STATUS_OPTIONS: { value: FeedbackStatus | "all"; label: string }[] = [
+  { value: "all",      label: "All"      },
+  { value: "new",      label: "New"      },
+  { value: "reviewed", label: "Reviewed" },
 ];
