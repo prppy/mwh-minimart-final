@@ -1,0 +1,21 @@
+import api from "../api";
+import type { FeedbackFilters, FeedbackListResponse } from "@/utils/types/feedback";
+
+export async function fetchFeedback(filters: FeedbackFilters): Promise<FeedbackListResponse> {
+  const res = await api.get<FeedbackListResponse>("/feedback", {
+    params: {
+      search:   filters.search   ?? "",
+      category: filters.category ?? "all",
+      rating:   filters.rating   ?? 0,
+      sortBy:   filters.sortBy   ?? "newest",
+      page:     filters.page     ?? 1,
+      pageSize: filters.pageSize ?? 5,
+    },
+  });
+  return res.data;
+}
+
+export async function fetchFeedbackStats() {
+  const res = await api.get("/feedback/stats");
+  return res.data;
+}
