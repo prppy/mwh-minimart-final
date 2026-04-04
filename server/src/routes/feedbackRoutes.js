@@ -1,14 +1,18 @@
 import express from 'express';
+import * as feedbackController from '../controllers/feedbackController.js';
+
 const router = express.Router();
-import * as categoryController from '../controllers/feedbackController.js';
 
-// GET /api/feedback?search=&category=&rating=&sortBy=&page=&pageSize=
-router.get("/", categoryController.listFeedback);
+// GET  /api/feedback?search=&category=&rating=&sortBy=&status=&page=&pageSize=
+router.get("/",             feedbackController.listFeedback);
 
-// GET /api/feedback/stats
-router.get("/stats", categoryController.feedbackStats);
+// GET  /api/feedback/stats
+router.get("/stats",        feedbackController.feedbackStats);
 
-// GET /api/feedback/export
-router.get("/export", categoryController.exportFeedback);
+// GET  /api/feedback/export
+router.get("/export",       feedbackController.exportFeedback);
+
+// PATCH /api/feedback/:id/status
+router.patch("/:id/status", feedbackController.patchFeedbackStatus);
 
 export default router;

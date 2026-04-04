@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { TouchableOpacity, TextInput, FlatList, ActivityIndicator } from "react-native";
-import { ChevronDown, Search, X, Download } from "lucide-react-native";
+import { ChevronDown, Search, X } from "lucide-react-native";
 
 import { Heading } from "@/components/ui/heading";
 import { HStack } from "@/components/ui/hstack";
@@ -16,21 +16,24 @@ import { ExportExcel } from "@/components/feedback/exportExcel";
 
 import {
   type FeedbackCategory,
+  type FeedbackStatus,
   type FeedbackItem,
   PAGE_SIZE,
   CATEGORY_OPTIONS,
   SORT_OPTIONS,
+  STATUS_OPTIONS,
 } from "@/utils/types/feedback";
 import { fetchFeedback, fetchFeedbackStats } from "@/utils/api/feedback";
 
 const FeedbackPage: React.FC = () => {
   // ── Filter state ──────────────────────────────────────────────────────────
-  const [search,       setSearch]       = useState("");
-  const [category,     setCategory]     = useState<FeedbackCategory | "all">("all");
-  const [ratingFilter, setRatingFilter] = useState(0);
-  const [sortBy,       setSortBy]       = useState("newest");
-  const [showSortMenu, setShowSortMenu] = useState(false);
-  const [page,         setPage]         = useState(1);
+  const [search,        setSearch]        = useState("");
+  const [category,      setCategory]      = useState<FeedbackCategory | "all">("all");
+  const [ratingFilter,  setRatingFilter]  = useState(0);
+  const [statusFilter,  setStatusFilter]  = useState<FeedbackStatus | "all">("new");
+  const [sortBy,        setSortBy]        = useState("newest");
+  const [showSortMenu,  setShowSortMenu]  = useState(false);
+  const [page,          setPage]          = useState(1);
 
   // ── Server state ──────────────────────────────────────────────────────────
   const [items,      setItems]      = useState<FeedbackItem[]>([]);
@@ -54,6 +57,7 @@ const FeedbackPage: React.FC = () => {
         search,
         category,
         rating:   ratingFilter,
+        status:   statusFilter,
         sortBy,
         page,
         pageSize: PAGE_SIZE,
@@ -66,7 +70,7 @@ const FeedbackPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [search, category, ratingFilter, sortBy, page]);
+  }, [search, category, ratingFilter, statusFilter, sortBy, page]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -76,11 +80,16 @@ const FeedbackPage: React.FC = () => {
   function clearFilters() {
     setCategory("all");
     setRatingFilter(0);
+    setStatusFilter("new");
     setSearch("");
     setPage(1);
   }
 
-  const activeFilterCount = [category !== "all", ratingFilter !== 0].filter(Boolean).length;
+  const activeFilterCount = [
+    category     !== "all",
+    ratingFilter !== 0,
+    statusFilter !== "new",   // "new" is default so only count if changed
+  ].filter(Boolean).length;
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -93,20 +102,20 @@ const FeedbackPage: React.FC = () => {
       ListHeaderComponent={
         <VStack className="gap-4 pb-3">
 
-          {/* Heading + Export button */}
+          {/* Heading + Export */}
           <HStack className="items-center justify-between">
             <Heading className="text-typography-800" size="xl">Resident Feedback</Heading>
             <ExportExcel />
           </HStack>
 
-          {/* Stats row */}
+          {/* Stats */}
           <HStack className="gap-2">
             <StatCard label="Total"      value={stats.total} />
             <StatCard label="Avg rating" value={stats.avg} />
             <StatCard label="Complaints" value={stats.complaints} accent="#A32D2D" />
           </HStack>
 
-          {/* Search + Sort trigger */}
+          {/* Search + Sort */}
           <HStack className="gap-2 items-center">
             <HStack
               className="flex-1 items-center gap-2 bg-white rounded-xl px-3"
@@ -152,8 +161,8 @@ const FeedbackPage: React.FC = () => {
                   className="px-4 py-3"
                   style={{
                     backgroundColor: sortBy === opt.value ? "#F1EFE8" : "transparent",
-                    borderTopWidth: i > 0 ? 0.5 : 0,
-                    borderTopColor: "#F1EFE8",
+                    borderTopWidth:  i > 0 ? 0.5 : 0,
+                    borderTopColor:  "#F1EFE8",
                   }}
                 >
                   <Text
@@ -169,6 +178,23 @@ const FeedbackPage: React.FC = () => {
               ))}
             </VStack>
           )}
+
+          {/* Status filter — shown prominently, default is "new" */}
+          <VStack className="gap-2">
+            <Text className="text-xs font-medium text-typography-400" style={{ letterSpacing: 0.6 }}>
+              STATUS
+            </Text>
+            <HStack className="gap-2">
+              {STATUS_OPTIONS.map((opt) => (
+                <FilterChip
+                  key={opt.value}
+                  label={opt.label}
+                  active={statusFilter === opt.value}
+                  onPress={() => applyFilter(() => setStatusFilter(opt.value as FeedbackStatus | "all"))}
+                />
+              ))}
+            </HStack>
+          </VStack>
 
           {/* Category filter */}
           <VStack className="gap-2">
@@ -223,7 +249,12 @@ const FeedbackPage: React.FC = () => {
         </VStack>
       }
 
-      renderItem={({ item }) => <FeedbackCard item={item} />}
+      renderItem={({ item }) => (
+        <FeedbackCard
+          item={item}
+          onStatusChange={() => load()}
+        />
+      )}
 
       ListEmptyComponent={() => (
         <VStack className="items-center py-12 gap-2">
@@ -239,7 +270,12 @@ const FeedbackPage: React.FC = () => {
           ) : (
             <>
               <Text className="text-sm text-typography-400">
-                {activeFilterCount > 0 ? "No feedback matches your filters." : "No feedback yet."}
+                {statusFilter === "new"
+                  ? "No unreviewed feedback. All caught up!"
+                  : activeFilterCount > 0
+                  ? "No feedback matches your filters."
+                  : "No feedback yet."
+                }
               </Text>
               {activeFilterCount > 0 && (
                 <TouchableOpacity onPress={clearFilters}>

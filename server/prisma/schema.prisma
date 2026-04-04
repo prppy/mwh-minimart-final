@@ -194,6 +194,7 @@ model MWH_Rating_Feedback {
   Feedback          String?            @db.VarChar
   Feedback_Category feedback_category?
   Submitted_At      DateTime           @default(now()) @db.Timestamptz(6)
+  Feedback_Status   feedback_status    @default(new)
   MWH_Resident      Resident           @relation(fields: [User_ID], references: [userId], onDelete: NoAction, onUpdate: NoAction)
 }
 
@@ -275,4 +276,9 @@ enum urgency_level {
   low
   medium
   high
+}
+
+enum feedback_status {
+  new
+  reviewed
 }
