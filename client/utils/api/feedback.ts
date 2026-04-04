@@ -19,3 +19,8 @@ export async function fetchFeedbackStats() {
   const res = await api.get("/feedback/stats");
   return res.data;
 }
+
+export async function exportAllFeedback() {
+  const res = await api.get("/feedback/export");
+  return res.data;
+}

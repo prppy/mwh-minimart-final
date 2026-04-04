@@ -1,4 +1,4 @@
-import { getFeedbackList, getFeedbackStats } from "../models/feedbackModel.js";
+import { getFeedbackList, getFeedbackStats, getAllFeedbackForExport } from "../models/feedbackModel.js";
 
 export const listFeedback = async (req, res) => {
   try {
@@ -34,5 +34,15 @@ export const feedbackStats = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch feedback stats" });
+  }
+};
+
+export const exportFeedback = async (req, res) => {
+  try {
+    const data = await getAllFeedbackForExport();
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to export feedback" });
   }
 };

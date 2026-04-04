@@ -76,3 +76,24 @@ export const getFeedbackStats = async () => {
     avg: avg._avg.Rating != null ? avg._avg.Rating.toFixed(1) : "—",
   };
 }
+
+export const getAllFeedbackForExport = async () => {
+  const rows = await prisma.mWH_Rating_Feedback.findMany({
+    orderBy: { Submitted_At: "desc" },
+    include: {
+      MWH_Resident: {
+        include: { user: true },
+      },
+    },
+  });
+
+  return rows.map((row) => ({
+    feedbackId:       Number(row.Feedback_ID),
+    residentName:     row.MWH_Resident.user.userName ?? "Unknown",
+    userId:           row.User_ID,
+    rating:           row.Rating,
+    feedback:         row.Feedback ?? "",
+    feedbackCategory: row.Feedback_Category ?? "",
+    submittedAt:      row.Submitted_At.toISOString().replace("T", " ").slice(0, 19), // full timestamp
+  }));
+};

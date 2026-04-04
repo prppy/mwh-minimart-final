@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { TouchableOpacity, TextInput, FlatList, ActivityIndicator } from "react-native";
-import { ChevronDown, Search, X } from "lucide-react-native";
+import { ChevronDown, Search, X, Download } from "lucide-react-native";
 
 import { Heading } from "@/components/ui/heading";
 import { HStack } from "@/components/ui/hstack";
@@ -12,6 +12,7 @@ import { FeedbackCard } from "@/components/feedback/feedbackCard";
 import { FilterChip } from "@/components/feedback/filterChip";
 import { Pagination } from "@/components/feedback/pagination";
 import { StatCard } from "@/components/feedback/statCard";
+import { ExportExcel } from "@/components/feedback/exportExcel";
 
 import {
   type FeedbackCategory,
@@ -23,7 +24,7 @@ import {
 import { fetchFeedback, fetchFeedbackStats } from "@/utils/api/feedback";
 
 const FeedbackPage: React.FC = () => {
-  // ── Filter state (owned by client, sent to server as params) ─────────────
+  // ── Filter state ──────────────────────────────────────────────────────────
   const [search,       setSearch]       = useState("");
   const [category,     setCategory]     = useState<FeedbackCategory | "all">("all");
   const [ratingFilter, setRatingFilter] = useState(0);
@@ -31,20 +32,20 @@ const FeedbackPage: React.FC = () => {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [page,         setPage]         = useState(1);
 
-  // ── Server state (owned by server, client just renders) ──────────────────
+  // ── Server state ──────────────────────────────────────────────────────────
   const [items,      setItems]      = useState<FeedbackItem[]>([]);
-  const [total,      setTotal]      = useState(0);       // total matching results
+  const [total,      setTotal]      = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [stats,      setStats]      = useState({ total: 0, avg: "—", complaints: 0 });
   const [loading,    setLoading]    = useState(true);
   const [error,      setError]      = useState<string | null>(null);
 
-  // ── Stats: fetched once, unaffected by filters ───────────────────────────
+  // ── Stats: fetched once ───────────────────────────────────────────────────
   useEffect(() => {
     fetchFeedbackStats().then(setStats).catch(console.error);
   }, []);
 
-  // ── List: re-fetched whenever any filter/sort/page changes ───────────────
+  // ── List: re-fetched on any filter/sort/page change ───────────────────────
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -57,8 +58,8 @@ const FeedbackPage: React.FC = () => {
         page,
         pageSize: PAGE_SIZE,
       });
-      setItems(res.data);        // ← only the current page
-      setTotal(res.total);       // ← total matching count (for display)
+      setItems(res.data);
+      setTotal(res.total);
       setTotalPages(res.totalPages);
     } catch {
       setError("Failed to load feedback. Please try again.");
@@ -84,21 +85,28 @@ const FeedbackPage: React.FC = () => {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <FlatList
-      data={items}                                              // ← server's page slice
+      data={items}
       keyExtractor={(item) => String(item.feedbackId)}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
 
       ListHeaderComponent={
         <VStack className="gap-4 pb-3">
-          <Heading className="text-typography-800" size="xl">Resident Feedback</Heading>
 
+          {/* Heading + Export button */}
+          <HStack className="items-center justify-between">
+            <Heading className="text-typography-800" size="xl">Resident Feedback</Heading>
+            <ExportExcel />
+          </HStack>
+
+          {/* Stats row */}
           <HStack className="gap-2">
             <StatCard label="Total"      value={stats.total} />
             <StatCard label="Avg rating" value={stats.avg} />
             <StatCard label="Complaints" value={stats.complaints} accent="#A32D2D" />
           </HStack>
 
+          {/* Search + Sort trigger */}
           <HStack className="gap-2 items-center">
             <HStack
               className="flex-1 items-center gap-2 bg-white rounded-xl px-3"
@@ -131,8 +139,12 @@ const FeedbackPage: React.FC = () => {
             </TouchableOpacity>
           </HStack>
 
+          {/* Sort dropdown */}
           {showSortMenu && (
-            <VStack className="bg-white rounded-xl overflow-hidden" style={{ borderWidth: 0.5, borderColor: "#D3D1C7" }}>
+            <VStack
+              className="bg-white rounded-xl overflow-hidden"
+              style={{ borderWidth: 0.5, borderColor: "#D3D1C7" }}
+            >
               {SORT_OPTIONS.map((opt, i) => (
                 <TouchableOpacity
                   key={opt.value}
@@ -144,7 +156,13 @@ const FeedbackPage: React.FC = () => {
                     borderTopColor: "#F1EFE8",
                   }}
                 >
-                  <Text className="text-sm" style={{ color: sortBy === opt.value ? "#3C3489" : "#5F5E5A", fontWeight: sortBy === opt.value ? 600 : 400 }}>
+                  <Text
+                    className="text-sm"
+                    style={{
+                      color:      sortBy === opt.value ? "#3C3489" : "#5F5E5A",
+                      fontWeight: sortBy === opt.value ? 600 : 400,
+                    }}
+                  >
                     {opt.label}
                   </Text>
                 </TouchableOpacity>
@@ -152,8 +170,11 @@ const FeedbackPage: React.FC = () => {
             </VStack>
           )}
 
+          {/* Category filter */}
           <VStack className="gap-2">
-            <Text className="text-xs font-medium text-typography-400" style={{ letterSpacing: 0.6 }}>CATEGORY</Text>
+            <Text className="text-xs font-medium text-typography-400" style={{ letterSpacing: 0.6 }}>
+              CATEGORY
+            </Text>
             <HStack className="flex-wrap gap-2">
               {CATEGORY_OPTIONS.map((opt) => (
                 <FilterChip
@@ -167,8 +188,11 @@ const FeedbackPage: React.FC = () => {
             </HStack>
           </VStack>
 
+          {/* Rating filter */}
           <VStack className="gap-2">
-            <Text className="text-xs font-medium text-typography-400" style={{ letterSpacing: 0.6 }}>RATING</Text>
+            <Text className="text-xs font-medium text-typography-400" style={{ letterSpacing: 0.6 }}>
+              RATING
+            </Text>
             <HStack className="gap-2">
               {[0, 1, 2, 3, 4, 5].map((r) => (
                 <FilterChip
@@ -182,13 +206,14 @@ const FeedbackPage: React.FC = () => {
             </HStack>
           </VStack>
 
+          {/* Clear filters */}
           {activeFilterCount > 0 && (
             <TouchableOpacity onPress={clearFilters}>
               <Text className="text-xs font-medium" style={{ color: "#534AB7" }}>Clear all</Text>
             </TouchableOpacity>
           )}
 
-          {/* total comes from server, not computed client-side */}
+          {/* Result count */}
           <Text className="text-xs text-typography-400">
             {loading
               ? "Loading..."
@@ -226,7 +251,7 @@ const FeedbackPage: React.FC = () => {
         </VStack>
       )}
 
-      ListFooterComponent={() => (
+      ListFooterComponent={
         !loading && total > 0 ? (
           <Pagination
             page={page}
@@ -236,7 +261,7 @@ const FeedbackPage: React.FC = () => {
             onPage={setPage}
           />
         ) : null
-      )}
+      }
     />
   );
 };
