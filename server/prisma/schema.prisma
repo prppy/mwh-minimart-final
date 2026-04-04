@@ -197,6 +197,13 @@ model MWH_Rating_Feedback {
   MWH_Resident      Resident           @relation(fields: [User_ID], references: [userId], onDelete: NoAction, onUpdate: NoAction)
 }
 
+model MWH_Screensaver_Image {
+  id            Int      @id @default(autoincrement())
+  image_url     String
+  display_order Int
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+}
+
 enum transaction_type_enum {
   completion
   redemption
@@ -236,6 +243,8 @@ enum feedback_category {
   facility
   suggestion
   complaint
+  technical_issue
+  compliment
 }
 
 enum form_type_enum {
