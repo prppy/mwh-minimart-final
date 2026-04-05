@@ -17,7 +17,7 @@ interface FeedbackCardProps {
 export const FeedbackCard: React.FC<FeedbackCardProps> = ({ item, onStatusChange }) => {
   const [loading, setLoading] = useState(false);
 
-  const avatarStyle   = AVATAR_PALETTE[item.userId % AVATAR_PALETTE.length];
+  const avatarStyle   = AVATAR_PALETTE[(item.userId ?? 0) % AVATAR_PALETTE.length];
   const categoryStyle = item.feedbackCategory
     ? CATEGORY_STYLES[item.feedbackCategory]
     : { bg: "#F1EFE8", text: "#5F5E5A" };
@@ -48,33 +48,33 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({ item, onStatusChange
 
   return (
     <VStack
-      className="bg-white rounded-2xl p-4 mb-3 gap-3"
+      className="bg-white rounded-xl p-3 mb-2 gap-2"
       style={{ borderWidth: 0.5, borderColor: "#E8E6DF" }}
     >
       {/* Top row: avatar + name + date + status badge */}
       <HStack className="items-center justify-between">
         <HStack className="items-center gap-2">
           <VStack
-            className="w-8 h-8 rounded-full items-center justify-center"
+            className="w-7 h-7 rounded-full items-center justify-center"
             style={{ backgroundColor: avatarStyle.bg }}
           >
-            <Text style={{ fontSize: 11, fontWeight: 700, color: avatarStyle.text }}>
+            <Text style={{ fontSize: 10, fontWeight: 700, color: avatarStyle.text }}>
               {item.initials}
             </Text>
           </VStack>
           <VStack>
-            <Text className="text-sm font-medium text-typography-800">{item.residentName}</Text>
-            <Text className="text-xs text-typography-400">{item.submittedAt}</Text>
+            <Text className="text-xs font-medium text-typography-800">{item.residentName}</Text>
+            <Text style={{ fontSize: 10, color: "#B4B2A9" }}>{item.submittedAt}</Text>
           </VStack>
         </HStack>
 
         {/* Status badge */}
         <VStack
-          className="px-2 py-1 rounded-lg"
+          className="px-2 py-0.5 rounded-md"
           style={{ backgroundColor: item.feedbackStatus === "reviewed" ? "#E1F5EE" : "#FEF3C7" }}
         >
           <Text style={{
-            fontSize:   11,
+            fontSize:   10,
             fontWeight: 600,
             color: item.feedbackStatus === "reviewed" ? "#0F6E56" : "#92400E",
           }}>
@@ -83,38 +83,37 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({ item, onStatusChange
         </VStack>
       </HStack>
 
-      {/* Sentiment + category row */}
-      <HStack className="items-center gap-2">
-        <SentimentBadge rating={item.rating as 1 | 2 | 3} />
-        {item.feedbackCategory && (
-          <VStack
-            className="px-2 py-1 rounded-lg"
-            style={{ backgroundColor: categoryStyle.bg }}
-          >
-            <Text style={{ fontSize: 11, fontWeight: 600, color: categoryStyle.text }}>
-              {item.feedbackCategory.charAt(0).toUpperCase() + item.feedbackCategory.slice(1)}
-            </Text>
-          </VStack>
-        )}
-      </HStack>
-
       {/* Feedback text */}
       {item.feedback && (
-        <Text className="text-sm text-typography-600" style={{ lineHeight: 20 }}>
+        <Text className="text-xs text-typography-600">
           {item.feedback}
         </Text>
       )}
 
-      {/* Action button */}
-      <HStack className="justify-end">
+      {/* Bottom row: sentiment + category + action button */}
+      <HStack className="items-center justify-between">
+        <HStack className="items-center gap-1">
+          <SentimentBadge rating={item.rating as 1 | 2 | 3} />
+          {item.feedbackCategory && (
+            <VStack
+              className="px-2 py-0.5 rounded-md"
+              style={{ backgroundColor: categoryStyle.bg }}
+            >
+              <Text style={{ fontSize: 10, fontWeight: 600, color: categoryStyle.text }}>
+                {item.feedbackCategory.charAt(0).toUpperCase() + item.feedbackCategory.slice(1)}
+              </Text>
+            </VStack>
+          )}
+        </HStack>
+
         {item.feedbackStatus === "new" ? (
           <TouchableOpacity
             onPress={handleMarkReviewed}
             disabled={loading}
-            className="px-3 py-1 rounded-lg"
+            className="px-2 py-0.5 rounded-md"
             style={{ backgroundColor: "#3C3489", opacity: loading ? 0.6 : 1 }}
           >
-            <Text style={{ fontSize: 11, fontWeight: 600, color: "#fff" }}>
+            <Text style={{ fontSize: 10, fontWeight: 600, color: "#fff" }}>
               {loading ? "Saving..." : "Mark reviewed"}
             </Text>
           </TouchableOpacity>
@@ -122,10 +121,10 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({ item, onStatusChange
           <TouchableOpacity
             onPress={handleUnmarkReviewed}
             disabled={loading}
-            className="px-3 py-1 rounded-lg"
+            className="px-2 py-0.5 rounded-md"
             style={{ backgroundColor: "#F1EFE8", opacity: loading ? 0.6 : 1 }}
           >
-            <Text style={{ fontSize: 11, fontWeight: 600, color: "#534AB7" }}>
+            <Text style={{ fontSize: 10, fontWeight: 600, color: "#534AB7" }}>
               {loading ? "Saving..." : "Unmark reviewed"}
             </Text>
           </TouchableOpacity>
