@@ -1,4 +1,11 @@
-import { getFeedbackList, getFeedbackStats, getAllFeedbackForExport, updateFeedbackStatus } from "../models/feedbackModel.js";
+import {
+  getFeedbackList,
+  getFeedbackStats,
+  getAllFeedbackForExport,
+  updateFeedbackStatus,
+  createRating,
+  createProductRequest,
+} from "../models/feedbackModel.js";
 
 export const listFeedback = async (req, res) => {
   try {
@@ -63,5 +70,37 @@ export const patchFeedbackStatus = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to update feedback status" });
+  }
+};
+
+export const submitRating = async (req, res) => {
+  try {
+    const { residentName, rating, feedbackCategory, feedback } = req.body;
+
+    if (!rating || rating < 1 || rating > 3) {
+      return res.status(400).json({ error: "Rating must be between 1 and 3" });
+    }
+
+    await createRating({ residentName, rating, feedbackCategory, feedback });
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to submit rating" });
+  }
+};
+
+export const submitProductRequest = async (req, res) => {
+  try {
+    const { residentName, productName, description, requestCategory } = req.body;
+
+    if (!productName) {
+      return res.status(400).json({ error: "Product name is required" });
+    }
+
+    await createProductRequest({ residentName, productName, description, requestCategory });
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to submit product request" });
   }
 };

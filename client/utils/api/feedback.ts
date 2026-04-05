@@ -35,3 +35,23 @@ export async function unmarkFeedbackReviewed(feedbackId: number) {
   const res = await api.patch(`/feedback/${feedbackId}/status`, { status: "new" });
   return res.data;
 }
+
+export async function submitRating(payload: {
+  residentName:     string;
+  rating:           number;
+  feedbackCategory: string | null;
+  feedback:         string;
+}) {
+  const res = await api.post("/feedback/rate-us", payload);
+  return res.data;
+}
+
+export async function submitProductRequest(payload: {
+  residentName:    string;
+  productName:     string;
+  description:     string;
+  requestCategory: string | null;
+}) {
+  const res = await api.post("/feedback/product-request", payload);
+  return res.data;
+}

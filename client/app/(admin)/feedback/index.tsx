@@ -217,16 +217,21 @@ const FeedbackPage: React.FC = () => {
           {/* Rating filter */}
           <VStack className="gap-2">
             <Text className="text-xs font-medium text-typography-400" style={{ letterSpacing: 0.6 }}>
-              RATING
+              SENTIMENT
             </Text>
             <HStack className="gap-2">
-              {[0, 1, 2, 3, 4, 5].map((r) => (
+              {[
+                { value: 0, label: "Any"   },
+                { value: 1, label: "Poor"  },
+                { value: 2, label: "Okay"  },
+                { value: 3, label: "Happy" },
+              ].map((r) => (
                 <FilterChip
-                  key={r}
-                  label={r === 0 ? "Any" : "★".repeat(r)}
-                  active={ratingFilter === r}
-                  onPress={() => applyFilter(() => setRatingFilter(r))}
-                  danger={r === 1}
+                  key={r.value}
+                  label={r.label}
+                  active={ratingFilter === r.value}
+                  onPress={() => applyFilter(() => setRatingFilter(r.value))}
+                  danger={r.value === 1}
                 />
               ))}
             </HStack>
