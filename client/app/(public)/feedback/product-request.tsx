@@ -39,6 +39,10 @@ const ProductRequestPage: React.FC = () => {
   const [error,            setError]            = useState<string | null>(null);
 
   async function handleSubmit() {
+    if (!residentName.trim()) {
+      setError("Please enter your name.");
+      return;
+    }
     if (!productName.trim()) {
       setError("Product name is required.");
       return;
@@ -78,7 +82,7 @@ const ProductRequestPage: React.FC = () => {
             space="lg"
           >
             {/* Name */}
-            <Text className="text-indigoscale-700">Your Name (optional)</Text>
+            <Text className="text-indigoscale-700">Your Name</Text>
             <Input>
               <InputField
                 placeholder="Enter your name"
