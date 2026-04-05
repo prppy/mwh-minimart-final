@@ -18,7 +18,7 @@ const FeedbackPage: React.FC = () => {
           onPress={() => router.push("/(public)/feedback/product-request")}
         >
           <Center className="h-64 w-96 gap-2 p-5 border border-indigoscale-700 rounded-lg">
-            <Icon as={Box} size={64} className="text-indigoscale-700" />
+            <Icon as={Box} size="xl" className="text-indigoscale-700" />
             <Heading size="2xl" className="text-indigoscale-700">
               Product Request
             </Heading>
@@ -29,7 +29,7 @@ const FeedbackPage: React.FC = () => {
         </Pressable>
         <Pressable onPress={() => router.push("/(public)/feedback/rate-us")}>
           <Center className="h-64 w-96 gap-2 p-5 border border-indigoscale-700 rounded-lg">
-            <Icon as={Star} size={64} className="text-indigoscale-700" />
+            <Icon as={Star} size="xl" className="text-indigoscale-700" />
             <Heading size="2xl" className="text-indigoscale-700">
               Rate Us
             </Heading>

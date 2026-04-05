@@ -1,30 +1,19 @@
 import { prisma } from '../lib/db.js';
 
 export const getFeedbackList = async ({ search = "", category = "all", rating = 0, sortBy = "newest", status = "new", page = 1, pageSize = 5 } = {}) => {
-
   const where = {
-    // ── Status filter ──────────────────────────────────────────────────
-    ...(status !== "all" && {
-      Feedback_Status: status,
-    }),
-    // ── Category filter ────────────────────────────────────────────────
-    ...(category !== "all" && {
-      Feedback_Category: category,
-    }),
-    // ── Rating filter ──────────────────────────────────────────────────
-    ...(rating !== 0 && {
-      Rating: rating,
-    }),
-    // ── Search filter ──────────────────────────────────────────────────
+    ...(status !== "all" && { Feedback_Status: status }),
+    ...(category !== "all" && { Feedback_Category: category }),
+    ...(rating !== 0 && { Rating: rating }),
     ...(search && {
       OR: [
-        { MWH_Resident: { user: { userName: { contains: search, mode: "insensitive" } } } },
+        { Resident_Name: { contains: search, mode: "insensitive" } },
         { Feedback: { contains: search, mode: "insensitive" } },
+        { MWH_Resident: { user: { userName: { contains: search, mode: "insensitive" } } } },
       ],
     }),
   };
 
-  // ── new first, reviewed last — then secondary sort ─────────────────
   const secondarySort = {
     newest:      { Submitted_At: "desc" },
     oldest:      { Submitted_At: "asc"  },
@@ -33,7 +22,7 @@ export const getFeedbackList = async ({ search = "", category = "all", rating = 
   }[sortBy] ?? { Submitted_At: "desc" };
 
   const orderBy = [
-    { Feedback_Status: "asc" },  // "new" < "reviewed" alphabetically
+    { Feedback_Status: "asc" },
     secondarySort,
   ];
 
@@ -53,12 +42,15 @@ export const getFeedbackList = async ({ search = "", category = "all", rating = 
   ]);
 
   const data = rows.map((row) => {
-    const name     = row.MWH_Resident.user.userName ?? "Unknown";
+    // ── Name: prefer typed name, fall back to linked resident, then Unknown
+    const name     = row.Resident_Name
+      ?? row.MWH_Resident?.user?.userName
+      ?? "Unknown";
     const initials = name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
     return {
       feedbackId:       Number(row.Feedback_ID),
-      userId:           row.User_ID,
+      userId:           row.User_ID ?? null,
       residentName:     name,
       initials,
       rating:           row.Rating,
@@ -97,8 +89,8 @@ export const getFeedbackStats = async () => {
 export const getAllFeedbackForExport = async () => {
   const rows = await prisma.mWH_Rating_Feedback.findMany({
     orderBy: [
-      { Feedback_Status: "asc" },
-      { Submitted_At: "desc"   },
+      { Feedback_Status: "asc"  },
+      { Submitted_At:    "desc" },
     ],
     include: {
       MWH_Resident: {
@@ -109,8 +101,8 @@ export const getAllFeedbackForExport = async () => {
 
   return rows.map((row) => ({
     feedbackId:       Number(row.Feedback_ID),
-    residentName:     row.MWH_Resident.user.userName ?? "Unknown",
-    userId:           row.User_ID,
+    residentName:     row.Resident_Name ?? row.MWH_Resident?.user?.userName ?? "Unknown",
+    userId:           row.User_ID ?? null,
     rating:           row.Rating,
     feedback:         row.Feedback ?? "",
     feedbackCategory: row.Feedback_Category ?? "",
@@ -123,5 +115,29 @@ export const updateFeedbackStatus = async (feedbackId, status) => {
   return prisma.mWH_Rating_Feedback.update({
     where: { Feedback_ID: BigInt(feedbackId) },
     data:  { Feedback_Status: status },
+  });
+};
+
+export const createRating = async ({ residentName, rating, feedbackCategory, feedback }) => {
+  return prisma.mWH_Rating_Feedback.create({
+    data: {
+      Resident_Name:     residentName || null,
+      Rating:            rating,
+      Feedback:          feedback || null,
+      Feedback_Category: feedbackCategory || null,
+      Feedback_Status:   "new",
+    },
+  });
+};
+
+export const createProductRequest = async ({ residentName, productName, description, requestCategory }) => {
+  return prisma.mWH_Product_Request.create({
+    data: {
+      Resident_Name:    residentName || null,
+      Product_Name:     productName,
+      Description:      description || null,
+      Request_Category: requestCategory || null,
+      Request_Status:   "pending",
+    },
   });
 };

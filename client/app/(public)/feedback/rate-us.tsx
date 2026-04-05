@@ -1,6 +1,7 @@
 import SmileyRating from "@/components/custom-smiley-rating";
 import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
 import { Center } from "@/components/ui/center";
+import { Input, InputField } from "@/components/ui/input";
 import {
   Select,
   SelectTrigger,
@@ -21,32 +22,50 @@ import { ChevronDown, ChevronLeft } from "lucide-react-native";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 
+import { submitRating } from "@/utils/api/feedback";
+
 const FEEDBACK_CATEGORIES = [
+  { label: "General",    value: "general"    },
+  { label: "Product",    value: "product"    },
+  { label: "Service",    value: "service"    },
+  { label: "Facility",   value: "facility"   },
   { label: "Suggestion", value: "suggestion" },
-  { label: "Complaints", value: "complaint" },
-  { label: "Compliments", value: "compliment" },
-  { label: "Technical Issues", value: "technical_issue" },
+  { label: "Complaint",  value: "complaint"  },
 ];
 
 const RateUsPage: React.FC = () => {
   const router = useRouter();
 
-  const [productRating, setProductRating] = useState(0);
-  const [websiteRating, setWebsiteRating] = useState(0);
-  const [description, setDescription] = useState("");
+  const [residentName,     setResidentName]     = useState("");
+  const [rating,           setRating]           = useState<number | null>(null);
   const [feedbackCategory, setFeedbackCategory] = useState("");
+  const [feedback,         setFeedback]         = useState("");
+  const [submitting,       setSubmitting]       = useState(false);
+  const [error,            setError]            = useState<string | null>(null);
 
-  // TODO: send `payload` to server endpoint
-  const handleSubmit = () => {
-    const payload = {
-      productSelection: productRating,
-      websiteExperience: websiteRating,
-      feedbackCategory: feedbackCategory,
-      additionalFeedback: description,
-    };
+  const handleSubmit = async () => {
+    if (!rating) {
+      setError("Please select a rating.");
+      return;
+    }
 
-    console.log("Submitted Feedback:", payload);
-    router.back();
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      await submitRating({
+        residentName:     residentName.trim() || "Anonymous",
+        rating,
+        feedbackCategory: feedbackCategory || null,
+        feedback:         feedback.trim(),
+      });
+      router.back();
+    } catch (err) {
+      console.error(err);
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -63,23 +82,27 @@ const RateUsPage: React.FC = () => {
             className="w-1/3 p-5 border border-indigoscale-700 rounded-lg"
             space="lg"
           >
+            {/* Name */}
+            <Text className="text-indigoscale-700">Your Name (optional)</Text>
+            <Input>
+              <InputField
+                placeholder="Enter your name"
+                value={residentName}
+                onChangeText={setResidentName}
+              />
+            </Input>
+
+            {/* Single rating */}
             <SmileyRating
-              label="How do you like the selection of Minimart products?"
-              value={productRating}
-              onChange={setProductRating}
+              label="How was your overall experience?"
+              value={rating}
+              onChange={setRating}
             />
 
-            <SmileyRating
-              label="How do you like the website?"
-              value={websiteRating}
-              onChange={setWebsiteRating}
-            />
-
-            <Text className="text-indigoscale-700">Feedback Type</Text>
+            {/* Category */}
+            <Text className="text-indigoscale-700">Feedback Type (optional)</Text>
             <Select onValueChange={setFeedbackCategory}>
-              <SelectTrigger
-                size="md"
-              >
+              <SelectTrigger size="md">
                 <SelectInput placeholder="Select a category" />
                 <SelectIcon className="mr-3" as={ChevronDown} />
               </SelectTrigger>
@@ -100,22 +123,30 @@ const RateUsPage: React.FC = () => {
               </SelectPortal>
             </Select>
 
-            <Text className="text-indigoscale-700">Details</Text>
+            {/* Details */}
+            <Text className="text-indigoscale-700">Details (optional)</Text>
             <Textarea className="data-[focus=true]:border-indigoscale-700">
               <TextareaInput
-                placeholder="Enter Description"
-                value={description}
-                onChangeText={setDescription}
+                placeholder="Tell us more..."
+                value={feedback}
+                onChangeText={setFeedback}
               />
             </Textarea>
+
+            {/* Error */}
+            {error && (
+              <Text className="text-red-500 text-sm">{error}</Text>
+            )}
 
             <Button
               action="primary"
               className="bg-redscale-500"
               onPress={handleSubmit}
+              disabled={submitting}
             >
-              <ButtonText>Submit</ButtonText>
+              <ButtonText>{submitting ? "Submitting..." : "Submit"}</ButtonText>
             </Button>
+
             <Button
               action="secondary"
               variant="link"

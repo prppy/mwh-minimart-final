@@ -3,16 +3,14 @@ import * as feedbackController from '../controllers/feedbackController.js';
 
 const router = express.Router();
 
-// GET  /api/feedback?search=&category=&rating=&sortBy=&status=&page=&pageSize=
-router.get("/",             feedbackController.listFeedback);
+// Admin routes
+router.get("/",               feedbackController.listFeedback);
+router.get("/stats",          feedbackController.feedbackStats);
+router.get("/export",         feedbackController.exportFeedback);
+router.patch("/:id/status",   feedbackController.patchFeedbackStatus);
 
-// GET  /api/feedback/stats
-router.get("/stats",        feedbackController.feedbackStats);
-
-// GET  /api/feedback/export
-router.get("/export",       feedbackController.exportFeedback);
-
-// PATCH /api/feedback/:id/status
-router.patch("/:id/status", feedbackController.patchFeedbackStatus);
+// Public resident routes
+router.post("/rate-us",         feedbackController.submitRating);
+router.post("/product-request", feedbackController.submitProductRequest);
 
 export default router;

@@ -15,13 +15,13 @@ const SmileyRating: React.FC<SmileyRatingProps> = ({ label, value, onChange }) =
       <Text className="text-indigoscale-700 mb-2">{label}</Text>
       <HStack className="justify-around">
         <Pressable onPress={() => onChange(1)}>
-          <Smile size={32} color={value === 1 ? "green" : "gray"} />
+          <Frown size={32} color={value === 1 ? "red" : "gray"} />
         </Pressable>
         <Pressable onPress={() => onChange(2)}>
           <Meh size={32} color={value === 2 ? "orange" : "gray"} />
         </Pressable>
         <Pressable onPress={() => onChange(3)}>
-          <Frown size={32} color={value === 3 ? "red" : "gray"} />
+          <Smile size={32} color={value === 3 ? "green" : "gray"} />
         </Pressable>
       </HStack>
     </>
