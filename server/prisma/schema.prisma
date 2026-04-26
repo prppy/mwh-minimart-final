@@ -173,7 +173,7 @@ model MWH_Question {
 
 model MWH_Product_Request {
   Request_ID       BigInt                    @id @default(autoincrement())
-  User_ID          Int
+  User_ID          Int?
   Product_Name     String                    @db.VarChar
   Description      String?                   @db.VarChar
   Request_Category product_request_category?
@@ -182,19 +182,29 @@ model MWH_Product_Request {
   Submitted_At     DateTime?                 @default(now()) @db.Timestamptz(6)
   Updated_At       DateTime?                 @default(now()) @db.Timestamptz(6)
   Updated_By       Int?
+  Resident_Name    String?                   @db.VarChar(127)
   MWH_Officer      Officer?                  @relation(fields: [Updated_By], references: [userId], onUpdate: NoAction)
-  MWH_Resident     Resident                  @relation(fields: [User_ID], references: [userId], onDelete: NoAction, onUpdate: NoAction)
+  MWH_Resident     Resident?                 @relation(fields: [User_ID], references: [userId], onDelete: NoAction, onUpdate: NoAction)
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model MWH_Rating_Feedback {
   Feedback_ID       BigInt             @id @default(autoincrement())
-  User_ID           Int
+  User_ID           Int?
   Rating            Int                @db.SmallInt
   Feedback          String?            @db.VarChar
   Feedback_Category feedback_category?
   Submitted_At      DateTime           @default(now()) @db.Timestamptz(6)
-  MWH_Resident      Resident           @relation(fields: [User_ID], references: [userId], onDelete: NoAction, onUpdate: NoAction)
+  Feedback_Status   feedback_status    @default(new)
+  Resident_Name     String?            @db.VarChar(127)
+  MWH_Resident      Resident?          @relation(fields: [User_ID], references: [userId], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model MWH_Screensaver_Image {
+  id            Int      @id @default(autoincrement())
+  image_url     String
+  display_order Int
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
 }
 
 model ScreensaverImage {
@@ -245,6 +255,8 @@ enum feedback_category {
   facility
   suggestion
   complaint
+  technical_issue
+  compliment
 }
 
 enum form_type_enum {
@@ -275,4 +287,9 @@ enum urgency_level {
   low
   medium
   high
+}
+
+enum feedback_status {
+  new
+  reviewed
 }

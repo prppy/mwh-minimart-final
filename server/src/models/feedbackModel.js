@@ -1,161 +1,143 @@
 import { prisma } from '../lib/db.js';
 
-// models/Feedback.js
-
-/**
- * Submit product request
- */
-export const submitProductRequest = async (userId, requestData) => {
-  const { productName, description, category, urgency = 'medium' } = requestData;
-
-  // For now, we'll store this in a simple way
-  // In a full implementation, you'd create a ProductRequest table
-  const request = {
-    id: Date.now(), // Temporary ID generation
-    userId: parseInt(userId),
-    productName,
-    description,
-    category,
-    urgency,
-    status: 'pending',
-    submittedAt: new Date(),
-    updatedAt: new Date()
+export const getFeedbackList = async ({ search = "", category = "all", rating = 0, sortBy = "newest", status = "new", page = 1, pageSize = 5 } = {}) => {
+  const where = {
+    ...(status !== "all" && { Feedback_Status: status }),
+    ...(category !== "all" && { Feedback_Category: category }),
+    ...(rating !== 0 && { Rating: rating }),
+    ...(search && {
+      OR: [
+        { Resident_Name: { contains: search, mode: "insensitive" } },
+        { Feedback: { contains: search, mode: "insensitive" } },
+        { MWH_Resident: { user: { userName: { contains: search, mode: "insensitive" } } } },
+      ],
+    }),
   };
 
-  // Log the request (in production, save to database)
-  console.log('Product Request Submitted:', request);
+  const secondarySort = {
+    newest:      { Submitted_At: "desc" },
+    oldest:      { Submitted_At: "asc"  },
+    rating_desc: { Rating: "desc"       },
+    rating_asc:  { Rating: "asc"        },
+  }[sortBy] ?? { Submitted_At: "desc" };
 
-  return request;
-};
-
-/**
- * Submit rating/feedback
- */
-export const submitRating = async (userId, ratingData) => {
-  const { rating, feedback, category = 'general' } = ratingData;
-
-  const ratingRecord = {
-    id: Date.now(),
-    userId: parseInt(userId),
-    rating: parseInt(rating),
-    feedback,
-    category,
-    submittedAt: new Date()
-  };
-
-  // Log the rating (in production, save to database)
-  console.log('Rating Submitted:', ratingRecord);
-
-  return ratingRecord;
-};
-
-/**
- * Get product requests (for officers/admins)
- */
-export const getProductRequests = async (options = {}) => {
-  const { limit = 50, offset = 0, status, userId } = options;
-
-  // This would be a real database query in production
-  // For now, return mock data
-  const mockRequests = [
-    {
-      id: 1,
-      userId: 3,
-      userName: 'john_doe',
-      productName: 'Gaming Mouse',
-      description: 'High-performance gaming mouse for gaming station',
-      category: 'Electronics',
-      urgency: 'high',
-      status: 'pending',
-      submittedAt: new Date('2024-12-01'),
-      updatedAt: new Date('2024-12-01')
-    },
-    {
-      id: 2,
-      userId: 4,
-      userName: 'jane_smith',
-      productName: 'Protein Bars',
-      description: 'Healthy snack option for residents',
-      category: 'Snacks',
-      urgency: 'medium',
-      status: 'approved',
-      submittedAt: new Date('2024-11-28'),
-      updatedAt: new Date('2024-12-02')
-    }
+  const orderBy = [
+    { Feedback_Status: "asc" },
+    secondarySort,
   ];
 
-  let filteredRequests = mockRequests;
-  if (status) {
-    filteredRequests = filteredRequests.filter(req => req.status === status);
-  }
-  if (userId) {
-    filteredRequests = filteredRequests.filter(req => req.userId === parseInt(userId));
-  }
+  const [rows, total] = await Promise.all([
+    prisma.mWH_Rating_Feedback.findMany({
+      where,
+      orderBy,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: {
+        MWH_Resident: {
+          include: { user: true },
+        },
+      },
+    }),
+    prisma.mWH_Rating_Feedback.count({ where }),
+  ]);
 
-  return {
-    requests: filteredRequests.slice(offset, offset + limit),
-    totalCount: filteredRequests.length,
-    pagination: {
-      total: filteredRequests.length,
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      pages: Math.ceil(filteredRequests.length / parseInt(limit))
-    }
-  };
-};
+  const data = rows.map((row) => {
+    // ── Name: prefer typed name, fall back to linked resident, then Unknown
+    const name     = row.Resident_Name
+      ?? row.MWH_Resident?.user?.userName
+      ?? "Unknown";
+    const initials = name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
-/**
- * Update product request status
- */
-export const updateRequestStatus = async (requestId, status, officerId, comments) => {
-  // This would update the database in production
-  console.log('Request Status Updated:', {
-    requestId: parseInt(requestId),
-    status,
-    officerId: parseInt(officerId),
-    comments,
-    updatedAt: new Date()
+    return {
+      feedbackId:       Number(row.Feedback_ID),
+      userId:           row.User_ID ?? null,
+      residentName:     name,
+      initials,
+      rating:           row.Rating,
+      feedback:         row.Feedback ?? null,
+      feedbackCategory: row.Feedback_Category ?? null,
+      feedbackStatus:   row.Feedback_Status,
+      submittedAt:      row.Submitted_At.toISOString().split("T")[0],
+    };
   });
 
   return {
-    id: parseInt(requestId),
-    status,
-    updatedBy: officerId,
-    comments,
-    updatedAt: new Date()
+    data,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.max(1, Math.ceil(total / pageSize)),
   };
 };
 
-/**
- * Get feedback statistics
- */
-export const getFeedbackStatistics = async (period = 'month') => {
-  // Mock statistics - in production, query real data
+export const getFeedbackStats = async () => {
+  const [total, complaints, avg, newCount] = await Promise.all([
+    prisma.mWH_Rating_Feedback.count(),
+    prisma.mWH_Rating_Feedback.count({ where: { Feedback_Category: "complaint" } }),
+    prisma.mWH_Rating_Feedback.aggregate({ _avg: { Rating: true } }),
+    prisma.mWH_Rating_Feedback.count({ where: { Feedback_Status: "new" } }),
+  ]);
+
   return {
-    period,
-    productRequests: {
-      total: 25,
-      pending: 8,
-      approved: 12,
-      rejected: 5
-    },
-    ratings: {
-      total: 45,
-      averageRating: 4.2,
-      distribution: {
-        5: 20,
-        4: 15,
-        3: 7,
-        2: 2,
-        1: 1
-      }
-    },
-    categories: {
-      'Electronics': 8,
-      'Snacks': 6,
-      'Hygiene': 4,
-      'Games': 3,
-      'Other': 4
-    }
+    total,
+    complaints,
+    newCount,
+    avg: avg._avg.Rating != null ? avg._avg.Rating.toFixed(1) : "—",
   };
+};
+
+export const getAllFeedbackForExport = async () => {
+  const rows = await prisma.mWH_Rating_Feedback.findMany({
+    orderBy: [
+      { Feedback_Status: "asc"  },
+      { Submitted_At:    "desc" },
+    ],
+    include: {
+      MWH_Resident: {
+        include: { user: true },
+      },
+    },
+  });
+
+  return rows.map((row) => ({
+    feedbackId:       Number(row.Feedback_ID),
+    residentName:     row.Resident_Name ?? row.MWH_Resident?.user?.userName ?? "Unknown",
+    userId:           row.User_ID ?? null,
+    rating:           row.Rating,
+    feedback:         row.Feedback ?? "",
+    feedbackCategory: row.Feedback_Category ?? "",
+    feedbackStatus:   row.Feedback_Status,
+    submittedAt:      row.Submitted_At.toISOString().replace("T", " ").slice(0, 19),
+  }));
+};
+
+export const updateFeedbackStatus = async (feedbackId, status) => {
+  return prisma.mWH_Rating_Feedback.update({
+    where: { Feedback_ID: BigInt(feedbackId) },
+    data:  { Feedback_Status: status },
+  });
+};
+
+export const createRating = async ({ residentName, rating, feedbackCategory, feedback }) => {
+  return prisma.mWH_Rating_Feedback.create({
+    data: {
+      Resident_Name:     residentName || null,
+      Rating:            rating,
+      Feedback:          feedback || null,
+      Feedback_Category: feedbackCategory || null,
+      Feedback_Status:   "new",
+    },
+  });
+};
+
+export const createProductRequest = async ({ residentName, productName, description, requestCategory }) => {
+  return prisma.mWH_Product_Request.create({
+    data: {
+      Resident_Name:    residentName || null,
+      Product_Name:     productName,
+      Description:      description || null,
+      Request_Category: requestCategory || null,
+      Request_Status:   "pending",
+    },
+  });
 };
