@@ -103,7 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const logout = async () => {
-    await AsyncStorage.multiRemove(["token", "user"]);
+    await AsyncStorage.multiRemove(["token", "user", "@cart"]); // Clear cart on logout
     api.removeAuth();
     setUser(null);
     setRole(null);

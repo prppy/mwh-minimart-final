@@ -207,6 +207,15 @@ model MWH_Screensaver_Image {
   created_at    DateTime @default(now()) @db.Timestamptz(6)
 }
 
+model ScreensaverImage {
+  id           Int      @id @default(autoincrement())
+  imageUrl     String   @map("image_url")
+  displayOrder Int      @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("MWH_Screensaver_Image")
+}
+
 enum transaction_type_enum {
   completion
   redemption
