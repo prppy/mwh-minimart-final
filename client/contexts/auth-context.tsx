@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "../utils/api";
 import { authAPI, User } from "../utils/auth";
+import { useIdleTimeout } from "@/hooks/useIdleTimeout";
 
 type Role = "resident" | "officer" | "developer" | null;
 
@@ -18,12 +19,42 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const INACTIVITY_AUTO_LOGOUT_MS = 5 * 60 * 1000; // 5 minutes
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<Role>(null);
   const [loading, setLoading] = useState(true);
+
+  const logout = async () => {
+    await AsyncStorage.multiRemove(["token", "user", "@cart"]); // Clear cart on logout
+    api.removeAuth();
+    setUser(null);
+    setRole(null);
+  };
+
+  // Auto logout after inactivity (applies to all authenticated users)
+  const { resetTimer } = useIdleTimeout({
+    timeout: INACTIVITY_AUTO_LOGOUT_MS,
+    onIdle: () => {
+      if (user) {
+        void logout();
+      }
+    },
+    onActive: () => {
+      // no-op
+    },
+  });
+
+  // Whenever auth state changes, reset inactivity timer for logged-in users.
+  useEffect(() => {
+    if (user) {
+      resetTimer();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, role]);
 
   useEffect(() => {
     const loadAuth = async () => {
@@ -36,6 +67,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           setUser(parsed);
           setRole(parsed.userRole); // assumes user has userRole
           api.setAuthToken(storedToken);
+
+          // Start counting inactivity as soon as a session is restored.
+          resetTimer();
 
           console.log("🔐 Restored session:", {
             token: storedToken,
@@ -53,23 +87,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     };
     loadAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loginResident = async (userId: number, password: string) => {
-    console.log("🔐 AuthContext loginResident called with:", { userId, passwordLength: password.length });
-    
+    console.log("🔐 AuthContext loginResident called with:", {
+      userId,
+      passwordLength: password.length,
+    });
+
     try {
       const res = await authAPI.loginResident({
         userId,
         password,
       });
-      
+
       console.log("✅ AuthAPI response received:", {
         hasAccessToken: !!res.accessToken,
         hasRefreshToken: !!res.refreshToken,
         user: res.user,
       });
-      
+
       if (!res.accessToken || !res.refreshToken)
         throw new Error("Invalid login response");
 
@@ -79,6 +117,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       api.setAuthToken(res.accessToken);
       setUser(res.user);
       setRole(res.user.userRole);
+
+      // Start inactivity timer immediately after login.
+      resetTimer();
+
       console.log("✅ Login successful, stored in AsyncStorage");
     } catch (error) {
       console.error("❌ AuthContext loginResident error:", error);
@@ -100,13 +142,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     api.setAuthToken(res.accessToken);
     setUser(res.user);
     setRole(res.user.userRole);
-  };
 
-  const logout = async () => {
-    await AsyncStorage.multiRemove(["token", "user", "@cart"]); // Clear cart on logout
-    api.removeAuth();
-    setUser(null);
-    setRole(null);
+    // Start inactivity timer immediately after login.
+    resetTimer();
   };
 
   const isAdmin = role === "officer" || role === "developer";
