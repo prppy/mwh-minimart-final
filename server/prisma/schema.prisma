@@ -197,6 +197,15 @@ model MWH_Rating_Feedback {
   MWH_Resident      Resident           @relation(fields: [User_ID], references: [userId], onDelete: NoAction, onUpdate: NoAction)
 }
 
+model ScreensaverImage {
+  id           Int      @id @default(autoincrement())
+  imageUrl     String   @map("image_url")
+  displayOrder Int      @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("MWH_Screensaver_Image")
+}
+
 enum transaction_type_enum {
   completion
   redemption
