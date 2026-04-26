@@ -16,6 +16,7 @@
     "@expo/html-elements": "^0.12.5",
     "@expo/metro-runtime": "~6.1.2",
     "@expo/vector-icons": "^15.0.2",
+    "@gluestack-style/react": "^1.0.57",
     "@gluestack-ui/core": "^3.0.10",
     "@gluestack-ui/themed": "^1.1.73",
     "@gluestack-ui/utils": "^3.0.7",
