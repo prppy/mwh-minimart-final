@@ -7,7 +7,7 @@ export default function Index() {
   if (loading) return null; // or a splash screen
 
   if (!user) {
-    return <Redirect href="/(public)/catalogue" />;
+    return <Redirect href="/(public)" />;
   }
 
   if (role === "officer" || role === "developer") {
@@ -18,5 +18,5 @@ export default function Index() {
     return <Redirect href="/(resident)" />;
   }
 
-  return <Redirect href="/(public)/catalogue" />;
+  return <Redirect href="/(public)" />;
 }

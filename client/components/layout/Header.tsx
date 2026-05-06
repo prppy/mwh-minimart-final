@@ -84,10 +84,10 @@ const Header: React.FC = () => {
   // handle presses
   const handleLogoPress = async () => {
     if (!user) {
-      router.push("/(public)/catalogue");
+      router.push("/(public)");
     } else if (role === "resident") {
       await logout();
-      router.push("/(public)/catalogue");
+      router.push("/(public)");
     } else if (role === "officer" || role === "developer") {
       router.push("/(admin)");
     }
@@ -96,7 +96,7 @@ const Header: React.FC = () => {
   const handleTabPress = async (tab: any) => {
     if (tab.action === "logout") {
       await logout();
-      router.replace("/(public)/catalogue");
+      router.replace("/(public)");
     } else if (isActiveTab(tab.route)) {
       return;
     } else {
@@ -114,9 +114,9 @@ const Header: React.FC = () => {
               source={require("@/assets/logo.png")}
               alt="MWH Logo"
             />
-            <VStack className="justify-center">
-              <Heading className="text-3xl text-indigoscale-700" bold>
-                {activeTabName}
+            <VStack className="justify-center ml-2">
+              <Heading className="text-2xl text-indigoscale-900" bold>
+                MWH
               </Heading>
               <Text className="text-indigoscale-500" size={"sm"}>
                 MWH Minimart

@@ -48,7 +48,7 @@ const LoginPage: React.FC = () => {
             </ButtonText>
           </Button>
           <Button
-          variant="outline"
+            variant="outline"
             size="lg"
             onPress={() => setActiveRole("officer")}
             className={
