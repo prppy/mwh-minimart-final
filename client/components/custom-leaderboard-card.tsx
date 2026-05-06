@@ -6,7 +6,7 @@ import { Image } from "./ui/image";
 
 type LeaderboardCardProps = {
   name: string;
-  points: number;
+  vouchersAwarded: number;
   profilePicture?: string;
   background?: string;
   wallpaperColour?: string;
@@ -22,7 +22,7 @@ const themes: Record<string, any> = {
 
 const LeaderboardCard: React.FC<LeaderboardCardProps> = ({
   name,
-  points,
+  vouchersAwarded,
   profilePicture,
   background = "sports",
   wallpaperColour = "indigo",
@@ -55,7 +55,7 @@ const LeaderboardCard: React.FC<LeaderboardCardProps> = ({
           className={`flex-1 bg-${regularColourClass} items-center justify-between p-3 rounded-lg`}
         >
           <Text size="lg" className="text-white" bold>{name}</Text>
-          <Text size="lg" className="text-white">{points}pts</Text>
+          <Text size="lg" className="text-white">{vouchersAwarded} Vouchers</Text>
         </HStack>
       </HStack>
     </Box>

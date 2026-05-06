@@ -93,7 +93,7 @@ type Performer = {
   dateOfAdmission: Date;
   backgroundType: string;
   wallpaperType: string;
-  periodPoints: number;
+  vouchersAwarded: number;
 };
 
 interface WheelParticipant {

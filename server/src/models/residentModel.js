@@ -178,7 +178,7 @@ export const getLeaderboardByPeriod = async (options = {}) => {
     endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
   }
 
-  // Raw SQL query to get points gained in period
+  // Raw SQL query to count vouchers (completions) awarded in period
   let query = `
     SELECT 
       r."User_ID" as "userId",
@@ -190,11 +190,10 @@ export const getLeaderboardByPeriod = async (options = {}) => {
       r."Date_Of_Admission" as "dateOfAdmission",
       r."Wallpaper_Theme" as "backgroundType",
       r."Wallpaper_Colour" as "wallpaperType",
-      COALESCE(SUM(CASE 
+      COALESCE(COUNT(CASE 
         WHEN t."Transaction_Type" = 'completion' AND t."Transaction_Date" >= $1 AND t."Transaction_Date" <= $2 
-        THEN t."Points_Change" 
-        ELSE 0 
-      END), 0) as "periodPoints"
+        THEN 1 
+      END), 0) as "vouchersAwarded"
     FROM "public"."MWH_Resident" r
     INNER JOIN "public"."MWH_User" u ON r."User_ID" = u."User_ID"
     LEFT JOIN "public"."MWH_Transaction" t ON r."User_ID" = t."User_ID"
@@ -214,7 +213,7 @@ export const getLeaderboardByPeriod = async (options = {}) => {
     GROUP BY r."User_ID", u."User_Name", u."Profile_Picture", r."Current_Points", 
              r."Total_Points", r."Batch_Number", r."Date_Of_Admission", 
              r."Wallpaper_Theme", r."Wallpaper_Colour"
-    ORDER BY "periodPoints" DESC
+    ORDER BY "vouchersAwarded" DESC
     LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
   `;
 
@@ -254,7 +253,7 @@ export const getLeaderboardByPeriod = async (options = {}) => {
     dateOfAdmission: resident.dateOfAdmission,
     backgroundType: resident.backgroundType,
     wallpaperType: resident.wallpaperType,
-    periodPoints: parseInt(resident.periodPoints),
+    vouchersAwarded: parseInt(resident.vouchersAwarded),
   }));
 
   return {

@@ -162,7 +162,7 @@ const AdminPage: React.FC = () => {
             <LeaderboardCard
               key={p.rank}
               name={p.userName}
-              points={p.periodPoints}
+              vouchersAwarded={p.vouchersAwarded}
               background={p.backgroundType}
               wallpaperColour={p.wallpaperType}
             />
