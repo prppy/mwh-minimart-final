@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView } from "react-native";
-import { Plus } from "lucide-react-native";
+import { Plus, ShoppingCart } from "lucide-react-native";
 
 import EmptyAlert from "./custom-empty-alert";
 import SearchBar from "./custom-searchbar";
 
-import { Button, ButtonText } from "./ui/button";
+import { Button, ButtonText, ButtonIcon } from "./ui/button";
 import { Card } from "./ui/card";
 import { Center } from "./ui/center";
 import { Grid, GridItem } from "./ui/grid";
@@ -15,6 +15,7 @@ import { Image } from "./ui/image";
 import { Text } from "./ui/text";
 import { VStack } from "./ui/vstack";
 import { useAuth } from "@/contexts/auth-context";
+import { useCart } from "@/contexts/cart-context";
 
 interface SearchableGridProps {
   items: {
@@ -31,6 +32,7 @@ interface SearchableGridProps {
   }) => void;
   onAddPress: () => void;
   noItemsAlert: string;
+  enableCart?: boolean;
 }
 
 const SearchableGrid: React.FC<SearchableGridProps> = ({
@@ -38,10 +40,27 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
   onItemPress,
   onAddPress,
   noItemsAlert,
+  enableCart = false,
 }) => {
-  const { isAdmin, isAuthenticated } = useAuth();
+  const { isAdmin, isAuthenticated, role } = useAuth();
+  const { addToCart, isInCart } = useCart();
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [search, setSearch] = useState("");
+
+  const showCart = enableCart && role === "resident";
+
+  const handleAddToCart = (
+    e: any,
+    item: { id: number | string; name: string; points: number; image: string }
+  ) => {
+    e.stopPropagation(); // Prevent card click
+    addToCart({
+      id: Number(item.id),
+      productName: item.name,
+      points: item.points,
+      imageUrl: item.image,
+    });
+  };
 
   const visibleItems = useMemo(() => {
     const filtered = items.filter((item) =>
@@ -128,12 +147,30 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
                           />
                         ) : null}
                       </Center>
-                      <Text size="xl" className="text-indigoscale-700">
-                        {item.name}
-                      </Text>
-                      <Text bold className="text-gray-500">
-                        {item.points} pts
-                      </Text>
+                      <VStack space="xs">
+                        <Text size="xl" className="text-indigoscale-700">
+                          {item.name}
+                        </Text>
+                        <Text bold className="text-gray-500">
+                          {item.points} pts
+                        </Text>
+                        {showCart && (
+                          <Button
+                            size="sm"
+                            onPress={(e) => handleAddToCart(e, item)}
+                            className={
+                              isInCart(Number(item.id))
+                                ? "bg-green-600"
+                                : "bg-indigoscale-700"
+                            }
+                          >
+                            <ButtonIcon as={ShoppingCart} className="text-white" />
+                            <ButtonText className="text-white">
+                              {isInCart(Number(item.id)) ? "In Cart" : "Add to Cart"}
+                            </ButtonText>
+                          </Button>
+                        )}
+                      </VStack>
                     </Card>
                   </Pressable>
                 </GridItem>

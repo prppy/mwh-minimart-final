@@ -11,6 +11,7 @@ import transactionRoutes from './transactionRoutes.js';
 import leaderboardRoutes from './leaderboardRoutes.js';
 import feedbackRoutes from './feedbackRoutes.js';
 import archiveRoutes from './archiveRoutes.js';
+import screensaverRoutes from './screensaverRoutes.js';
 
 router.use('/users', userRoutes);
 router.use('/authentication', authenticationRoute);
@@ -22,5 +23,6 @@ router.use('/transactions', transactionRoutes);
 router.use('/leaderboard', leaderboardRoutes);
 router.use('/feedback', feedbackRoutes);
 router.use('/archive', archiveRoutes);
+router.use('/screensaver-images', screensaverRoutes);
 
 export default router;
