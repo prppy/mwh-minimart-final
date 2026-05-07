@@ -92,6 +92,7 @@ model Task {
   taskDescription String?       @map("Task_Description")
   points          Int?          @map("Points")
   imageUrl        String?       @map("Image_URL")
+  taskDate        DateTime      @map("Task_Date") @db.Date
   completions     Completion[]
   taskCategory    TaskCategory? @relation(fields: [taskCategoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -200,12 +201,6 @@ model MWH_Rating_Feedback {
   MWH_Resident      Resident?          @relation(fields: [User_ID], references: [userId], onDelete: NoAction, onUpdate: NoAction)
 }
 
-model MWH_Screensaver_Image {
-  id            Int      @id @default(autoincrement())
-  image_url     String
-  display_order Int
-  created_at    DateTime @default(now()) @db.Timestamptz(6)
-}
 
 model ScreensaverImage {
   id           Int      @id @default(autoincrement())

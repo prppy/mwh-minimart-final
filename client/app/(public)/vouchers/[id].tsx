@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { Platform } from "react-native";
 import * as lucideReactNative from "lucide-react-native";
 
 import api, { ApiError } from "@/utils/api";
@@ -62,6 +63,7 @@ const VoucherDetailPage: React.FC = () => {
             },
             imageUrl: "",
             points: 0,
+            taskDate: new Date().toISOString().split('T')[0],
             completions: [],
             _count: { completions: 0 },
           };
@@ -319,6 +321,18 @@ const VoucherDetailPage: React.FC = () => {
               }
             />
           </Input>
+
+          <Text>Date</Text>
+          <Input>
+            <InputField
+              placeholder="YYYY-MM-DD"
+              value={tempVoucher?.taskDate ? tempVoucher.taskDate.split('T')[0] : ""}
+              onChangeText={(text) =>
+                setTempVoucher((p) => ({ ...p!, taskDate: text || "" }))
+              }
+              {...(Platform.OS === "web" ? { type: "date" as any } : {})}
+            />
+          </Input>
           <HStack space="md">
             <Button
               action="negative"
@@ -358,12 +372,18 @@ const VoucherDetailPage: React.FC = () => {
             {voucher.taskName}
           </Heading>
 
-          <HStack space="lg">
+          <HStack space="lg" className="flex-wrap">
             <Badge size="lg">
               <BadgeText>{voucher.taskCategory.taskCategoryName}</BadgeText>
             </Badge>
-            <Badge size="lg">
-              <BadgeText>Daily</BadgeText>
+            <Badge size="lg" action="info">
+              <BadgeText>
+                {new Date(voucher.taskDate).toLocaleDateString("en-SG", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </BadgeText>
             </Badge>
           </HStack>
 

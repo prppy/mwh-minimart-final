@@ -17,7 +17,7 @@
     "@expo/metro-runtime": "~6.1.2",
     "@expo/vector-icons": "^15.0.2",
     "@gluestack-style/react": "^1.0.57",
-    "@gluestack-ui/core": "^3.0.10",
+    "@gluestack-ui/core": "^5.0.13-alpha.0",
     "@gluestack-ui/themed": "^1.1.73",
     "@gluestack-ui/utils": "^3.0.7",
     "@gorhom/bottom-sheet": "^5.0.0-alpha.11",
@@ -47,6 +47,7 @@
     "nativewind": "^4.2.1",
     "react": "19.1.0",
     "react-aria": "^3.43.2",
+    "react-datepicker": "^9.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.4",
     "react-native-gesture-handler": "~2.28.0",
@@ -65,6 +66,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
+    "@types/react-datepicker": "^7.0.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
     "typescript": "~5.9.2"

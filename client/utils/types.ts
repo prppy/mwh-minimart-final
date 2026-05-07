@@ -63,6 +63,7 @@ interface Voucher {
   taskCategory: TaskCategory;
   imageUrl: string;
   points: number;
+  taskDate: string;
   _count: { completions: number };
   completions: Completion[];
 }

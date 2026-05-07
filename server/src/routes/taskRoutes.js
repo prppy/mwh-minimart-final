@@ -36,7 +36,12 @@ const createTaskValidation = [
   body('imageUrl')
     .optional()
     .isString()
-    .withMessage('Image URL must be a string')
+    .withMessage('Image URL must be a string'),
+
+  body('taskDate')
+    .optional()
+    .isISO8601()
+    .withMessage('Task date must be a valid date')
 ];
 
 // Validation middleware for updating tasks
@@ -68,7 +73,12 @@ const updateTaskValidation = [
   body('imageUrl')
     .optional()
     .isString()
-    .withMessage('Image URL must be a string')
+    .withMessage('Image URL must be a string'),
+
+  body('taskDate')
+    .optional()
+    .isISO8601()
+    .withMessage('Task date must be a valid date')
 ];
 
 taskRouter.get('/', TasksController.getAllTasks);

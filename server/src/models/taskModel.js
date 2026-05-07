@@ -82,7 +82,7 @@ export const findMany = async (options = {}) => {
   } catch (error) {
     if (error.code === 'P2022' || error.code === 'P2032') {
       console.log('Attempting raw query for findMany due to schema mismatch...');
-      
+
       // Build the raw SQL query
       let query = `
         SELECT 
@@ -119,7 +119,7 @@ export const findMany = async (options = {}) => {
         'taskName': 't."Task_Name"',
         'points': 't."Points"'
       };
-      
+
       const orderColumn = validOrderColumns[sortBy] || 't."Task_Name"';
       const direction = sortOrder.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
       query += ` ORDER BY ${orderColumn} ${direction}`;
@@ -231,7 +231,7 @@ export const findById = async (id) => {
   } catch (error) {
     if (error.code === 'P2022' || error.code === 'P2032') {
       console.log('Attempting raw query for findById due to schema mismatch...');
-      
+
       const query = `
         SELECT 
           t."Task_ID" as id,
@@ -248,13 +248,13 @@ export const findById = async (id) => {
       `;
 
       const rawTasks = await prisma.$queryRawUnsafe(query, parseInt(id));
-      
+
       if (rawTasks.length === 0) {
         return null;
       }
 
       const task = rawTasks[0];
-      
+
       return {
         id: task.id,
         taskName: task.taskName,
@@ -366,7 +366,7 @@ export const findByCategory = async (options = {}) => {
   } catch (error) {
     if (error.code === 'P2022' || error.code === 'P2032') {
       console.log('Attempting raw query for findByCategory due to schema mismatch...');
-      
+
       // Build the raw SQL query
       let query = `
         SELECT 
@@ -397,7 +397,7 @@ export const findByCategory = async (options = {}) => {
         'taskName': 't."Task_Name"',
         'points': 't."Points"'
       };
-      
+
       const orderColumn = validOrderColumns[sortBy] || 't."Task_Name"';
       const direction = sortOrder.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
       query += ` ORDER BY ${orderColumn} ${direction}`;
@@ -467,12 +467,13 @@ export const create = async (taskData) => {
     taskDescription,
     points,
     taskCategoryId,
-    imageUrl
+    imageUrl,
+    taskDate
   } = taskData;
 
   // Validate required fields
-  if (!taskName || !taskDescription || !points || !taskCategoryId) {
-    throw new Error('Missing required fields: taskName, taskDescription, points, taskCategoryId');
+  if (!taskName || !taskDescription || !points || !taskCategoryId || !taskDate) {
+    throw new Error('Missing required fields: taskName, taskDescription, points, taskCategoryId, taskDate');
   }
 
   // Check if category exists
@@ -490,7 +491,8 @@ export const create = async (taskData) => {
       taskDescription,
       points: parseInt(points),
       taskCategoryId: parseInt(taskCategoryId),
-      imageUrl: imageUrl || null
+      imageUrl: imageUrl || null,
+      taskDate: new Date(taskData.taskDate)
     },
     include: {
       taskCategory: true
@@ -525,6 +527,7 @@ export const update = async (id, updates) => {
   const updateData = { ...updates };
   if (updateData.points) updateData.points = parseInt(updateData.points);
   if (updateData.taskCategoryId) updateData.taskCategoryId = parseInt(updateData.taskCategoryId);
+  if (updateData.taskDate !== undefined) updateData.taskDate = new Date(updateData.taskDate);
 
   return prisma.task.update({
     where: { id: parseInt(id) },
@@ -585,7 +588,7 @@ export const getPopular = async (limit = 10, timeframe = 'month') => {
       default:
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
     }
-    
+
     dateFilter = {
       transaction: {
         transactionDate: {
@@ -620,8 +623,8 @@ export const getPopular = async (limit = 10, timeframe = 'month') => {
     categoryName: task.taskCategory?.taskCategoryName,
     completionCount: task.completions.length
   }))
-  .sort((a, b) => b.completionCount - a.completionCount)
-  .slice(0, parseInt(limit));
+    .sort((a, b) => b.completionCount - a.completionCount)
+    .slice(0, parseInt(limit));
 
   return tasksWithCounts;
 };
@@ -775,7 +778,7 @@ export const getCategories = async () => {
   } catch (error) {
     if (error.code === 'P2022' || error.code === 'P2032') {
       console.log('Attempting raw query for getCategories due to schema mismatch...');
-      
+
       const query = `
         SELECT 
           tc."Task_Category_ID" as id,
@@ -786,7 +789,7 @@ export const getCategories = async () => {
       `;
 
       const rawCategories = await prisma.$queryRawUnsafe(query);
-      
+
       // Transform results and add task counts
       const categories = rawCategories.map(category => ({
         id: category.id,
@@ -821,7 +824,7 @@ export const findAll = async () => {
   } catch (error) {
     if (error.code === 'P2022' || error.code === 'P2032') {
       console.log('Attempting raw query for findAll due to schema mismatch...');
-      
+
       const query = `
         SELECT 
           t."Task_ID" as id,
