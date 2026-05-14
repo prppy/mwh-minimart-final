@@ -4,7 +4,7 @@ import * as userModel from "../models/userModel.js";
 export const createResident = async (req, res, next) => {
   try {
     console.log("BODY RECEIVED:", req.body);
-    const { userName, password, dateOfBirth, batchNumber } = req.body;
+    const { userName, password, dateOfBirth, batchNumber, serialNumber, dateOfAdmission, isActive, remarks } = req.body;
     if (!userName || !password) {
       return res
         .status(400)
@@ -17,6 +17,10 @@ export const createResident = async (req, res, next) => {
       userRole: "resident",
       dateOfBirth,
       batchNumber,
+      serialNumber,
+      dateOfAdmission,
+      isActive: isActive !== undefined ? isActive : true,
+      remarks: remarks || null,
       currentPoints: 0,
       totalPoints: 0,
     });

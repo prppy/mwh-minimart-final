@@ -9,6 +9,7 @@ type Resident = {
   createdAt: Date;
   updatedAt: Date;
 
+  serialNumber: string | null;
   batchNumber: number;
   currentPoints: number;
   totalPoints: number;
@@ -16,6 +17,9 @@ type Resident = {
   dateOfAdmission: Date;
   dateOfBirth: Date;
   lastAbscondence: string | null;
+
+  isActive: boolean;
+  remarks: string | null;
 
   backgroundType: string; // theme
   wallpaperType: string; // colour

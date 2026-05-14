@@ -5,7 +5,7 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -26,6 +26,7 @@ model User {
 
 model Resident {
   userId              Int                         @id @map("User_ID")
+  serialNumber        String?                     @unique @map("Serial_Number") @db.VarChar(50)
   dateOfBirth         DateTime?                   @map("Date_Of_Birth") @db.Timestamp(6)
   dateOfAdmission     DateTime?                   @map("Date_Of_Admission") @db.Timestamp(6)
   lastAbscondence     DateTime?                   @map("Last_Abscondence") @db.Timestamp(6)
@@ -36,6 +37,7 @@ model Resident {
   Wallpaper_Theme     wallpaper_theme_type_enum?  @default(sports)
   lastActivityDate    DateTime?                   @map("Last_Activity_Date") @db.Timestamptz(6)
   isActive            Boolean?                    @default(true) @map("Is_Active")
+  remarks             resident_remarks_enum?      @map("Remarks")
   MWH_Product_Request MWH_Product_Request[]
   MWH_Rating_Feedback MWH_Rating_Feedback[]
   user                User                        @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -64,7 +66,7 @@ model Category {
 model TaskCategory {
   id                      Int     @id @default(autoincrement()) @map("Task_Category_ID")
   taskCategoryName        String? @map("Task_Category_Name") @db.VarChar(50)
-  taskCategoryDescription String? @map("Task_Category_Description") @db.VarChar(100)
+  taskCategoryDescription String? @map("Task_Category_Description") @db.Text
   tasks                   Task[]
 
   @@map("MWH_Task_Category")
@@ -287,4 +289,11 @@ enum urgency_level {
 enum feedback_status {
   new
   reviewed
+}
+
+enum resident_remarks_enum {
+  discharged
+  ftr
+  abscondence
+  extended_homeleave
 }
