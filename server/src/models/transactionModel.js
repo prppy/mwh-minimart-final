@@ -176,6 +176,12 @@ export const createCompletion = async ({ userId, officerId, tasks }) => {
       throw new Error('Resident not found');
     }
 
+    // Feature 1 & 2: Check if resident has absconded or is FTR — not entitled to points
+    if (resident.remarks === 'abscondence' || resident.remarks === 'ftr') {
+      const reasonLabel = resident.remarks === 'ftr' ? 'FTR (Failure To Return)' : 'Abscondence';
+      throw new Error(`This resident has ${reasonLabel} status and is not entitled to receive points. Points will not be awarded.`);
+    }
+
     // Verify all tasks exist (removed active check since it doesn't exist in schema)
     const taskIds = tasks.map(t => parseInt(t.id));
     const foundTasks = await prisma.task.findMany({
@@ -244,8 +250,111 @@ export const createCompletion = async ({ userId, officerId, tasks }) => {
 };
 
 /**
- * Create abscondence transaction
+ * Create bulk task completion transactions for multiple residents
+ * Feature 3: Bulk selection for voucher rewards
+ * Skips residents with abscondence/ftr remarks (Features 1 & 2)
  */
+export const createBulkCompletion = async ({ userIds, officerId, tasks }) => {
+  try {
+    // Verify all tasks exist
+    const taskIds = tasks.map(t => parseInt(t.id));
+    const foundTasks = await prisma.task.findMany({
+      where: { id: { in: taskIds } }
+    });
+
+    if (foundTasks.length !== taskIds.length) {
+      throw new Error('One or more tasks not found');
+    }
+
+    const totalPoints = foundTasks.reduce((sum, task) => sum + task.points, 0);
+
+    // Fetch all residents
+    const residents = await prisma.resident.findMany({
+      where: { userId: { in: userIds.map(id => parseInt(id)) } },
+      include: { user: { select: { userName: true } } }
+    });
+
+    const results = {
+      successful: [],
+      skipped: [],
+      failed: []
+    };
+
+    // Process each resident
+    for (const resident of residents) {
+      // Check remarks — skip if abscondence or ftr
+      if (resident.remarks === 'abscondence' || resident.remarks === 'ftr') {
+        const reasonLabel = resident.remarks === 'ftr' ? 'FTR' : 'Abscondence';
+        results.skipped.push({
+          userId: resident.userId,
+          userName: resident.user.userName,
+          reason: `${reasonLabel} — not entitled to points`
+        });
+        continue;
+      }
+
+      try {
+        const result = await prisma.$transaction(async (tx) => {
+          const transaction = await tx.transaction.create({
+            data: {
+              userId: resident.userId,
+              pointsChange: totalPoints,
+              transactionType: 'completion'
+            }
+          });
+
+          const completions = await Promise.all(
+            foundTasks.map(task =>
+              tx.completion.create({
+                data: {
+                  transactionId: transaction.id,
+                  taskId: task.id
+                }
+              })
+            )
+          );
+
+          const updatedResident = await tx.resident.update({
+            where: { userId: resident.userId },
+            data: {
+              currentPoints: { increment: totalPoints },
+              totalPoints: { increment: totalPoints }
+            }
+          });
+
+          return { transaction, completions, updatedResident };
+        });
+
+        results.successful.push({
+          userId: resident.userId,
+          userName: resident.user.userName,
+          pointsEarned: totalPoints,
+          newBalance: result.updatedResident.currentPoints
+        });
+      } catch (err) {
+        results.failed.push({
+          userId: resident.userId,
+          userName: resident.user.userName,
+          reason: err.message
+        });
+      }
+    }
+
+    return {
+      totalProcessed: residents.length,
+      successCount: results.successful.length,
+      skippedCount: results.skipped.length,
+      failedCount: results.failed.length,
+      pointsPerResident: totalPoints,
+      results
+    };
+
+  } catch (error) {
+    console.error('Transaction createBulkCompletion error:', error);
+    throw error;
+  }
+};
+
 export const createAbscondence = async ({ userId, officerId, reason, pointsPenalty }) => {
   try {
     // Verify resident exists

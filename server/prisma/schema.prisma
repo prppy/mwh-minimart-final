@@ -67,6 +67,7 @@ model TaskCategory {
   id                      Int     @id @default(autoincrement()) @map("Task_Category_ID")
   taskCategoryName        String? @map("Task_Category_Name") @db.VarChar(50)
   taskCategoryDescription String? @map("Task_Category_Description") @db.Text
+  iconName                String? @map("Icon_Name") @db.VarChar(50)
   tasks                   Task[]
 
   @@map("MWH_Task_Category")

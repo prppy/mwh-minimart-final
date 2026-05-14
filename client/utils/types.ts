@@ -46,6 +46,7 @@ interface TaskCategory {
   id: number;
   taskCategoryName: string;
   taskCategoryDescription: string;
+  iconName?: string;
 }
 
 interface Product {

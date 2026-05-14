@@ -22,7 +22,50 @@ import {
   Wrench,
   X,
   ArrowUpDown,
+  Tag,
+  Gift,
+  Zap,
+  BookOpen,
+  Coffee,
+  Music,
+  Smile,
+  Sun,
+  Moon,
+  Cloud,
+  Flame,
+  Anchor,
+  Bell,
+  Camera,
+  Compass,
+  Feather,
+  Key,
+  Map,
 } from "lucide-react-native";
+
+const ICON_MAP: Record<string, any> = {
+  tag: Tag,
+  gift: Gift,
+  star: Star,
+  award: Award,
+  heart: Heart,
+  zap: Zap,
+  shield: Shield,
+  book: BookOpen,
+  coffee: Coffee,
+  music: Music,
+  smile: Smile,
+  sun: Sun,
+  moon: Moon,
+  cloud: Cloud,
+  flame: Flame,
+  anchor: Anchor,
+  bell: Bell,
+  camera: Camera,
+  compass: Compass,
+  feather: Feather,
+  key: Key,
+  map: Map,
+};
 
 import api from "@/utils/api";
 import { Voucher, TaskCategory } from "@/utils/types";
@@ -186,7 +229,19 @@ const VouchersPage: React.FC = () => {
     return result;
   }, [vouchers, selectedCategoryId, search, sortField, sortDir, dateFrom, dateTo]);
 
-  const getCategoryMeta = (name: string) => {
+  const getCategoryMeta = (cat: TaskCategory | null) => {
+    if (!cat) return DEFAULT_META;
+
+    // Use icon from DB if available
+    if (cat.iconName && ICON_MAP[cat.iconName]) {
+      return {
+        icon: ICON_MAP[cat.iconName],
+        color: "bg-indigoscale-100",
+        description: cat.taskCategoryDescription || ""
+      };
+    }
+
+    const name = cat.taskCategoryName || "";
     return (
       CATEGORY_META[name] ||
       CATEGORY_META[name.toLowerCase()] ||
@@ -215,7 +270,7 @@ const VouchersPage: React.FC = () => {
     ? taskCategories.find((c) => c.id === selectedCategoryId)
     : null;
   const selectedMeta = selectedCat
-    ? getCategoryMeta(selectedCat.taskCategoryName)
+    ? getCategoryMeta(selectedCat)
     : null;
 
   return (
@@ -247,7 +302,7 @@ const VouchersPage: React.FC = () => {
             </Pressable>
 
             {taskCategories.map((cat) => {
-              const meta = getCategoryMeta(cat.taskCategoryName);
+              const meta = getCategoryMeta(cat);
               const isSelected = selectedCategoryId === cat.id;
               return (
                 <Pressable key={cat.id} onPress={() => setSelectedCategoryId(cat.id)}>
@@ -439,9 +494,8 @@ const VouchersPage: React.FC = () => {
         <ScrollView className="flex-1 mt-3">
           <VStack space="md">
             {filteredVouchers.map((voucher) => {
-              const catName =
-                voucher.taskCategory?.taskCategoryName || "Unknown";
-              const meta = getCategoryMeta(catName);
+              const cat = voucher.taskCategory;
+              const meta = getCategoryMeta(cat);
 
               return (
                 <Pressable
@@ -466,7 +520,7 @@ const VouchersPage: React.FC = () => {
                       </Text>
                       <HStack space="sm" className="items-center flex-wrap">
                         <Badge size="sm" action="muted">
-                          <BadgeText>{catName}</BadgeText>
+                          <BadgeText>{cat?.taskCategoryName}</BadgeText>
                         </Badge>
                         <HStack className="items-center" space="xs">
                           <Icon

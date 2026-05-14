@@ -63,7 +63,7 @@ const Header: React.FC = () => {
     if (role === "officer" || role === "developer") {
       return [
         { name: "Catalogue", route: "/(public)/catalogue", icon: ShoppingBag },
-        { name: "Vouchers", route: "/(public)/vouchers", icon: TicketCheck },
+        { name: "Vouchers", route: "/(admin)/voucher-management", icon: TicketCheck },
         { name: "Users", route: "/(admin)/users", icon: Users },
         { name: "Feedback", route: "/(admin)/feedback", icon: MessageSquare },
         { name: "Spin & Win", route: "/(admin)/lottery", icon: Trophy },

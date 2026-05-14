@@ -138,6 +138,7 @@ transactionRouter.get('/', transactionQueryValidation, TransactionController.get
 // Transaction creation routes
 transactionRouter.post('/redemption', redemptionValidation, TransactionController.createRedemption);
 transactionRouter.post('/completion', completionValidation, TransactionController.createCompletion);
+transactionRouter.post('/completion/bulk', TransactionController.createBulkCompletion);
 transactionRouter.post('/abscondence', abscondenceValidation, TransactionController.createAbscondence);
 
 // User transaction routes
