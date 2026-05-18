@@ -78,7 +78,7 @@ const EMPTY_FORM: ResidentFormData = {
 const UserManagementPage: React.FC = () => {
   const [search, setSearch] = useState("");
   const [selectedRole, setSelectedRole] = useState<"residents" | "officers">(
-    "residents"
+    "residents",
   );
   const [users, setUsers] = useState<(Resident | Officer)[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -93,7 +93,9 @@ const UserManagementPage: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingUserId, setEditingUserId] = useState<number | null>(null);
   const [formData, setFormData] = useState<ResidentFormData>({ ...EMPTY_FORM });
-  const [formErrors, setFormErrors] = useState<Partial<Record<keyof ResidentFormData, string>>>({});
+  const [formErrors, setFormErrors] = useState<
+    Partial<Record<keyof ResidentFormData, string>>
+  >({});
   const [submitting, setSubmitting] = useState(false);
 
   // Fetch users whenever search / role / pagination changes
@@ -104,7 +106,7 @@ const UserManagementPage: React.FC = () => {
       const res = await api.get(
         `/users?role=${backendRole}&limit=${itemsPerPage}&offset=${
           page * itemsPerPage
-        }&search=${search}`
+        }&search=${search}`,
       );
       setUsers(res.data.data.users);
       setTotalCount(res.data.data.pagination.total);
@@ -187,7 +189,9 @@ const UserManagementPage: React.FC = () => {
       fetchUsers();
     } catch (err: any) {
       console.error("Edit resident error:", err);
-      alert("Failed to update resident: " + (err.message || "Please try again"));
+      alert(
+        "Failed to update resident: " + (err.message || "Please try again"),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -265,7 +269,9 @@ const UserManagementPage: React.FC = () => {
         </Input>
         {formErrors.serialNumber && (
           <FormControlError>
-            <FormControlErrorText>{formErrors.serialNumber}</FormControlErrorText>
+            <FormControlErrorText>
+              {formErrors.serialNumber}
+            </FormControlErrorText>
           </FormControlError>
         )}
       </FormControl>
@@ -310,7 +316,9 @@ const UserManagementPage: React.FC = () => {
         )}
         {formErrors.dateOfAdmission && (
           <FormControlError>
-            <FormControlErrorText>{formErrors.dateOfAdmission}</FormControlErrorText>
+            <FormControlErrorText>
+              {formErrors.dateOfAdmission}
+            </FormControlErrorText>
           </FormControlError>
         )}
       </FormControl>
@@ -338,7 +346,11 @@ const UserManagementPage: React.FC = () => {
                 <SelectDragIndicator />
               </SelectDragIndicatorWrapper>
               {STATUS_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} label={opt.label} value={opt.value} />
+                <SelectItem
+                  key={opt.value}
+                  label={opt.label}
+                  value={opt.value}
+                />
               ))}
             </SelectContent>
           </SelectPortal>
@@ -369,7 +381,11 @@ const UserManagementPage: React.FC = () => {
               </SelectDragIndicatorWrapper>
               <SelectItem label="None" value="" />
               {REMARKS_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} label={opt.label} value={opt.value} />
+                <SelectItem
+                  key={opt.value}
+                  label={opt.label}
+                  value={opt.value}
+                />
               ))}
             </SelectContent>
           </SelectPortal>
@@ -436,7 +452,8 @@ const UserManagementPage: React.FC = () => {
       <DataTable.Cell>
         <View
           style={{
-            backgroundColor: user.resident?.isActive !== false ? "#dcfce7" : "#fee2e2",
+            backgroundColor:
+              user.resident?.isActive !== false ? "#dcfce7" : "#fee2e2",
             paddingHorizontal: 8,
             paddingVertical: 2,
             borderRadius: 12,
@@ -453,9 +470,7 @@ const UserManagementPage: React.FC = () => {
           </Text>
         </View>
       </DataTable.Cell>
-      <DataTable.Cell>
-        {getRemarksLabel(user.resident?.remarks)}
-      </DataTable.Cell>
+      <DataTable.Cell>{getRemarksLabel(user.resident?.remarks)}</DataTable.Cell>
       <DataTable.Cell>
         {`${user.resident?.currentPoints ?? 0} pts`}
       </DataTable.Cell>
@@ -528,7 +543,7 @@ const UserManagementPage: React.FC = () => {
                   : "text-indigoscale-700"
               }
             >
-              Officers
+              Staff
             </ButtonText>
           </Button>
 
@@ -571,9 +586,7 @@ const UserManagementPage: React.FC = () => {
               <DataTable.Cell>Loading...</DataTable.Cell>
             </DataTable.Row>
           ) : (
-            <ScrollView>
-              {users.map((u, idx) => renderRow(u, idx))}
-            </ScrollView>
+            <ScrollView>{users.map((u, idx) => renderRow(u, idx))}</ScrollView>
           )}
 
           {/* FOOTER */}
@@ -617,7 +630,11 @@ const UserManagementPage: React.FC = () => {
       </View>
 
       {/* ADD RESIDENT MODAL */}
-      <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} size="lg">
+      <Modal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        size="lg"
+      >
         <ModalBackdrop />
         <ModalContent>
           <ModalHeader>
@@ -653,7 +670,11 @@ const UserManagementPage: React.FC = () => {
       </Modal>
 
       {/* EDIT RESIDENT MODAL */}
-      <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} size="lg">
+      <Modal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        size="lg"
+      >
         <ModalBackdrop />
         <ModalContent>
           <ModalHeader>

@@ -9,6 +9,8 @@ const SUPABASE_ANON_KEY =
 // Provide the "ws" polyfill as a fallback when WebSocket is missing.
 const hasNativeWebSocket = typeof globalThis.WebSocket !== "undefined";
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  realtime: hasNativeWebSocket ? {} : { transport: require("ws") },
-});
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+//   realtime: hasNativeWebSocket ? {} : { transport: require("ws") },
+// });
