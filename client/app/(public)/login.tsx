@@ -64,7 +64,7 @@ const LoginPage: React.FC = () => {
                   : "text-indigoscale-700"
               }
             >
-              Officer
+              Staff
             </ButtonText>
           </Button>
         </HStack>
