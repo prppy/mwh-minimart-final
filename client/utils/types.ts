@@ -58,6 +58,12 @@ interface Product {
   imageUrl: string;
   available: boolean;
   points: number;
+  redemptionCount?: number;
+  Type_ID?: number | null;
+  MWH_Type?: {
+    Type_ID: number;
+    Type_Name: string;
+  } | null;
 }
 
 interface Voucher {
