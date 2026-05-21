@@ -35,7 +35,7 @@ export default function Index() {
   }
 
   if (role === "resident") {
-    return <Redirect href="/(resident)" />;
+    return <Redirect href="/(resident)/profile" />;
   }
 
   return <Redirect href="/(public)" />;

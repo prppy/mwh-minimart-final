@@ -66,7 +66,7 @@ const ResidentLoginForm: React.FC = () => {
       setPassword("");
       setShowPassword(false);
 
-      router.push("/(resident)");
+      router.push("/(resident)/profile");
     } catch (error: any) {
       // Log all error details
       console.error("❌ Resident login failed - Full error:", error);

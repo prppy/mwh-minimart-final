@@ -46,8 +46,9 @@ const LeaderboardPage: React.FC = () => {
 
   // Subscribe to Supabase Realtime for live leaderboard updates
   useEffect(() => {
+    const channelId = `leaderboard-realtime-${Math.random().toString(36).substring(2, 11)}`;
     const channel = supabase
-      .channel("leaderboard-realtime")
+      .channel(channelId)
       .on(
         "postgres_changes",
         {

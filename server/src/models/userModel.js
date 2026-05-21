@@ -84,6 +84,8 @@ export const findById = async (id, options = {}) => {
           COALESCE(r."Current_Points", 0) as "resident_currentPoints",
           COALESCE(r."Total_Points", 0) as "resident_totalPoints",
           r."Batch_Number" as "resident_batchNumber",
+          r."Wallpaper_Theme" as "resident_wallpaperTheme",
+          r."Wallpaper_Colour" as "resident_wallpaperColour",
           r."Is_Active" as "resident_isActive",
           r."Remarks" as "resident_remarks",
           o."Officer_Email" as "officer_officerEmail"
@@ -122,6 +124,10 @@ export const findById = async (id, options = {}) => {
                 currentPoints: parseInt(user.resident_currentPoints) || 0,
                 totalPoints: parseInt(user.resident_totalPoints) || 0,
                 batchNumber: user.resident_batchNumber,
+                Wallpaper_Theme: user.resident_wallpaperTheme,
+                Wallpaper_Colour: user.resident_wallpaperColour,
+                backgroundType: user.resident_wallpaperTheme,
+                wallpaperType: user.resident_wallpaperColour,
                 isActive: user.resident_isActive,
                 remarks: user.resident_remarks,
               }

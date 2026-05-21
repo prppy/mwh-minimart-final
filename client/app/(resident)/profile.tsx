@@ -24,7 +24,7 @@ const ProfilePage: React.FC = () => {
 
   // helper methods:
   const mapResident = (data: any): Resident => {
-    const r = data.resident;
+    const r = data.resident || {};
     return {
       id: data.id,
       userName: data.userName,
@@ -32,16 +32,16 @@ const ProfilePage: React.FC = () => {
       profilePicture: data.profilePicture ?? undefined,
       createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
       updatedAt: new Date(data.updatedAt),
-      batchNumber: r.batchNumber,
-      currentPoints: r.currentPoints,
-      totalPoints: r.totalPoints,
+      batchNumber: r.batchNumber || 0,
+      currentPoints: r.currentPoints || 0,
+      totalPoints: r.totalPoints || 0,
       dateOfAdmission: r.dateOfAdmission
         ? new Date(r.dateOfAdmission)
         : new Date(),
-      dateOfBirth: new Date(r.dateOfBirth),
+      dateOfBirth: r.dateOfBirth ? new Date(r.dateOfBirth) : new Date(),
       lastAbscondence: r.lastAbscondence,
-      backgroundType: r.Wallpaper_Theme,
-      wallpaperType: r.Wallpaper_Colour,
+      backgroundType: r.Wallpaper_Theme ?? r.backgroundType ?? "sports",
+      wallpaperType: r.Wallpaper_Colour ?? r.wallpaperType ?? "red",
     };
   };
 
@@ -75,8 +75,11 @@ const ProfilePage: React.FC = () => {
     );
   }
 
-  const regular = `${resident.wallpaperType}scale-500`;
-  const dark = `${resident.wallpaperType}scale-700`;
+  const wallpaperType = resident.wallpaperType || "red";
+  const backgroundType = resident.backgroundType || "sports";
+
+  const regular = `${wallpaperType}scale-500`;
+  const dark = `${wallpaperType}scale-700`;
   const darkText = `text-${dark}`;
 
   const colorOptions = ["red", "orange", "yellow", "green", "blue", "purple"];
@@ -105,10 +108,10 @@ const ProfilePage: React.FC = () => {
   };
 
   return (
-    <VStack className={`flex-1 bg-${resident.wallpaperType}scale-300`}>
+    <VStack className={`flex-1 bg-${wallpaperType}scale-300`}>
       <ImageBackground
         className="flex-1 flex-row gap-20 p-20"
-        source={backgrounds[resident.backgroundType]}
+        source={backgrounds[backgroundType]}
         imageStyle={{ opacity: 0.3 }}
       >
         <Avatar className={`border-8 w-96 h-96 border-${regular} bg-${dark}`}>
@@ -135,7 +138,7 @@ const ProfilePage: React.FC = () => {
                 <ColorSwatch
                   key={c}
                   color={c}
-                  selected={c === resident.wallpaperType}
+                  selected={c === wallpaperType}
                   onPress={() => updateResident({ wallpaperType: c })}
                 />
               ))}
@@ -147,7 +150,7 @@ const ProfilePage: React.FC = () => {
                   key={t}
                   icon={icons[t]}
                   color={dark}
-                  selected={t === resident.backgroundType}
+                  selected={t === backgroundType}
                   onPress={() => updateResident({ backgroundType: t })}
                 />
               ))}

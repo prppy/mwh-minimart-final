@@ -100,8 +100,9 @@ const CataloguePage: React.FC = () => {
     });
 
     // Supabase Realtime Subscription for MWH_Product
+    const channelId = `catalogue-realtime-${Math.random().toString(36).substring(2, 11)}`;
     const channel = supabase
-      .channel("catalogue-realtime")
+      .channel(channelId)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "MWH_Product" },
