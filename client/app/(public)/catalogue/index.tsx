@@ -152,7 +152,7 @@ const CataloguePage: React.FC = () => {
             Type
           </Text>
           <VStack space="sm">
-            <Checkbox value="Daily">Daily</Checkbox>
+            <Checkbox value="Weekly">Weekly</Checkbox>
             <Checkbox value="Showcase">Showcase</Checkbox>
           </VStack>
         </VStack>

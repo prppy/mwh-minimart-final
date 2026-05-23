@@ -44,6 +44,11 @@ interface TaskCategory {
   taskCategoryDescription: string;
 }
 
+interface ProductCategoryEntry {
+  categoryId: number;
+  categoryName: string;
+}
+
 interface Product {
   id: number;
   productName: string;
@@ -53,6 +58,8 @@ interface Product {
   imageUrl: string;
   available: boolean;
   points: number;
+  typeId?: number | null;
+  productCategories?: ProductCategoryEntry[];
 }
 
 interface Voucher {

@@ -9,19 +9,28 @@ export const findAll = async () => {
     const products = await prisma.product.findMany({
       include: {
         category: true,
+        type: true,
+        productCategories: {
+          include: { category: true },
+        },
       },
       orderBy: {
         productName: "asc",
       },
     });
 
-    return products;
+    // Serialize BigInt typeId to Number for JSON compatibility
+    return products.map((p) => ({
+      ...p,
+      typeId: p.typeId != null ? Number(p.typeId) : null,
+      type: p.type ? { ...p.type, id: Number(p.type.id) } : null,
+    }));
   } catch (error) {
     if (error.code === "P2022" || error.code === "P2032") {
       console.log("Attempting raw query for findAll due to schema mismatch...");
 
       const query = `
-        SELECT 
+        SELECT
           p."Product_ID" as id,
           p."Product_Name" as "productName",
           p."Image_URL" as "imageUrl",
@@ -29,15 +38,24 @@ export const findAll = async () => {
           p."Points" as points,
           p."Available" as available,
           p."Category_ID" as "categoryId",
-          c."Category_Name" as "category_name"
+          p."Type_ID"::int as "typeId",
+          c."Category_Name" as "category_name",
+          COALESCE(
+            json_agg(
+              json_build_object('categoryId', pc."Category_ID", 'categoryName', tc."Category_Name")
+            ) FILTER (WHERE pc."Category_ID" IS NOT NULL),
+            '[]'
+          ) as "productCategories"
         FROM "public"."MWH_Product" p
         LEFT JOIN "public"."MWH_Category" c ON p."Category_ID" = c."Category_ID"
+        LEFT JOIN "public"."MWH_Product_Category" pc ON p."Product_ID" = pc."Product_ID"
+        LEFT JOIN "public"."MWH_Category" tc ON pc."Category_ID" = tc."Category_ID"
+        GROUP BY p."Product_ID", c."Category_Name"
         ORDER BY p."Product_Name" ASC
       `;
 
       const rawProducts = await prisma.$queryRawUnsafe(query);
 
-      // Transform raw results to match expected format
       const products = rawProducts.map((product) => ({
         id: product.id,
         productName: product.productName,
@@ -46,12 +64,16 @@ export const findAll = async () => {
         points: product.points,
         available: product.available,
         categoryId: product.categoryId,
+        typeId: product.typeId != null ? Number(product.typeId) : null,
         category: product.category_name
           ? {
             id: product.categoryId,
             categoryName: product.category_name,
           }
           : null,
+        productCategories: Array.isArray(product.productCategories)
+          ? product.productCategories
+          : [],
       }));
 
       return products;

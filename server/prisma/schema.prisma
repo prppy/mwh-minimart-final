@@ -5,7 +5,7 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -78,11 +78,21 @@ model Product {
   points             Int?              @map("Points")
   available          Boolean?          @map("Available")
   categoryId         Int?              @map("Category_ID")
+  typeId             BigInt?           @map("Type_ID")
   category           Category?         @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  type               ProductType?      @relation(fields: [typeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   productCategories  ProductCategory[]
   redemptions        Redemption[]
 
   @@map("MWH_Product")
+}
+
+model ProductType {
+  id       BigInt    @id @default(autoincrement()) @map("Type_ID")
+  typeName String?   @default("Daily") @map("Type_Name") @db.VarChar
+  products Product[]
+
+  @@map("MWH_Type")
 }
 
 model Task {
@@ -198,13 +208,6 @@ model MWH_Rating_Feedback {
   Feedback_Status   feedback_status    @default(new)
   Resident_Name     String?            @db.VarChar(127)
   MWH_Resident      Resident?          @relation(fields: [User_ID], references: [userId], onDelete: NoAction, onUpdate: NoAction)
-}
-
-model MWH_Screensaver_Image {
-  id            Int      @id @default(autoincrement())
-  image_url     String
-  display_order Int
-  created_at    DateTime @default(now()) @db.Timestamptz(6)
 }
 
 model ScreensaverImage {

@@ -363,7 +363,7 @@ const VoucherDetailPage: React.FC = () => {
               <BadgeText>{voucher.taskCategory.taskCategoryName}</BadgeText>
             </Badge>
             <Badge size="lg">
-              <BadgeText>Daily</BadgeText>
+              <BadgeText>Weekly</BadgeText>
             </Badge>
           </HStack>
 
