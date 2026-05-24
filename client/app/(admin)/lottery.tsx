@@ -3,6 +3,7 @@ import { ScrollView } from "react-native";
 import {
   ArrowDownAZ,
   ArrowUpZA,
+  Search,
   SlidersHorizontal,
   X,
   RotateCcw,
@@ -23,7 +24,8 @@ import { Text } from "@/components/ui/text";
 import { Badge, BadgeText } from "@/components/ui/badge";
 import { Pressable } from "@/components/ui/pressable";
 import { Divider } from "@/components/ui/divider";
-import { Input, InputField } from "@/components/ui/input";
+import { Input, InputField, InputIcon, InputSlot } from "@/components/ui/input";
+import { Image as UiImage } from "@/components/ui/image";
 import Checkbox from "@/components/custom-checkbox";
 import { Center } from "@/components/ui/center";
 import * as alert from "@/components/ui/alert-dialog";
@@ -266,34 +268,42 @@ const WinnerDialog: React.FC<WinnerDialogProps> = ({ winner, onClose }) => (
 interface ResidentListItemProps {
   resident: Resident;
   isSelected: boolean;
+  isEligible: boolean;
   onToggle: (id: string) => void;
 }
 
 const ResidentListItem: React.FC<ResidentListItemProps> = ({
   resident,
   isSelected,
+  isEligible,
   onToggle,
 }) => (
   <Checkbox
     key={resident.id}
     value={resident.id.toString()}
     isChecked={isSelected}
-    onChange={() => onToggle(resident.id.toString())}
+    isDisabled={!isEligible}
+    onChange={() => isEligible && onToggle(resident.id.toString())}
     className="w-full"
   >
     <VStack
-      className={`flex-1 bg-${resident.wallpaperType}scale-300 p-3 border-2 border-${resident.wallpaperType}scale-500 rounded-xl`}
+      className={`flex-1 p-3 border-2 rounded-xl ${
+        isEligible
+          ? `bg-${resident.wallpaperType}scale-300 border-${resident.wallpaperType}scale-500`
+          : "bg-gray-100 border-gray-200 opacity-40"
+      }`}
     >
       <Heading
         size="lg"
-        className={`text-${resident.wallpaperType}scale-700`}
+        className={isEligible ? `text-${resident.wallpaperType}scale-700` : "text-gray-400"}
         bold
       >
         {resident.userName}
       </Heading>
-      <Text className={`text-${resident.wallpaperType}scale-700`}>
+      <Text className={isEligible ? `text-${resident.wallpaperType}scale-700` : "text-gray-400"}>
         Points: {resident.currentPoints ?? 0} | Batch:{" "}
         {resident.batchNumber || "-"}
+        {!isEligible && "  ⛔ Can't afford"}
       </Text>
     </VStack>
   </Checkbox>
@@ -432,6 +442,17 @@ const LotteryPage: React.FC = () => {
     [products, itemSearch]
   );
 
+  // When selected item changes, drop any selected residents who can't afford it
+  useEffect(() => {
+    if (!selectedItem) return;
+    setSelectedResidents((prev) =>
+      prev.filter((id) => {
+        const res = residents.find((r) => String(r.id) === id);
+        return res && (res.currentPoints ?? 0) >= selectedItem.points;
+      })
+    );
+  }, [selectedItem, residents]);
+
   // committed filter state: updated only when user presses Apply
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
@@ -514,10 +535,16 @@ const LotteryPage: React.FC = () => {
     }
 
     if (filters.sortOrder !== "none") {
+      // User-applied name sort
       result = [...result].sort((a, b) => {
         const cmp = a.userName.localeCompare(b.userName);
         return filters.sortOrder === "asc" ? cmp : -cmp;
       });
+    } else {
+      // Default: highest points first
+      result = [...result].sort(
+        (a, b) => (b.currentPoints ?? 0) - (a.currentPoints ?? 0),
+      );
     }
 
     return result;
@@ -571,7 +598,11 @@ const LotteryPage: React.FC = () => {
   // handlers
 
   const handleSelectAll = () =>
-    setSelectedResidents(filteredResidents.map((res) => res.id.toString()));
+    setSelectedResidents(
+      filteredResidents
+        .filter((res) => !selectedItem || (res.currentPoints ?? 0) >= selectedItem.points)
+        .map((res) => res.id.toString())
+    );
 
   const handleDeselectAll = () => setSelectedResidents([]);
 
@@ -698,7 +729,7 @@ const LotteryPage: React.FC = () => {
                           : "border-transparent"
                       }`}
                     >
-                      <Image
+                      <UiImage
                         source={product.imageUrl}
                         alt={product.productName}
                         className="w-28 h-28"
@@ -767,9 +798,24 @@ const LotteryPage: React.FC = () => {
 
         {/* Toolbar */}
         <HStack space="sm" className="items-center">
-          <HStack className="flex-1">
-            <SearchBar search={search} setSearch={setSearch} />
-          </HStack>
+          <Input variant="outline" size="md" className="flex-1">
+            <InputSlot className="pl-3">
+              <InputIcon as={Search} className="text-indigoscale-500" />
+            </InputSlot>
+            <InputField
+              placeholder="Search residents..."
+              value={search}
+              onChangeText={setSearch}
+              className="text-indigoscale-700"
+            />
+            {search.length > 0 && (
+              <InputSlot className="pr-3">
+                <Pressable onPress={() => setSearch("")}>
+                  <InputIcon as={X} className="text-indigoscale-400" />
+                </Pressable>
+              </InputSlot>
+            )}
+          </Input>
 
           <FilterButton
             activeFilterCount={activeFilterCount}
@@ -814,6 +860,7 @@ const LotteryPage: React.FC = () => {
                   key={res.id}
                   resident={res}
                   isSelected={selectedResidents.includes(res.id.toString())}
+                  isEligible={!selectedItem || (res.currentPoints ?? 0) >= selectedItem.points}
                   onToggle={toggleResident}
                 />
               ))}
