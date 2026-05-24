@@ -10,6 +10,8 @@ const mapProductBigInt = (product) => {
   if (mapped.Type_ID !== undefined && mapped.Type_ID !== null) {
     mapped.Type_ID = Number(mapped.Type_ID);
   }
+  // Expose camelCase alias so client-side `p.typeId` filter works
+  mapped.typeId = mapped.Type_ID ?? null;
   if (mapped.MWH_Type) {
     mapped.MWH_Type = {
       Type_ID: Number(mapped.MWH_Type.Type_ID),
@@ -76,6 +78,7 @@ export const findAll = async () => {
         available: product.available,
         categoryId: product.categoryId,
         Type_ID: product.TypeId ? Number(product.TypeId) : null,
+        typeId: product.TypeId ? Number(product.TypeId) : null,
         redemptionCount: product.redemptionCount || 0,
         category: product.category_name
           ? {
@@ -230,6 +233,7 @@ export const findByCategory = async (categoryId) => {
         available: product.available,
         categoryId: product.categoryId,
         Type_ID: product.TypeId ? Number(product.TypeId) : null,
+        typeId: product.TypeId ? Number(product.TypeId) : null,
         redemptionCount: product.redemptionCount || 0,
         category: product.category_name
           ? {
@@ -335,6 +339,7 @@ export const findById = async (id, includeAnalytics = false) => {
         available: product.available,
         categoryId: product.categoryId,
         Type_ID: product.TypeId ? Number(product.TypeId) : null,
+        typeId: product.TypeId ? Number(product.TypeId) : null,
         category: product.category_name
           ? {
               id: product.categoryId,
@@ -801,6 +806,7 @@ export const search = async (query, options = {}) => {
         available: product.available,
         categoryId: product.categoryId,
         Type_ID: product.TypeId ? Number(product.TypeId) : null,
+        typeId: product.TypeId ? Number(product.TypeId) : null,
         redemptionCount: product.redemptionCount || 0,
         category: product.category_name
           ? {
