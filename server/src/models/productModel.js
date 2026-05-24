@@ -47,7 +47,7 @@ export const findAll = async () => {
     console.warn("findAll standard query failed, falling back to raw query:", error.message || error);
     try {
       const query = `
-        SELECT 
+        SELECT
           p."Product_ID" as id,
           p."Product_Name" as "productName",
           p."Image_URL" as "imageUrl",
@@ -67,7 +67,6 @@ export const findAll = async () => {
 
       const rawProducts = await prisma.$queryRawUnsafe(query);
 
-      // Transform raw results to match expected format
       const products = rawProducts.map((product) => ({
         id: product.id,
         productName: product.productName,

@@ -9,11 +9,10 @@ import {
 } from "lucide-react-native";
 
 import api from "@/utils/api";
-import { Resident, WheelParticipant } from "@/utils/types";
+import { Product, Resident, WheelParticipant } from "@/utils/types";
 
 import EmptyAlert from "@/components/custom-empty-alert";
 import FortuneWheel from "@/components/custom-fortune-wheel";
-import SearchBar from "@/components/custom-searchbar";
 import CustomSpinner from "@/components/custom-spinner";
 
 import { Button, ButtonText } from "@/components/ui/button";
@@ -411,6 +410,27 @@ const LotteryPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [spinning, setSpinning] = useState(false);
   const [winner, setWinner] = useState<string | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [selectedItemId, setSelectedItemId] = useState<string>("");
+  const [itemSearch, setItemSearch] = useState("");
+  const [redemptionStatus, setRedemptionStatus] = useState<RedemptionStatus>("idle");
+  const [redemptionError, setRedemptionError] = useState<string | null>(null);
+
+  const selectedItem = useMemo(
+    () => products.find((p) => String(p.id) === selectedItemId) ?? null,
+    [products, selectedItemId]
+  );
+
+  // Only show Showcase items (Type_ID = 2), filtered by search
+  const showcaseProducts = useMemo(
+    () =>
+      products.filter(
+        (p) =>
+          p.typeId === 2 &&
+          p.productName.toLowerCase().includes(itemSearch.toLowerCase())
+      ),
+    [products, itemSearch]
+  );
 
   // committed filter state: updated only when user presses Apply
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
@@ -419,6 +439,21 @@ const LotteryPage: React.FC = () => {
   // data fetching
 
   useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await api.get("products");
+        const data = response.data.data;
+        const fetched: Product[] = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.products)
+          ? data.products
+          : [];
+        setProducts(fetched);
+      } catch (error) {
+        console.error("Failed to fetch products:", error);
+      }
+    };
+
     const fetchResidents = async () => {
       setLoading(true);
       try {
@@ -455,6 +490,7 @@ const LotteryPage: React.FC = () => {
       }
     };
 
+    fetchProducts();
     fetchResidents();
   }, []);
 
@@ -549,7 +585,7 @@ const LotteryPage: React.FC = () => {
 
   const handleSpinEnd = (winnerName: string) => {
     setSpinning(false);
-    setTimeout(() => {
+    setTimeout(async () => {
       setWinner(winnerName);
       const winnerParticipant = wheelParticipants.find(
         (p) => p.name === winnerName,
@@ -558,8 +594,46 @@ const LotteryPage: React.FC = () => {
         setSelectedResidents((prev) =>
           prev.filter((id) => id !== winnerParticipant.id),
         );
+
+        // Auto-redeem the selected item for the winner
+        if (selectedItem) {
+          setRedemptionStatus("loading");
+          setRedemptionError(null);
+          try {
+            await api.post("transactions/redemption", {
+              userId: parseInt(winnerParticipant.id),
+              products: [{ id: selectedItem.id, quantity: 1 }],
+            });
+            setRedemptionStatus("success");
+
+            // Update the winner's local points so the UI reflects the deduction
+            setResidents((prev) =>
+              prev.map((r) =>
+                String(r.id) === winnerParticipant.id
+                  ? {
+                      ...r,
+                      currentPoints:
+                        (r.currentPoints ?? 0) - selectedItem.points,
+                    }
+                  : r
+              )
+            );
+          } catch (error: any) {
+            setRedemptionStatus("error");
+            setRedemptionError(
+              error?.response?.data?.error?.message ??
+                "Redemption failed. Please process manually."
+            );
+          }
+        }
       }
     }, 500);
+  };
+
+  const handleCloseWinner = () => {
+    setWinner(null);
+    setRedemptionStatus("idle");
+    setRedemptionError(null);
   };
 
   const toggleResident = (resId: string) => {
@@ -576,7 +650,92 @@ const LotteryPage: React.FC = () => {
     <HStack className="flex-1 bg-indigoscale-500 gap-5 p-5">
       {/* Spin & Win Wheel */}
       <VStack className="flex-1" space="lg">
-        <Center className="w-full h-full gap-5 p-5">
+        {/* item selection grid */}
+        <VStack className="bg-white rounded-2xl p-4" space="sm">
+          <Heading className="text-indigoscale-700" size="md">
+            Spinning for
+          </Heading>
+
+          {/* search */}
+          <Input variant="outline" size="md">
+            <InputSlot className="pl-3">
+              <InputIcon as={Search} className="text-indigoscale-500" />
+            </InputSlot>
+            <InputField
+              placeholder="Search items..."
+              value={itemSearch}
+              onChangeText={setItemSearch}
+              className="text-indigoscale-700"
+            />
+            {itemSearch.length > 0 && (
+              <InputSlot className="pr-3">
+                <Pressable onPress={() => setItemSearch("")}>
+                  <InputIcon as={X} className="text-indigoscale-400" />
+                </Pressable>
+              </InputSlot>
+            )}
+          </Input>
+
+          {/* product tiles — showcase items only */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <HStack space="sm">
+              {showcaseProducts.length === 0 ? (
+                <Text className="text-gray-400 italic py-2">
+                  No showcase items available
+                </Text>
+              ) : (
+                showcaseProducts.map((product) => {
+                  const isSelected = selectedItemId === String(product.id);
+                  return (
+                    <Pressable
+                      key={product.id}
+                      onPress={() =>
+                        setSelectedItemId(isSelected ? "" : String(product.id))
+                      }
+                      className={`w-28 rounded-xl overflow-hidden border-2 ${
+                        isSelected
+                          ? "border-indigoscale-700"
+                          : "border-transparent"
+                      }`}
+                    >
+                      <Image
+                        source={product.imageUrl}
+                        alt={product.productName}
+                        className="w-28 h-28"
+                        resizeMode="cover"
+                      />
+                      <VStack
+                        className={`p-2 ${
+                          isSelected ? "bg-indigoscale-100" : "bg-gray-50"
+                        }`}
+                      >
+                        <Text
+                          size="xs"
+                          bold
+                          className="text-indigoscale-700"
+                          numberOfLines={2}
+                        >
+                          {product.productName}
+                        </Text>
+                        <Text size="xs" className="text-indigoscale-500">
+                          {product.points} pts
+                        </Text>
+                      </VStack>
+                    </Pressable>
+                  );
+                })
+              )}
+            </HStack>
+          </ScrollView>
+
+          {!selectedItemId && (
+            <Text size="xs" className="text-gray-400 italic">
+              Tap an item to select what you're spinning for
+            </Text>
+          )}
+        </VStack>
+
+        <Center className="flex-1 w-full gap-5 p-5">
           <FortuneWheel
             options={wheelOptions}
             colors={wheelColors}

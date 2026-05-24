@@ -49,6 +49,11 @@ interface TaskCategory {
   iconName?: string;
 }
 
+interface ProductCategoryEntry {
+  categoryId: number;
+  categoryName: string;
+}
+
 interface Product {
   id: number;
   productName: string;
