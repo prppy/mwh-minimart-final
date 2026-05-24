@@ -77,12 +77,17 @@ export const findById = async (id, options = {}) => {
           u."Biometric_Hash" as "biometricHash",
           u."Created_At" as "createdAt",
           u."Updated_At" as "updatedAt",
+          r."Serial_Number" as "resident_serialNumber",
           r."Date_Of_Birth" as "resident_dateOfBirth",
           r."Date_Of_Admission" as "resident_dateOfAdmission",
           r."Last_Abscondence" as "resident_lastAbscondence",
           COALESCE(r."Current_Points", 0) as "resident_currentPoints",
           COALESCE(r."Total_Points", 0) as "resident_totalPoints",
           r."Batch_Number" as "resident_batchNumber",
+          r."Wallpaper_Theme" as "resident_wallpaperTheme",
+          r."Wallpaper_Colour" as "resident_wallpaperColour",
+          r."Is_Active" as "resident_isActive",
+          r."Remarks" as "resident_remarks",
           o."Officer_Email" as "officer_officerEmail"
         FROM "public"."MWH_User" u
         LEFT JOIN "public"."MWH_Resident" r ON u."User_ID" = r."User_ID"
@@ -112,12 +117,19 @@ export const findById = async (id, options = {}) => {
             user.resident_dateOfBirth !== null)
             ? {
                 userId: user.id,
+                serialNumber: user.resident_serialNumber,
                 dateOfBirth: user.resident_dateOfBirth,
                 dateOfAdmission: user.resident_dateOfAdmission,
                 lastAbscondence: user.resident_lastAbscondence,
                 currentPoints: parseInt(user.resident_currentPoints) || 0,
                 totalPoints: parseInt(user.resident_totalPoints) || 0,
                 batchNumber: user.resident_batchNumber,
+                Wallpaper_Theme: user.resident_wallpaperTheme,
+                Wallpaper_Colour: user.resident_wallpaperColour,
+                backgroundType: user.resident_wallpaperTheme,
+                wallpaperType: user.resident_wallpaperColour,
+                isActive: user.resident_isActive,
+                remarks: user.resident_remarks,
               }
             : null,
         officer:
@@ -157,14 +169,20 @@ export const create = async (userData) => {
       await tx.resident.create({
         data: {
           userId: user.id,
+          serialNumber: roleData.serialNumber || null,
           dateOfBirth: roleData.dateOfBirth
             ? new Date(roleData.dateOfBirth)
+            : null,
+          dateOfAdmission: roleData.dateOfAdmission
+            ? new Date(roleData.dateOfAdmission)
             : null,
           batchNumber: roleData.batchNumber
             ? parseInt(roleData.batchNumber)
             : null,
           currentPoints: roleData.currentPoints || 0,
           totalPoints: roleData.totalPoints || 0,
+          isActive: roleData.isActive !== undefined ? roleData.isActive : true,
+          remarks: roleData.remarks || null,
         },
       });
     } else if (userRole === "officer") {
@@ -212,6 +230,12 @@ export const updateProfile = async (userId, updates) => {
       if (residentUpdates.dateOfBirth) {
         residentUpdateData.dateOfBirth = new Date(residentUpdates.dateOfBirth);
       }
+      if (residentUpdates.dateOfAdmission) {
+        residentUpdateData.dateOfAdmission = new Date(residentUpdates.dateOfAdmission);
+      }
+      if (residentUpdates.serialNumber !== undefined) {
+        residentUpdateData.serialNumber = residentUpdates.serialNumber;
+      }
       if (residentUpdates.batchNumber) {
         residentUpdateData.batchNumber = parseInt(residentUpdates.batchNumber);
       }
@@ -220,6 +244,12 @@ export const updateProfile = async (userId, updates) => {
       }
       if (residentUpdates.backgroundType) {
         residentUpdateData.Wallpaper_Theme = residentUpdates.backgroundType;
+      }
+      if (residentUpdates.isActive !== undefined) {
+        residentUpdateData.isActive = residentUpdates.isActive;
+      }
+      if (residentUpdates.remarks !== undefined) {
+        residentUpdateData.remarks = residentUpdates.remarks;
       }
 
       if (Object.keys(residentUpdateData).length > 0) {
@@ -322,6 +352,7 @@ export const findMany = async (options = {}) => {
         }
         u."Created_At" as "createdAt",
         u."Updated_At" as "updatedAt",
+        r."Serial_Number" as "resident_serialNumber",
         r."Date_Of_Birth" as "resident_dateOfBirth",
         r."Date_Of_Admission" as "resident_dateOfAdmission",
         r."Last_Abscondence" as "resident_lastAbscondence",
@@ -330,6 +361,8 @@ export const findMany = async (options = {}) => {
         r."Batch_Number" as "resident_batchNumber",
         r."Wallpaper_Colour" as "resident_wallpaperColour",
         r."Wallpaper_Theme" as "resident_wallpaperTheme",
+        r."Is_Active" as "resident_isActive",
+        r."Remarks" as "resident_remarks",
         o."Officer_Email" as "officer_officerEmail"
       FROM "public"."MWH_User" u
       LEFT JOIN "public"."MWH_Resident" r ON u."User_ID" = r."User_ID"
@@ -364,6 +397,7 @@ export const findMany = async (options = {}) => {
         user.resident_dateOfBirth !== null
           ? {
               userId: user.id,
+              serialNumber: user.resident_serialNumber,
               dateOfBirth: user.resident_dateOfBirth,
               dateOfAdmission: user.resident_dateOfAdmission,
               lastAbscondence: user.resident_lastAbscondence,
@@ -372,6 +406,8 @@ export const findMany = async (options = {}) => {
               batchNumber: user.resident_batchNumber,
               backgroundType: user.resident_wallpaperTheme,
               wallpaperType: user.resident_wallpaperColour,
+              isActive: user.resident_isActive,
+              remarks: user.resident_remarks,
             }
           : null,
       officer: user.officer_officerEmail

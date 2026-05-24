@@ -271,13 +271,14 @@ const ProductDetailPage: React.FC = () => {
               keyboardType="numeric"
               inputMode="numeric"
               placeholder="Points"
-              value={tempProduct?.points.toString() || "0"}
-              onChangeText={(text) =>
+              value={tempProduct?.points !== undefined ? tempProduct.points.toString() : ""}
+              onChangeText={(text) => {
+                const parsed = parseInt(text);
                 setTempProduct((p) => ({
                   ...p!,
-                  points: parseInt(text) || 0,
-                }))
-              }
+                  points: isNaN(parsed) ? 0 : parsed,
+                }));
+              }}
             />
           </Input>
 

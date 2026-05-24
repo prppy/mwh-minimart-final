@@ -15,8 +15,8 @@ const productValidation = [
     .isLength({ max: 500 })
     .withMessage('Product description must be less than 500 characters'),
   body('points')
-    .isInt({ min: 1 })
-    .withMessage('Points must be a positive integer'),
+    .isInt({ min: 0 })
+    .withMessage('Points must be a non-negative integer'),
   body('categoryId')
     .optional()
     .isInt({ min: 1 })
@@ -42,8 +42,8 @@ const productUpdateValidation = [
     .withMessage('Product description must be less than 500 characters'),
   body('points')
     .optional()
-    .isInt({ min: 1 })
-    .withMessage('Points must be a positive integer'),
+    .isInt({ min: 0 })
+    .withMessage('Points must be a non-negative integer'),
   body('categoryId')
     .optional()
     .isInt({ min: 1 })

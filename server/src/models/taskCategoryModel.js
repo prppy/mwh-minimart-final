@@ -56,7 +56,7 @@ export const create = async (taskCategoryData) => {
   const { taskCategoryName } = taskCategoryData;
 
   // Check if exists
-  const existing = await prisma.taskCategory.findUnique({
+  const existing = await prisma.taskCategory.findFirst({
     where: { taskCategoryName }
   });
 
@@ -86,7 +86,7 @@ export const update = async (id, updates) => {
     updates.taskCategoryName &&
     updates.taskCategoryName !== category.taskCategoryName
   ) {
-    const existing = await prisma.taskCategory.findUnique({
+    const existing = await prisma.taskCategory.findFirst({
       where: { taskCategoryName: updates.taskCategoryName }
     });
 

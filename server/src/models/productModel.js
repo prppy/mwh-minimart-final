@@ -2,6 +2,27 @@
 import { prisma } from "../lib/db.js";
 
 /**
+ * Helper to safely map BigInt properties to standard JS numbers to prevent JSON serialization errors.
+ */
+const mapProductBigInt = (product) => {
+  if (!product) return null;
+  const mapped = { ...product };
+  if (mapped.Type_ID !== undefined && mapped.Type_ID !== null) {
+    mapped.Type_ID = Number(mapped.Type_ID);
+  }
+  if (mapped.MWH_Type) {
+    mapped.MWH_Type = {
+      Type_ID: Number(mapped.MWH_Type.Type_ID),
+      Type_Name: mapped.MWH_Type.Type_Name,
+    };
+  }
+  if (mapped._count) {
+    mapped.redemptionCount = mapped._count.redemptions || 0;
+  }
+  return mapped;
+};
+
+/**
  * Get all products
  */
 export const findAll = async () => {
@@ -9,9 +30,11 @@ export const findAll = async () => {
     const products = await prisma.product.findMany({
       include: {
         category: true,
-        type: true,
-        productCategories: {
-          include: { category: true },
+        MWH_Type: true,
+        _count: {
+          select: {
+            redemptions: true,
+          },
         },
       },
       orderBy: {
@@ -19,16 +42,10 @@ export const findAll = async () => {
       },
     });
 
-    // Serialize BigInt typeId to Number for JSON compatibility
-    return products.map((p) => ({
-      ...p,
-      typeId: p.typeId != null ? Number(p.typeId) : null,
-      type: p.type ? { ...p.type, id: Number(p.type.id) } : null,
-    }));
+    return products.map(mapProductBigInt);
   } catch (error) {
-    if (error.code === "P2022" || error.code === "P2032") {
-      console.log("Attempting raw query for findAll due to schema mismatch...");
-
+    console.warn("findAll standard query failed, falling back to raw query:", error.message || error);
+    try {
       const query = `
         SELECT
           p."Product_ID" as id,
@@ -38,19 +55,13 @@ export const findAll = async () => {
           p."Points" as points,
           p."Available" as available,
           p."Category_ID" as "categoryId",
-          p."Type_ID"::int as "typeId",
+          p."Type_ID" as "TypeId",
           c."Category_Name" as "category_name",
-          COALESCE(
-            json_agg(
-              json_build_object('categoryId', pc."Category_ID", 'categoryName', tc."Category_Name")
-            ) FILTER (WHERE pc."Category_ID" IS NOT NULL),
-            '[]'
-          ) as "productCategories"
+          t."Type_Name" as "type_name",
+          COALESCE((SELECT COUNT(*)::int FROM "public"."MWH_Redemption" r WHERE r."Product_ID" = p."Product_ID"), 0) as "redemptionCount"
         FROM "public"."MWH_Product" p
         LEFT JOIN "public"."MWH_Category" c ON p."Category_ID" = c."Category_ID"
-        LEFT JOIN "public"."MWH_Product_Category" pc ON p."Product_ID" = pc."Product_ID"
-        LEFT JOIN "public"."MWH_Category" tc ON pc."Category_ID" = tc."Category_ID"
-        GROUP BY p."Product_ID", c."Category_Name"
+        LEFT JOIN "public"."MWH_Type" t ON p."Type_ID" = t."Type_ID"
         ORDER BY p."Product_Name" ASC
       `;
 
@@ -64,22 +75,27 @@ export const findAll = async () => {
         points: product.points,
         available: product.available,
         categoryId: product.categoryId,
-        typeId: product.typeId != null ? Number(product.typeId) : null,
+        Type_ID: product.TypeId ? Number(product.TypeId) : null,
+        redemptionCount: product.redemptionCount || 0,
         category: product.category_name
           ? {
             id: product.categoryId,
             categoryName: product.category_name,
           }
           : null,
-        productCategories: Array.isArray(product.productCategories)
-          ? product.productCategories
-          : [],
+        MWH_Type: product.type_name
+          ? {
+            Type_ID: product.TypeId ? Number(product.TypeId) : null,
+            Type_Name: product.type_name,
+          }
+          : null,
       }));
 
       return products;
+    } catch (rawError) {
+      console.error("findAll raw query fallback failed too:", rawError);
+      throw error;
     }
-
-    throw error;
   }
 };
 
@@ -129,7 +145,7 @@ export const getPopular = async (limit = 10, timeframe = "all") => {
       redemptions: {
         where: dateFilter,
         select: {
-          id: true,
+          productId: true,
         },
       },
     },
@@ -163,19 +179,22 @@ export const findByCategory = async (categoryId) => {
       },
       include: {
         category: true,
+        MWH_Type: true,
+        _count: {
+          select: {
+            redemptions: true,
+          },
+        },
       },
       orderBy: {
         productName: "asc",
       },
     });
 
-    return products;
+    return products.map(mapProductBigInt);
   } catch (error) {
-    if (error.code === "P2022" || error.code === "P2032") {
-      console.log(
-        "Attempting raw query for findByCategory due to schema mismatch..."
-      );
-
+    console.warn("findByCategory standard query failed, falling back to raw query:", error.message || error);
+    try {
       const query = `
         SELECT 
           p."Product_ID" as id,
@@ -185,9 +204,13 @@ export const findByCategory = async (categoryId) => {
           p."Points" as points,
           p."Available" as available,
           p."Category_ID" as "categoryId",
-          c."Category_Name" as "category_name"
+          p."Type_ID" as "TypeId",
+          c."Category_Name" as "category_name",
+          t."Type_Name" as "type_name",
+          COALESCE((SELECT COUNT(*)::int FROM "public"."MWH_Redemption" r WHERE r."Product_ID" = p."Product_ID"), 0) as "redemptionCount"
         FROM "public"."MWH_Product" p
         LEFT JOIN "public"."MWH_Category" c ON p."Category_ID" = c."Category_ID"
+        LEFT JOIN "public"."MWH_Type" t ON p."Type_ID" = t."Type_ID"
         WHERE p."Category_ID" = $1
         ORDER BY p."Product_Name" ASC
       `;
@@ -206,18 +229,27 @@ export const findByCategory = async (categoryId) => {
         points: product.points,
         available: product.available,
         categoryId: product.categoryId,
+        Type_ID: product.TypeId ? Number(product.TypeId) : null,
+        redemptionCount: product.redemptionCount || 0,
         category: product.category_name
           ? {
             id: product.categoryId,
             categoryName: product.category_name,
           }
           : null,
+        MWH_Type: product.type_name
+          ? {
+            Type_ID: product.TypeId ? Number(product.TypeId) : null,
+            Type_Name: product.type_name,
+          }
+          : null,
       }));
 
       return products;
+    } catch (rawError) {
+      console.error("findByCategory raw query fallback failed too:", rawError);
+      throw error;
     }
-
-    throw error;
   }
 };
 
@@ -225,46 +257,102 @@ export const findByCategory = async (categoryId) => {
  * Find product by ID
  */
 export const findById = async (id, includeAnalytics = false) => {
-  const include = {
-    category: {
-      select: {
-        id: true,
-        categoryName: true,
+  try {
+    const include = {
+      category: {
+        select: {
+          id: true,
+          categoryName: true,
+        },
       },
-    },
-  };
-
-  if (includeAnalytics) {
-    include._count = {
-      select: {
-        redemptions: true,
-      },
+      MWH_Type: true,
     };
-    include.redemptions = {
-      include: {
-        transaction: {
-          include: {
-            user: {
-              select: {
-                userName: true,
+
+    if (includeAnalytics) {
+      include._count = {
+        select: {
+          redemptions: true,
+        },
+      };
+      include.redemptions = {
+        include: {
+          transaction: {
+            include: {
+              user: {
+                select: {
+                  userName: true,
+                },
               },
             },
           },
         },
-      },
-      orderBy: {
-        transaction: {
-          transactionDate: "desc",
+        orderBy: {
+          transaction: {
+            transactionDate: "desc",
+          },
         },
-      },
-      take: 10, // Recent redemptions
-    };
-  }
+        take: 10, // Recent redemptions
+      };
+    }
 
-  return prisma.product.findUnique({
-    where: { id: parseInt(id) },
-    include,
-  });
+    const product = await prisma.product.findUnique({
+      where: { id: parseInt(id) },
+      include,
+    });
+
+    return mapProductBigInt(product);
+  } catch (error) {
+    console.warn("findById standard query failed, falling back to raw query:", error.message || error);
+    try {
+      const query = `
+        SELECT 
+          p."Product_ID" as id,
+          p."Product_Name" as "productName",
+          p."Image_URL" as "imageUrl",
+          p."Product_Description" as "productDescription",
+          p."Points" as points,
+          p."Available" as available,
+          p."Category_ID" as "categoryId",
+          p."Type_ID" as "TypeId",
+          c."Category_Name" as "category_name",
+          t."Type_Name" as "type_name"
+        FROM "public"."MWH_Product" p
+        LEFT JOIN "public"."MWH_Category" c ON p."Category_ID" = c."Category_ID"
+        LEFT JOIN "public"."MWH_Type" t ON p."Type_ID" = t."Type_ID"
+        WHERE p."Product_ID" = $1
+      `;
+
+      const rawProducts = await prisma.$queryRawUnsafe(query, parseInt(id));
+      if (!rawProducts || rawProducts.length === 0) return null;
+
+      const product = rawProducts[0];
+      return {
+        id: product.id,
+        productName: product.productName,
+        imageUrl: product.imageUrl,
+        productDescription: product.productDescription,
+        points: product.points,
+        available: product.available,
+        categoryId: product.categoryId,
+        Type_ID: product.TypeId ? Number(product.TypeId) : null,
+        category: product.category_name
+          ? {
+              id: product.categoryId,
+              categoryName: product.category_name,
+            }
+          : null,
+        MWH_Type: product.type_name
+          ? {
+              Type_ID: product.TypeId ? Number(product.TypeId) : null,
+              Type_Name: product.type_name,
+            }
+          : null,
+      };
+    } catch (rawError) {
+      console.error("findById raw query fallback failed too:", rawError);
+      throw error;
+    }
+  }
 };
 
 /**
@@ -281,7 +369,7 @@ export const create = async (productData) => {
   } = productData;
 
   // Validate required fields
-  if (!productName || !points || !categoryId) {
+  if (!productName || points === undefined || points === null || !categoryId) {
     throw new Error(
       "Missing required fields: productName, productDescription, points, categoryId"
     );
@@ -296,19 +384,46 @@ export const create = async (productData) => {
     throw new Error("Category not found");
   }
 
-  return prisma.product.create({
-    data: {
-      productName,
-      productDescription,
-      points: parseInt(points),
-      categoryId: parseInt(categoryId),
-      imageUrl,
-      available,
-    },
-    include: {
-      category: true,
-    },
-  });
+  try {
+    const product = await prisma.product.create({
+      data: {
+        productName,
+        productDescription,
+        points: parseInt(points),
+        categoryId: parseInt(categoryId),
+        imageUrl,
+        available,
+      },
+      include: {
+        category: true,
+        MWH_Type: true,
+      },
+    });
+
+    return mapProductBigInt(product);
+  } catch (error) {
+    console.warn("create standard query failed, falling back to direct create:", error.message || error);
+    try {
+      const product = await prisma.product.create({
+        data: {
+          productName,
+          productDescription,
+          points: parseInt(points),
+          categoryId: parseInt(categoryId),
+          imageUrl,
+          available,
+        },
+        include: {
+          category: true,
+        },
+      });
+
+      return mapProductBigInt(product);
+    } catch (rawError) {
+      console.error("create direct fallback failed too:", rawError);
+      throw error;
+    }
+  }
 };
 
 /**
@@ -336,18 +451,39 @@ export const update = async (id, updates) => {
 
   // Prepare update data
   const updateData = { ...updates };
-  if (updateData.points) updateData.points = parseInt(updateData.points);
+  if (updateData.points !== undefined && updateData.points !== null) updateData.points = parseInt(updateData.points);
   if (updateData.categoryId)
     updateData.categoryId = parseInt(updateData.categoryId);
   if (updateData.stock) updateData.stock = parseInt(updateData.stock);
 
-  return prisma.product.update({
-    where: { id: parseInt(id) },
-    data: updateData,
-    include: {
-      category: true,
-    },
-  });
+  try {
+    const updatedProduct = await prisma.product.update({
+      where: { id: parseInt(id) },
+      data: updateData,
+      include: {
+        category: true,
+        MWH_Type: true,
+      },
+    });
+
+    return mapProductBigInt(updatedProduct);
+  } catch (error) {
+    console.warn("update standard query failed, falling back to direct update:", error.message || error);
+    try {
+      const updatedProduct = await prisma.product.update({
+        where: { id: parseInt(id) },
+        data: updateData,
+        include: {
+          category: true,
+        },
+      });
+
+      return mapProductBigInt(updatedProduct);
+    } catch (rawError) {
+      console.error("update direct fallback failed too:", rawError);
+      throw error;
+    }
+  }
 };
 
 /**
@@ -601,23 +737,89 @@ export const search = async (query, options = {}) => {
     where.available = true;
   }
 
-  return prisma.product.findMany({
-    where,
-    include: {
-      category: {
-        select: {
-          categoryName: true,
+  try {
+    const products = await prisma.product.findMany({
+      where,
+      include: {
+        category: {
+          select: {
+            categoryName: true,
+          },
+        },
+        MWH_Type: true,
+        _count: {
+          select: {
+            redemptions: true,
+          },
         },
       },
-      _count: {
-        select: {
-          redemptions: true,
-        },
+      orderBy: {
+        productName: "asc",
       },
-    },
-    orderBy: {
-      productName: "asc",
-    },
-    take: parseInt(limit),
-  });
+      take: parseInt(limit),
+    });
+
+    return products.map(mapProductBigInt);
+  } catch (error) {
+    console.warn("search standard query failed, falling back to raw query:", error.message || error);
+    try {
+      const rawQuery = `
+        SELECT 
+          p."Product_ID" as id,
+          p."Product_Name" as "productName",
+          p."Image_URL" as "imageUrl",
+          p."Product_Description" as "productDescription",
+          p."Points" as points,
+          p."Available" as available,
+          p."Category_ID" as "categoryId",
+          p."Type_ID" as "TypeId",
+          c."Category_Name" as "category_name",
+          t."Type_Name" as "type_name",
+          COALESCE((SELECT COUNT(*)::int FROM "public"."MWH_Redemption" r WHERE r."Product_ID" = p."Product_ID"), 0) as "redemptionCount"
+        FROM "public"."MWH_Product" p
+        LEFT JOIN "public"."MWH_Category" c ON p."Category_ID" = c."Category_ID"
+        LEFT JOIN "public"."MWH_Type" t ON p."Type_ID" = t."Type_ID"
+        WHERE (p."Product_Name" ILIKE $1 OR p."Product_Description" ILIKE $1)
+        ${includeUnavailable ? "" : 'AND p."Available" = true'}
+        ORDER BY p."Product_Name" ASC
+        LIMIT $2
+      `;
+
+      const rawProducts = await prisma.$queryRawUnsafe(
+        rawQuery,
+        `%${query}%`,
+        parseInt(limit)
+      );
+
+      // Transform raw results to match expected format
+      const products = rawProducts.map((product) => ({
+        id: product.id,
+        productName: product.productName,
+        imageUrl: product.imageUrl,
+        productDescription: product.productDescription,
+        points: product.points,
+        available: product.available,
+        categoryId: product.categoryId,
+        Type_ID: product.TypeId ? Number(product.TypeId) : null,
+        redemptionCount: product.redemptionCount || 0,
+        category: product.category_name
+          ? {
+            id: product.categoryId,
+            categoryName: product.category_name,
+          }
+          : null,
+        MWH_Type: product.type_name
+          ? {
+            Type_ID: product.TypeId ? Number(product.TypeId) : null,
+            Type_Name: product.type_name,
+          }
+          : null,
+      }));
+
+      return products;
+    } catch (rawError) {
+      console.error("search raw query fallback failed too:", rawError);
+      throw error;
+    }
+  }
 };

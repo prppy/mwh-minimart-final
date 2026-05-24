@@ -8,7 +8,7 @@ import { CartProvider } from "@/contexts/cart-context";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { useState } from "react";
-import { Pressable } from "react-native";
+import { Pressable, Platform } from "react-native";
 import { useIdleTimeout } from "@/hooks/useIdleTimeout";
 import Screensaver from "@/components/Screensaver";
 
@@ -16,23 +16,30 @@ const IDLE_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 
 export default function RootLayout() {
   const [showScreensaver, setShowScreensaver] = useState(false);
+  const isWeb = Platform.OS === "web";
 
   const { resetTimer } = useIdleTimeout({
     timeout: IDLE_TIMEOUT,
-    onIdle: () => setShowScreensaver(true),
-    onActive: () => setShowScreensaver(false),
+    onIdle: () => {
+      if (!isWeb) setShowScreensaver(true);
+    },
+    onActive: () => {
+      if (!isWeb) setShowScreensaver(false);
+    },
   });
 
   const handleInteraction = () => {
-    resetTimer();
-    setShowScreensaver(false);
+    if (!isWeb) {
+      resetTimer();
+      setShowScreensaver(false);
+    }
   };
 
   return (
     <GluestackUIProvider mode="light">
       <AuthProvider>
         <CartProvider>
-          {showScreensaver ? (
+          {showScreensaver && !isWeb ? (
             <Screensaver onInteraction={handleInteraction} />
           ) : (
             <Pressable
@@ -53,3 +60,6 @@ export default function RootLayout() {
     </GluestackUIProvider>
   );
 }
+
+
+

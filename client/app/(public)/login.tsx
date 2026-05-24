@@ -48,7 +48,7 @@ const LoginPage: React.FC = () => {
             </ButtonText>
           </Button>
           <Button
-          variant="outline"
+            variant="outline"
             size="lg"
             onPress={() => setActiveRole("officer")}
             className={
@@ -64,7 +64,7 @@ const LoginPage: React.FC = () => {
                   : "text-indigoscale-700"
               }
             >
-              Officer
+              Staff
             </ButtonText>
           </Button>
         </HStack>

@@ -9,6 +9,7 @@ type Resident = {
   createdAt: Date;
   updatedAt: Date;
 
+  serialNumber: string | null;
   batchNumber: number;
   currentPoints: number;
   totalPoints: number;
@@ -16,6 +17,9 @@ type Resident = {
   dateOfAdmission: Date;
   dateOfBirth: Date;
   lastAbscondence: string | null;
+
+  isActive: boolean;
+  remarks: string | null;
 
   backgroundType: string; // theme
   wallpaperType: string; // colour
@@ -42,6 +46,7 @@ interface TaskCategory {
   id: number;
   taskCategoryName: string;
   taskCategoryDescription: string;
+  iconName?: string;
 }
 
 interface ProductCategoryEntry {
@@ -58,8 +63,12 @@ interface Product {
   imageUrl: string;
   available: boolean;
   points: number;
-  typeId?: number | null;
-  productCategories?: ProductCategoryEntry[];
+  redemptionCount?: number;
+  Type_ID?: number | null;
+  MWH_Type?: {
+    Type_ID: number;
+    Type_Name: string;
+  } | null;
 }
 
 interface Voucher {
@@ -70,6 +79,7 @@ interface Voucher {
   taskCategory: TaskCategory;
   imageUrl: string;
   points: number;
+  taskDate: string;
   _count: { completions: number };
   completions: Completion[];
 }
@@ -100,7 +110,7 @@ type Performer = {
   dateOfAdmission: Date;
   backgroundType: string;
   wallpaperType: string;
-  periodPoints: number;
+  vouchersAwarded: number;
 };
 
 interface WheelParticipant {

@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView } from "react-native";
 import { Plus, ShoppingCart } from "lucide-react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import EmptyAlert from "./custom-empty-alert";
 import SearchBar from "./custom-searchbar";
@@ -17,22 +18,27 @@ import { VStack } from "./ui/vstack";
 import { useAuth } from "@/contexts/auth-context";
 import { useCart } from "@/contexts/cart-context";
 
+type SortOption = "low-to-high" | "high-to-low" | "latest" | "sales" | "custom";
+
 interface SearchableGridProps {
   items: {
     id: number | string;
     name: string;
     points: number;
     image: string;
+    redemptionCount?: number;
   }[];
   onItemPress: (item: {
     id: number | string;
     name: string;
     points: number;
     image: string;
+    redemptionCount?: number;
   }) => void;
   onAddPress: () => void;
   noItemsAlert: string;
   enableCart?: boolean;
+  categoryId?: number | string;
 }
 
 const SearchableGrid: React.FC<SearchableGridProps> = ({
@@ -41,13 +47,43 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
   onAddPress,
   noItemsAlert,
   enableCart = false,
+  categoryId = "all",
 }) => {
   const { isAdmin, isAuthenticated, role } = useAuth();
   const { addToCart, isInCart } = useCart();
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [sortOption, setSortOption] = useState<SortOption>("custom");
   const [search, setSearch] = useState("");
 
+  // Reorder mode states
+  const [isReorderMode, setIsReorderMode] = useState(false);
+  const [orderedItems, setOrderedItems] = useState<typeof items>([]);
+  const [customOrder, setCustomOrder] = useState<(string | number)[]>([]);
+
   const showCart = enableCart && role === "resident";
+
+  const storageKey = useMemo(() => {
+    return `@mwh_product_order_${categoryId}`;
+  }, [categoryId]);
+
+  // Load custom order from AsyncStorage
+  useEffect(() => {
+    const loadOrder = async () => {
+      try {
+        const stored = await AsyncStorage.getItem(storageKey);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            setCustomOrder(parsed);
+          }
+        } else {
+          setCustomOrder([]);
+        }
+      } catch (e) {
+        console.error("Error loading product order:", e);
+      }
+    };
+    loadOrder();
+  }, [storageKey]);
 
   const handleAddToCart = (
     e: any,
@@ -62,59 +98,161 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
     });
   };
 
-  const visibleItems = useMemo(() => {
-    const filtered = items.filter((item) =>
-      item.name.toLowerCase().includes(search.toLowerCase()),
+  const handleSortPress = (val: SortOption) => {
+    if (sortOption === val) {
+      setSortOption("custom"); // Deselect back to custom order
+    } else {
+      setSortOption(val);
+    }
+  };
+
+  const sortedAndFilteredItems = useMemo(() => {
+    let filtered = items.filter((item) =>
+      item.name.toLowerCase().includes(search.toLowerCase())
     );
 
-    return filtered.sort((a, b) =>
-      sortOrder === "asc" ? a.points - b.points : b.points - a.points,
-    );
-  }, [items, search, sortOrder]);
+    if (sortOption === "custom") {
+      return [...filtered].sort((a, b) => {
+        const indexA = customOrder.indexOf(a.id);
+        const indexB = customOrder.indexOf(b.id);
+
+        if (indexA === -1 && indexB === -1) return 0;
+        if (indexA === -1) return 1;
+        if (indexB === -1) return -1;
+        return indexA - indexB;
+      });
+    }
+
+    switch (sortOption) {
+      case "low-to-high":
+        return [...filtered].sort((a, b) => a.points - b.points);
+      case "high-to-low":
+        return [...filtered].sort((a, b) => b.points - a.points);
+      case "latest":
+        return [...filtered].sort((a, b) => Number(b.id) - Number(a.id));
+      case "sales":
+        return [...filtered].sort(
+          (a, b) => (b.redemptionCount || 0) - (a.redemptionCount || 0)
+        );
+      default:
+        return filtered;
+    }
+  }, [items, search, sortOption, customOrder]);
+
+  // Reorder mode handlers
+  const handleStartReorder = () => {
+    // Current items sorted in custom order
+    const sorted = [...items].sort((a, b) => {
+      const indexA = customOrder.indexOf(a.id);
+      const indexB = customOrder.indexOf(b.id);
+      if (indexA === -1 && indexB === -1) return 0;
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+      return indexA - indexB;
+    });
+    setOrderedItems(sorted);
+    setIsReorderMode(true);
+    setSortOption("custom");
+  };
+
+  const handleMoveUp = (index: number) => {
+    if (index === 0) return;
+    const newItems = [...orderedItems];
+    const temp = newItems[index];
+    newItems[index] = newItems[index - 1];
+    newItems[index - 1] = temp;
+    setOrderedItems(newItems);
+  };
+
+  const handleMoveDown = (index: number) => {
+    if (index === orderedItems.length - 1) return;
+    const newItems = [...orderedItems];
+    const temp = newItems[index];
+    newItems[index] = newItems[index + 1];
+    newItems[index + 1] = temp;
+    setOrderedItems(newItems);
+  };
+
+  const handleSaveOrder = async () => {
+    try {
+      const newOrder = orderedItems.map((item) => item.id);
+      setCustomOrder(newOrder);
+      await AsyncStorage.setItem(storageKey, JSON.stringify(newOrder));
+      setIsReorderMode(false);
+    } catch (e) {
+      console.error("Error saving product order:", e);
+    }
+  };
+
+  const handleCancelReorder = () => {
+    setIsReorderMode(false);
+  };
+
+  const sortButtons: { value: SortOption; label: string }[] = [
+    { value: "low-to-high", label: "Low to High" },
+    { value: "high-to-low", label: "High to Low" },
+    { value: "latest", label: "Latest" },
+    { value: "sales", label: "Sales" },
+  ];
+
+  const displayItems = isReorderMode ? orderedItems : sortedAndFilteredItems;
 
   return (
     <VStack className="flex-1 gap-5" space="md">
-      <HStack className="w-full justify-between gap-5">
+      <HStack className="w-full justify-between gap-3 items-center">
         {/* search bar */}
         <SearchBar search={search} setSearch={setSearch} />
 
-        {/* point ordering */}
-        <Button
-          action="secondary"
-          className={sortOrder === "asc" ? "bg-indigoscale-700" : ""}
-          onPress={() => setSortOrder("asc")}
-        >
-          <ButtonText
-            className={
-              sortOrder === "asc" ? "text-white" : "text-indigoscale-700"
-            }
-          >
-            Points Ascending
-          </ButtonText>
-        </Button>
-        <Button
-          action="secondary"
-          className={sortOrder === "desc" ? "bg-indigoscale-700" : ""}
-          onPress={() => setSortOrder("desc")}
-        >
-          <ButtonText
-            className={
-              sortOrder === "desc" ? "text-white" : "text-indigoscale-700"
-            }
-          >
-            Points Descending
-          </ButtonText>
-        </Button>
+        {/* sort buttons */}
+        {!isReorderMode &&
+          sortButtons.map((btn) => (
+            <Button
+              key={btn.value}
+              action="secondary"
+              className={sortOption === btn.value ? "bg-indigoscale-700" : ""}
+              onPress={() => handleSortPress(btn.value)}
+            >
+              <ButtonText
+                className={
+                  sortOption === btn.value
+                    ? "text-white font-semibold"
+                    : "text-indigoscale-700 font-semibold"
+                }
+              >
+                {btn.label}
+              </ButtonText>
+            </Button>
+          ))}
       </HStack>
 
+      {/* Admin Reorder Controls */}
+      {isAuthenticated && isAdmin && (
+        <HStack className="w-full justify-end gap-2 px-1">
+          {isReorderMode ? (
+            <>
+              <Button action="positive" size="sm" onPress={handleSaveOrder} className="bg-greenscale-600">
+                <ButtonText className="text-white font-bold">Save Order</ButtonText>
+              </Button>
+              <Button action="negative" size="sm" onPress={handleCancelReorder} className="bg-redscale-600">
+                <ButtonText className="text-white font-bold">Cancel</ButtonText>
+              </Button>
+            </>
+          ) : (
+            <Button action="primary" size="sm" onPress={handleStartReorder} className="bg-indigoscale-600">
+              <ButtonText className="text-white font-semibold">🔧 Rearrange Pictures</ButtonText>
+            </Button>
+          )}
+        </HStack>
+      )}
+
       {/* grid */}
-      {visibleItems.length === 0 ? (
+      {displayItems.length === 0 ? (
         <EmptyAlert text={noItemsAlert} />
       ) : (
         <VStack className="flex-1 overflow-hidden">
           <ScrollView>
             <Grid className="gap-5" _extra={{ className: "grid-cols-2" }}>
-              {isAuthenticated && isAdmin && (
+              {isAuthenticated && isAdmin && !isReorderMode && (
                 <GridItem _extra={{ className: "col-span-1" }}>
                   <Pressable onPress={onAddPress}>
                     <Card className="bg-white" size="md" variant="outline">
@@ -133,10 +271,10 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
                   </Pressable>
                 </GridItem>
               )}
-              {visibleItems.map((item) => (
+              {displayItems.map((item, index) => (
                 <GridItem key={item.id} _extra={{ className: "col-span-1" }}>
-                  <Pressable onPress={() => onItemPress(item)}>
-                    <Card className="bg-white" size="md" variant="outline">
+                  <Card className="bg-white" size="md" variant="outline">
+                    <Pressable onPress={() => !isReorderMode && onItemPress(item)}>
                       <Center className="w-full h-64 bg-indigoscale-300 rounded-md mb-5">
                         {item.image ? (
                           <Image
@@ -147,36 +285,65 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
                           />
                         ) : null}
                       </Center>
-                      <VStack space="xs">
-                        <Text size="xl" className="text-indigoscale-700">
-                          {item.name}
+                    </Pressable>
+                    <VStack space="xs">
+                      <Text size="xl" className="text-indigoscale-700" bold>
+                        {item.name}
+                      </Text>
+                      <Text bold className="text-gray-500">
+                        {item.points} pts
+                      </Text>
+                      {sortOption === "sales" && !isReorderMode && (
+                        <Text className="text-xs text-gray-400">
+                          {item.redemptionCount || 0} sold
                         </Text>
-                        <Text bold className="text-gray-500">
-                          {item.points} pts
-                        </Text>
-                        {showCart && (
+                      )}
+                      {showCart && !isReorderMode && (
+                        <Button
+                          size="sm"
+                          onPress={(e) => handleAddToCart(e, item)}
+                          className={
+                            isInCart(Number(item.id))
+                              ? "bg-green-600"
+                              : "bg-indigoscale-700"
+                          }
+                        >
+                          <ButtonIcon as={ShoppingCart} className="text-white" />
+                          <ButtonText className="text-white">
+                            {isInCart(Number(item.id)) ? "In Cart" : "Add to Cart"}
+                          </ButtonText>
+                        </Button>
+                      )}
+
+                      {/* Reorder Buttons */}
+                      {isReorderMode && (
+                        <HStack space="sm" className="mt-2 w-full justify-between">
                           <Button
-                            size="sm"
-                            onPress={(e) => handleAddToCart(e, item)}
-                            className={
-                              isInCart(Number(item.id))
-                                ? "bg-green-600"
-                                : "bg-indigoscale-700"
-                            }
+                            size="xs"
+                            action="secondary"
+                            className="flex-1 bg-gray-200"
+                            disabled={index === 0}
+                            onPress={() => handleMoveUp(index)}
                           >
-                            <ButtonIcon as={ShoppingCart} className="text-white" />
-                            <ButtonText className="text-white">
-                              {isInCart(Number(item.id)) ? "In Cart" : "Add to Cart"}
-                            </ButtonText>
+                            <ButtonText className="text-gray-700">▲ Up</ButtonText>
                           </Button>
-                        )}
-                      </VStack>
-                    </Card>
-                  </Pressable>
+                          <Button
+                            size="xs"
+                            action="secondary"
+                            className="flex-1 bg-gray-200"
+                            disabled={index === orderedItems.length - 1}
+                            onPress={() => handleMoveDown(index)}
+                          >
+                            <ButtonText className="text-gray-700">▼ Down</ButtonText>
+                          </Button>
+                        </HStack>
+                      )}
+                    </VStack>
+                  </Card>
                 </GridItem>
               ))}
-              {/* TODO: filler if odd to prevent weird ui */}
-              {(visibleItems.length + (isAuthenticated && isAdmin ? 1 : 0)) %
+              {/* filler if odd to prevent weird ui */}
+              {(displayItems.length + (isAuthenticated && isAdmin && !isReorderMode ? 1 : 0)) %
                 2 !==
                 0 && <GridItem _extra={{ className: "col-span-1" }}></GridItem>}
             </Grid>

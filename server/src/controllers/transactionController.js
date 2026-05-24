@@ -155,7 +155,64 @@ export const createCompletion = async (req, res) => {
     console.error('Create completion error:', error);
     
     if (error.message.includes('not found') || 
-        error.message.includes('inactive')) {
+        error.message.includes('inactive') ||
+        error.message.includes('not entitled')) {
+      return res.status(400).json({ 
+        error: { message: error.message }
+      });
+    }
+
+    res.status(500).json({ 
+      error: { message: 'Internal server error' }
+    });
+  }
+};
+
+/**
+ * Create bulk task completion transactions for multiple residents
+ * Feature 3: Bulk selection for voucher rewards
+ */
+export const createBulkCompletion = async (req, res) => {
+  try {
+    const { userIds, tasks, officerId = 1 } = req.body;
+
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({
+        error: { message: 'userIds must be a non-empty array' }
+      });
+    }
+
+    if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
+      return res.status(400).json({
+        error: { message: 'tasks must be a non-empty array' }
+      });
+    }
+
+    const result = await TransactionModel.createBulkCompletion({
+      userIds: userIds.map(id => parseInt(id)),
+      officerId,
+      tasks
+    });
+
+    // Update activity for successful residents
+    for (const item of result.results.successful) {
+      try {
+        await updateResidentActivity(item.userId);
+      } catch (e) {
+        console.error(`Failed to update activity for user ${item.userId}:`, e);
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      data: result,
+      message: `Bulk completion: ${result.successCount} awarded, ${result.skippedCount} skipped, ${result.failedCount} failed`
+    });
+
+  } catch (error) {
+    console.error('Create bulk completion error:', error);
+    
+    if (error.message.includes('not found')) {
       return res.status(400).json({ 
         error: { message: error.message }
       });

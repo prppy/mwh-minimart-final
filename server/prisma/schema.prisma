@@ -36,6 +36,8 @@ model Resident {
   Wallpaper_Theme     wallpaper_theme_type_enum?  @default(sports)
   lastActivityDate    DateTime?                   @map("Last_Activity_Date") @db.Timestamptz(6)
   isActive            Boolean?                    @default(true) @map("Is_Active")
+  remarks             resident_remarks_enum?      @map("Remarks")
+  serialNumber        String?                     @unique @map("Serial_Number") @db.VarChar(50)
   MWH_Product_Request MWH_Product_Request[]
   MWH_Rating_Feedback MWH_Rating_Feedback[]
   user                User                        @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -64,7 +66,8 @@ model Category {
 model TaskCategory {
   id                      Int     @id @default(autoincrement()) @map("Task_Category_ID")
   taskCategoryName        String? @map("Task_Category_Name") @db.VarChar(50)
-  taskCategoryDescription String? @map("Task_Category_Description") @db.VarChar(100)
+  taskCategoryDescription String? @map("Task_Category_Description")
+  iconName                String? @map("Icon_Name") @db.VarChar(50)
   tasks                   Task[]
 
   @@map("MWH_Task_Category")
@@ -78,9 +81,9 @@ model Product {
   points             Int?              @map("Points")
   available          Boolean?          @map("Available")
   categoryId         Int?              @map("Category_ID")
-  typeId             BigInt?           @map("Type_ID")
+  Type_ID            BigInt?
   category           Category?         @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  type               ProductType?      @relation(fields: [typeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  MWH_Type           MWH_Type?         @relation(fields: [Type_ID], references: [Type_ID], onDelete: NoAction, onUpdate: NoAction)
   productCategories  ProductCategory[]
   redemptions        Redemption[]
 
@@ -102,6 +105,7 @@ model Task {
   taskDescription String?       @map("Task_Description")
   points          Int?          @map("Points")
   imageUrl        String?       @map("Image_URL")
+  taskDate        DateTime      @map("Task_Date") @db.Date
   completions     Completion[]
   taskCategory    TaskCategory? @relation(fields: [taskCategoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -219,6 +223,13 @@ model ScreensaverImage {
   @@map("MWH_Screensaver_Image")
 }
 
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model MWH_Type {
+  Type_ID     BigInt    @id @default(autoincrement())
+  Type_Name   String?   @default("Daily") @db.VarChar
+  MWH_Product Product[]
+}
+
 enum transaction_type_enum {
   completion
   redemption
@@ -295,4 +306,11 @@ enum urgency_level {
 enum feedback_status {
   new
   reviewed
+}
+
+enum resident_remarks_enum {
+  discharged
+  ftr
+  abscondence
+  extended_homeleave
 }
