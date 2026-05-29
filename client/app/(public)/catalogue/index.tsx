@@ -29,16 +29,16 @@ const CataloguePage: React.FC = () => {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(["Daily", "Showcase"]);
   const [products, setProducts] = useState<Product[]>([]);
   const [points, setPoints] = useState(50000);
   const [loading, setLoading] = useState(true);
   const [showCart, setShowCart] = useState(false);
 
   // Announcement Banner States
-  const [showNewBanner, setShowNewBanner] = useState(true);
-  const [showDealsBanner, setShowDealsBanner] = useState(true);
-  const [showRestockedBanner, setShowRestockedBanner] = useState(true);
+  const [showNewBanner, setShowNewBanner] = useState(false);
+  const [showDealsBanner, setShowDealsBanner] = useState(false);
+  const [showRestockedBanner, setShowRestockedBanner] = useState(false);
   const [newestItemName, setNewestItemName] = useState<string>("");
 
   const isResident = role === "resident";
@@ -72,7 +72,11 @@ const CataloguePage: React.FC = () => {
         api.get("categories"),
         api.get("products"),
       ]);
-      setCategories(categoriesRes.data.data || []);
+      const fetchedCats = categoriesRes.data.data || [];
+      setCategories(fetchedCats);
+      if (isInitial) {
+        setSelectedCategories(fetchedCats.map((c: any) => c.id.toString()));
+      }
 
       let fetchedProducts: Product[] = [];
       const resData = productsRes.data.data;
@@ -148,6 +152,27 @@ const CataloguePage: React.FC = () => {
       supabase.removeChannel(channel);
     };
   }, [navigation]);
+
+  useEffect(() => {
+    if (showNewBanner) {
+      const timer = setTimeout(() => setShowNewBanner(false), 10000);
+      return () => clearTimeout(timer);
+    }
+  }, [showNewBanner]);
+
+  useEffect(() => {
+    if (showDealsBanner) {
+      const timer = setTimeout(() => setShowDealsBanner(false), 10000);
+      return () => clearTimeout(timer);
+    }
+  }, [showDealsBanner]);
+
+  useEffect(() => {
+    if (showRestockedBanner) {
+      const timer = setTimeout(() => setShowRestockedBanner(false), 10000);
+      return () => clearTimeout(timer);
+    }
+  }, [showRestockedBanner]);
 
   // Sidebar category order Drinks → Food → Personal Care → Apparels → Accessories → Electronics → Weekly Deals
   const categoryOrder = [

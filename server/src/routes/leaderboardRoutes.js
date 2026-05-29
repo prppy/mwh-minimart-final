@@ -2,6 +2,7 @@
 import { Router } from 'express';
 import { param, query } from 'express-validator';
 import * as leaderboardController from '../controllers/leaderboardController.js';
+import { verifyAccessToken } from '../middlewares/jwtMiddleware.js';
 
 const leaderboardRouter = Router();
 
@@ -114,8 +115,8 @@ leaderboardRouter.get('/batch/:batchNumber/current-month-points', batchNumberVal
 leaderboardRouter.get('/batch/:batchNumber/current-year-points', batchNumberValidation.concat(leaderboardQueryValidation), leaderboardController.getLeaderboardByYear);
 
 // Protected routes (require authentication)
-leaderboardRouter.get('/user/:userId/position', userIdValidation, leaderboardController.getUserPosition);
-leaderboardRouter.get('/user/:userId/profile', userIdValidation, leaderboardController.getResidentProfile);
+leaderboardRouter.get('/user/:userId/position', verifyAccessToken, userIdValidation, leaderboardController.getUserPosition);
+leaderboardRouter.get('/user/:userId/profile', verifyAccessToken, userIdValidation, leaderboardController.getResidentProfile);
 
 // Additional enhanced routes
 leaderboardRouter.get('/compare', compareResidentsValidation, leaderboardController.compareResidents);

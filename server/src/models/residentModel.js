@@ -683,6 +683,7 @@ export const recordAbscondence = async (userId, reason, officerId) => {
         officerId: parseInt(officerId),
         pointsChange: 0, // Abscondence doesn't change points directly
         transactionType: "abscondence",
+        transactionDate: new Date(),
       },
     });
 

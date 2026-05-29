@@ -119,7 +119,8 @@ export const createRedemption = async ({ userId, officerId, products }) => {
         data: {
           userId,
           pointsChange: -totalPoints,
-          transactionType: 'redemption'
+          transactionType: 'redemption',
+          transactionDate: new Date()
         }
       });
 
@@ -204,7 +205,8 @@ export const createCompletion = async ({ userId, officerId, tasks }) => {
         data: {
           userId,
           pointsChange: totalPoints,
-          transactionType: 'completion'
+          transactionType: 'completion',
+          transactionDate: new Date()
         }
       });
 
@@ -299,7 +301,8 @@ export const createBulkCompletion = async ({ userIds, officerId, tasks }) => {
             data: {
               userId: resident.userId,
               pointsChange: totalPoints,
-              transactionType: 'completion'
+              transactionType: 'completion',
+              transactionDate: new Date()
             }
           });
 
@@ -373,7 +376,8 @@ export const createAbscondence = async ({ userId, officerId, reason, pointsPenal
         data: {
           userId,
           pointsChange: -pointsPenalty,
-          transactionType: 'abscondence'
+          transactionType: 'abscondence',
+          transactionDate: new Date()
         }
       });
 

@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import { prisma } from "../lib/db.js";
 
 dotenv.config({ path: "../.env" });
 
@@ -18,8 +19,22 @@ export const generateAccessToken = async (req, res, next) => {
       });
     }
 
+    // Retrieve user's role from res.locals or the database
+    let role = null;
+    if (res.locals.user) {
+      role = res.locals.user.userRole;
+    } else {
+      const user = await prisma.user.findUnique({
+        where: { id: parseInt(userId) },
+        select: { userRole: true }
+      });
+      if (user) {
+        role = user.userRole;
+      }
+    }
+
     // create jwt
-    const accessToken = jwt.sign({ userId }, ACCESS_TOKEN_SECRET, {
+    const accessToken = jwt.sign({ userId, role }, ACCESS_TOKEN_SECRET, {
       expiresIn: ACCESS_TOKEN_EXPIRES_IN,
     });
 
@@ -68,7 +83,18 @@ export const verifyAccessToken = async (req, res, next) => {
     const accessToken = authHeader.split(" ")[1];
 
     const accessTokenPayload = jwt.verify(accessToken, ACCESS_TOKEN_SECRET);
-    res.locals.User_ID = accessTokenPayload.User_ID;
+    
+    // Support casing variations of the payload properties
+    const userId = accessTokenPayload.userId || accessTokenPayload.User_ID;
+    const role = accessTokenPayload.role || accessTokenPayload.userRole;
+
+    res.locals.userId = userId;
+    res.locals.User_ID = userId;
+
+    req.user = {
+      userId,
+      role
+    };
 
     next();
   } catch (e) {
@@ -100,7 +126,12 @@ export const verifyRefreshToken = async (req, res, next) => {
     }
 
     const refreshTokenPayload = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET);
-    res.locals.User_ID = refreshTokenPayload.User_ID;
+    
+    // Support casing variations of the payload properties
+    const userId = refreshTokenPayload.userId || refreshTokenPayload.User_ID;
+
+    res.locals.userId = userId;
+    res.locals.User_ID = userId;
 
     next();
   } catch (e) {
@@ -139,3 +170,4 @@ export const handleAccessToken = async (req, res) => {
     });
   }
 };
+

@@ -225,25 +225,7 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
           ))}
       </HStack>
 
-      {/* Admin Reorder Controls */}
-      {isAuthenticated && isAdmin && (
-        <HStack className="w-full justify-end gap-2 px-1">
-          {isReorderMode ? (
-            <>
-              <Button action="positive" size="sm" onPress={handleSaveOrder} className="bg-greenscale-600">
-                <ButtonText className="text-white font-bold">Save Order</ButtonText>
-              </Button>
-              <Button action="negative" size="sm" onPress={handleCancelReorder} className="bg-redscale-600">
-                <ButtonText className="text-white font-bold">Cancel</ButtonText>
-              </Button>
-            </>
-          ) : (
-            <Button action="primary" size="sm" onPress={handleStartReorder} className="bg-indigoscale-600">
-              <ButtonText className="text-white font-semibold">🔧 Rearrange Pictures</ButtonText>
-            </Button>
-          )}
-        </HStack>
-      )}
+
 
       {/* grid */}
       {displayItems.length === 0 ? (
@@ -315,29 +297,7 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
                         </Button>
                       )}
 
-                      {/* Reorder Buttons */}
-                      {isReorderMode && (
-                        <HStack space="sm" className="mt-2 w-full justify-between">
-                          <Button
-                            size="xs"
-                            action="secondary"
-                            className="flex-1 bg-gray-200"
-                            disabled={index === 0}
-                            onPress={() => handleMoveUp(index)}
-                          >
-                            <ButtonText className="text-gray-700">▲ Up</ButtonText>
-                          </Button>
-                          <Button
-                            size="xs"
-                            action="secondary"
-                            className="flex-1 bg-gray-200"
-                            disabled={index === orderedItems.length - 1}
-                            onPress={() => handleMoveDown(index)}
-                          >
-                            <ButtonText className="text-gray-700">▼ Down</ButtonText>
-                          </Button>
-                        </HStack>
-                      )}
+
                     </VStack>
                   </Card>
                 </GridItem>

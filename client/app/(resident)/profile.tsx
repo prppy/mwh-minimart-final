@@ -21,6 +21,7 @@ const ProfilePage: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
   const router = useRouter();
   const [resident, setResident] = useState<Resident>();
+  const [rank, setRank] = useState<number | null>(null);
 
   // helper methods:
   const mapResident = (data: any): Resident => {
@@ -59,10 +60,16 @@ const ProfilePage: React.FC = () => {
 
     (async () => {
       try {
-        const res = await api.get(`users/${user.id}`);
-        setResident(mapResident(res.data.data));
+        const [userRes, rankRes] = await Promise.all([
+          api.get(`users/${user.id}`),
+          api.get(`leaderboard/user/${user.id}/position`)
+        ]);
+        setResident(mapResident(userRes.data.data));
+        if (rankRes.data?.success && rankRes.data?.data) {
+          setRank(rankRes.data.data.position);
+        }
       } catch (err) {
-        console.log("Failed to fetch resident", err);
+        console.log("Failed to fetch resident or position", err);
       }
     })();
   }, [isAuthenticated, router, user]);
@@ -125,7 +132,7 @@ const ProfilePage: React.FC = () => {
             {resident.userName}
           </Heading>
           <Heading size="2xl" className={darkText}>
-            You are #1 on the Leaderboard!
+            {rank !== null ? `You are #${rank} on the Leaderboard!` : "Loading rank..."}
           </Heading>
           <Heading
             size="2xl"

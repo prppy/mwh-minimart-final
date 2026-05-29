@@ -153,15 +153,44 @@ const VoucherAdminPage: React.FC = () => {
     finally { setSubmitting(false); }
   };
 
-  // CSV Download
-  const downloadCSV = async (url: string, fallbackName: string) => {
+  // Excel Download (Platform Agnostic)
+  const downloadExcel = async (url: string, fallbackName: string) => {
     try {
-      const res = await api.get(url, { responseType: "text" as any });
-      const blob = new Blob([res.data as any], { type: "text/csv" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = fallbackName;
-      link.click();
+      const filename = fallbackName.replace(".csv", ".xlsx");
+      
+      if (Platform.OS === "web") {
+        const res = await api.get(url, { responseType: "arrayBuffer" });
+        const blob = new Blob([res.data as any], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        link.click();
+        URL.revokeObjectURL(link.href);
+      } else {
+        const res = await api.get(url, { responseType: "arrayBuffer" });
+        
+        // Convert arrayBuffer to base64
+        const bytes = new Uint8Array(res.data as any);
+        let binary = "";
+        for (let i = 0; i < bytes.byteLength; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        const base64 = btoa(binary);
+
+        const { File, Paths } = await import("expo-file-system/next");
+        const Sharing = await import("expo-sharing");
+        
+        const file = new File(Paths.cache, filename);
+        await file.write(base64, { encoding: "base64" });
+
+        await Sharing.shareAsync(file.uri, {
+          mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          dialogTitle: "Export Records",
+          UTI: "com.microsoft.excel.xlsx",
+        });
+      }
     } catch (e: any) { alert("Download failed: " + (e.message || "")); }
   };
 
@@ -181,9 +210,9 @@ const VoucherAdminPage: React.FC = () => {
           </Button>
         ))}
         <View style={{ flex: 1 }} />
-        <Button action="primary" className="bg-greenscale-700" onPress={() => downloadCSV("/export/all", "all_records.csv")}>
+        <Button action="primary" className="bg-greenscale-700" onPress={() => downloadExcel("/export/all", "all_records.csv")}>
           <ButtonIcon as={Download} className="text-white" />
-          <ButtonText className="text-white">Download All</ButtonText>
+          <ButtonText className="text-white">Export Excel</ButtonText>
         </Button>
       </HStack>
 
@@ -215,7 +244,7 @@ const VoucherAdminPage: React.FC = () => {
                     <HStack space="md">
                       <Pressable onPress={() => openEditCategory(cat)}><Icon as={Pencil} size="sm" className="text-indigoscale-700" /></Pressable>
                       <Pressable onPress={() => handleDeleteCategory(cat.id)}><Icon as={Trash} size="sm" className="text-redscale-700" /></Pressable>
-                      <Pressable onPress={() => downloadCSV(`/export/category/${cat.id}`, `${cat.taskCategoryName}.csv`)}><Icon as={Download} size="sm" className="text-greenscale-700" /></Pressable>
+                      <Pressable onPress={() => downloadExcel(`/export/category/${cat.id}`, `${cat.taskCategoryName}.csv`)}><Icon as={Download} size="sm" className="text-greenscale-700" /></Pressable>
                     </HStack>
                   </DataTable.Cell>
                 </DataTable.Row>
@@ -325,7 +354,7 @@ const VoucherAdminPage: React.FC = () => {
             <VStack className="bg-white rounded-xl p-4">
               <Heading size="sm" className="mb-2">Download Individual Records</Heading>
               <ScrollView style={{ maxHeight: 150 }}>{residents.slice(0, 20).map(r => (
-                <Pressable key={r.id} onPress={() => downloadCSV(`/export/resident/${r.id}`, `${r.userName}.csv`)} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 6, borderBottomWidth: 1, borderColor: "#f3f4f6" }}>
+                <Pressable key={r.id} onPress={() => downloadExcel(`/export/resident/${r.id}`, `${r.userName}.csv`)} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 6, borderBottomWidth: 1, borderColor: "#f3f4f6" }}>
                   <Text style={{ fontSize: 13 }}>{r.userName}</Text>
                   <Icon as={Download} size="xs" className="text-greenscale-700" />
                 </Pressable>

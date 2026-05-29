@@ -1,32 +1,49 @@
 // controllers/exportController.js
-// Feature 6: Download records as CSV
+import * as XLSX from 'xlsx';
 import { prisma } from '../lib/db.js';
 
 /**
- * Convert array of objects to CSV string
+ * Convert array of objects to Excel buffer using SheetJS
  */
-const toCSV = (data, columns) => {
-  if (!data || data.length === 0) return '';
-  
-  const headers = columns.map(c => c.label).join(',');
-  const rows = data.map(row => 
-    columns.map(c => {
-      let val = c.accessor(row);
+const toExcelBuffer = (data, columns, sheetName = 'Records') => {
+  if (!data || data.length === 0) {
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet([]);
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  }
+
+  // Format data for sheet consumption (map with exact headers)
+  const formattedData = data.map(row => {
+    const obj = {};
+    columns.forEach(col => {
+      let val = col.accessor(row);
       if (val === null || val === undefined) val = '';
-      // Escape commas and quotes in CSV
-      val = String(val).replace(/"/g, '""');
-      if (val.includes(',') || val.includes('"') || val.includes('\n')) {
-        val = `"${val}"`;
-      }
-      return val;
-    }).join(',')
-  );
-  
-  return [headers, ...rows].join('\n');
+      obj[col.label] = val;
+    });
+    return obj;
+  });
+
+  const ws = XLSX.utils.json_to_sheet(formattedData);
+
+  // Set nice auto-calculated column widths
+  const maxProps = {};
+  formattedData.forEach(row => {
+    Object.keys(row).forEach(key => {
+      const len = String(row[key] || '').length;
+      maxProps[key] = Math.max(maxProps[key] || 10, len, key.length);
+    });
+  });
+  ws['!cols'] = Object.keys(maxProps).map(key => ({ wch: maxProps[key] + 3 }));
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+  return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 };
 
 /**
- * Export individual resident's transaction records as CSV
+ * Export individual resident's transaction records as Excel
  */
 export const exportResidentRecords = async (req, res) => {
   try {
@@ -67,30 +84,54 @@ export const exportResidentRecords = async (req, res) => {
       orderBy: { transactionDate: 'desc' }
     });
 
-    // Flatten transactions for CSV
+    // Flatten transactions for Excel with points-inflation fix
     const flatData = [];
     for (const tx of transactions) {
       if (tx.transactionType === 'completion') {
-        for (const comp of tx.completions) {
+        if (!tx.completions || tx.completions.length === 0) {
           flatData.push({
             date: tx.transactionDate ? new Date(tx.transactionDate).toISOString().split('T')[0] : '',
             type: 'Voucher Completion',
-            item: comp.task?.taskName || '',
-            category: comp.task?.taskCategory?.taskCategoryName || '',
-            points: tx.pointsChange || 0,
-            transactionId: tx.id
-          });
-        }
-      } else if (tx.transactionType === 'redemption') {
-        for (const red of tx.redemptions) {
-          flatData.push({
-            date: tx.transactionDate ? new Date(tx.transactionDate).toISOString().split('T')[0] : '',
-            type: 'Redemption',
-            item: red.product?.productName || '',
+            item: '',
             category: '',
             points: tx.pointsChange || 0,
             transactionId: tx.id
           });
+        } else {
+          for (const comp of tx.completions) {
+            flatData.push({
+              date: tx.transactionDate ? new Date(tx.transactionDate).toISOString().split('T')[0] : '',
+              type: 'Voucher Completion',
+              item: comp.task?.taskName || '',
+              category: comp.task?.taskCategory?.taskCategoryName || '',
+              points: comp.task?.points || 0, // FIXED: use individual task points to prevent duplication/inflation
+              transactionId: tx.id
+            });
+          }
+        }
+      } else if (tx.transactionType === 'redemption') {
+        if (!tx.redemptions || tx.redemptions.length === 0) {
+          flatData.push({
+            date: tx.transactionDate ? new Date(tx.transactionDate).toISOString().split('T')[0] : '',
+            type: 'Redemption',
+            item: '',
+            category: '',
+            points: tx.pointsChange || 0,
+            transactionId: tx.id
+          });
+        } else {
+          for (const red of tx.redemptions) {
+            const prodQuantity = red.productQuantity || 1;
+            const prodPoints = red.product?.points || 0;
+            flatData.push({
+              date: tx.transactionDate ? new Date(tx.transactionDate).toISOString().split('T')[0] : '',
+              type: 'Redemption',
+              item: `${red.product?.productName || ''} (Qty: ${prodQuantity})`,
+              category: '',
+              points: -(prodPoints * prodQuantity) || tx.pointsChange || 0, // FIXED: use individual product cost * quantity
+              transactionId: tx.id
+            });
+          }
         }
       } else if (tx.transactionType === 'abscondence') {
         flatData.push({
@@ -113,12 +154,12 @@ export const exportResidentRecords = async (req, res) => {
       { label: 'Transaction ID', accessor: r => r.transactionId }
     ];
 
-    const csv = toCSV(flatData, columns);
-    const filename = `${resident.user.userName.replace(/\s+/g, '_')}_records_${new Date().toISOString().split('T')[0]}.csv`;
+    const buffer = toExcelBuffer(flatData, columns, 'Resident Records');
+    const filename = `${resident.user.userName.replace(/\s+/g, '_')}_records_${new Date().toISOString().split('T')[0]}.xlsx`;
 
-    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.send(csv);
+    res.send(buffer);
 
   } catch (error) {
     console.error('Export resident records error:', error);
@@ -127,7 +168,7 @@ export const exportResidentRecords = async (req, res) => {
 };
 
 /**
- * Export voucher category records as CSV
+ * Export voucher category records as Excel
  */
 export const exportCategoryRecords = async (req, res) => {
   try {
@@ -150,7 +191,17 @@ export const exportCategoryRecords = async (req, res) => {
           include: {
             transaction: {
               include: {
-                user: { select: { userName: true } }
+                user: {
+                  select: {
+                    userName: true,
+                    resident: {
+                      select: {
+                        serialNumber: true,
+                        batchNumber: true
+                      }
+                    }
+                  }
+                }
               }
             }
           }
@@ -158,7 +209,7 @@ export const exportCategoryRecords = async (req, res) => {
       }
     });
 
-    // Flatten data
+    // Flatten data including serial and batch numbers
     const flatData = [];
     for (const task of tasks) {
       for (const comp of task.completions) {
@@ -166,21 +217,12 @@ export const exportCategoryRecords = async (req, res) => {
           taskName: task.taskName,
           points: task.points,
           residentName: comp.transaction?.user?.userName || '',
+          serialNumber: comp.transaction?.user?.resident?.serialNumber || '',
+          batchNumber: comp.transaction?.user?.resident?.batchNumber || '',
           date: comp.transaction?.transactionDate 
             ? new Date(comp.transaction.transactionDate).toISOString().split('T')[0] 
-            : '',
+            : 'N/A',
           transactionId: comp.transactionId
-        });
-      }
-
-      // If no completions, still include the task
-      if (task.completions.length === 0) {
-        flatData.push({
-          taskName: task.taskName,
-          points: task.points,
-          residentName: '',
-          date: '',
-          transactionId: ''
         });
       }
     }
@@ -188,18 +230,20 @@ export const exportCategoryRecords = async (req, res) => {
     const columns = [
       { label: 'Voucher Name', accessor: r => r.taskName },
       { label: 'Points', accessor: r => r.points },
-      { label: 'Resident', accessor: r => r.residentName },
+      { label: 'Resident Name', accessor: r => r.residentName },
+      { label: 'Serial Number', accessor: r => r.serialNumber },
+      { label: 'Batch Number', accessor: r => r.batchNumber },
       { label: 'Completion Date', accessor: r => r.date },
       { label: 'Transaction ID', accessor: r => r.transactionId }
     ];
 
-    const csv = toCSV(flatData, columns);
+    const buffer = toExcelBuffer(flatData, columns, 'Category Records');
     const catName = (category.taskCategoryName || 'category').replace(/\s+/g, '_');
-    const filename = `${catName}_records_${new Date().toISOString().split('T')[0]}.csv`;
+    const filename = `${catName}_records_${new Date().toISOString().split('T')[0]}.xlsx`;
 
-    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.send(csv);
+    res.send(buffer);
 
   } catch (error) {
     console.error('Export category records error:', error);
@@ -208,7 +252,7 @@ export const exportCategoryRecords = async (req, res) => {
 };
 
 /**
- * Export all voucher records as CSV
+ * Export all voucher records as Excel
  */
 export const exportAllRecords = async (req, res) => {
   try {
@@ -225,7 +269,17 @@ export const exportAllRecords = async (req, res) => {
     const transactions = await prisma.transaction.findMany({
       where,
       include: {
-        user: { select: { userName: true } },
+        user: {
+          select: {
+            userName: true,
+            resident: {
+              select: {
+                serialNumber: true,
+                batchNumber: true
+              }
+            }
+          }
+        },
         completions: {
           include: {
             task: {
@@ -243,33 +297,50 @@ export const exportAllRecords = async (req, res) => {
 
     const flatData = [];
     for (const tx of transactions) {
-      for (const comp of tx.completions) {
+      if (!tx.completions || tx.completions.length === 0) {
         flatData.push({
           date: tx.transactionDate ? new Date(tx.transactionDate).toISOString().split('T')[0] : '',
           residentName: tx.user?.userName || '',
-          voucherName: comp.task?.taskName || '',
-          category: comp.task?.taskCategory?.taskCategoryName || '',
-          points: comp.task?.points || 0,
+          serialNumber: tx.user?.resident?.serialNumber || '',
+          batchNumber: tx.user?.resident?.batchNumber || '',
+          voucherName: '',
+          category: '',
+          points: tx.pointsChange || 0,
           transactionId: tx.id
         });
+      } else {
+        for (const comp of tx.completions) {
+          flatData.push({
+            date: tx.transactionDate ? new Date(tx.transactionDate).toISOString().split('T')[0] : '',
+            residentName: tx.user?.userName || '',
+            serialNumber: tx.user?.resident?.serialNumber || '',
+            batchNumber: tx.user?.resident?.batchNumber || '',
+            voucherName: comp.task?.taskName || '',
+            category: comp.task?.taskCategory?.taskCategoryName || '',
+            points: comp.task?.points || 0,
+            transactionId: tx.id
+          });
+        }
       }
     }
 
     const columns = [
       { label: 'Date', accessor: r => r.date },
-      { label: 'Resident', accessor: r => r.residentName },
+      { label: 'Resident Name', accessor: r => r.residentName },
+      { label: 'Serial Number', accessor: r => r.serialNumber },
+      { label: 'Batch Number', accessor: r => r.batchNumber },
       { label: 'Voucher Name', accessor: r => r.voucherName },
       { label: 'Category', accessor: r => r.category },
       { label: 'Points', accessor: r => r.points },
       { label: 'Transaction ID', accessor: r => r.transactionId }
     ];
 
-    const csv = toCSV(flatData, columns);
-    const filename = `all_voucher_records_${new Date().toISOString().split('T')[0]}.csv`;
+    const buffer = toExcelBuffer(flatData, columns, 'All Voucher Records');
+    const filename = `all_voucher_records_${new Date().toISOString().split('T')[0]}.xlsx`;
 
-    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.send(csv);
+    res.send(buffer);
 
   } catch (error) {
     console.error('Export all records error:', error);
