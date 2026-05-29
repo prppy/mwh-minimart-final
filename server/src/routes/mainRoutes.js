@@ -13,6 +13,7 @@ import feedbackRoutes from './feedbackRoutes.js';
 import archiveRoutes from './archiveRoutes.js';
 import screensaverRoutes from './screensaverRoutes.js';
 import exportRoutes from './exportRoutes.js';
+import adminRoutes from './adminRoutes.js';
 
 router.use('/users', userRoutes);
 router.use('/authentication', authenticationRoute);
@@ -26,5 +27,6 @@ router.use('/feedback', feedbackRoutes);
 router.use('/archive', archiveRoutes);
 router.use('/screensaver-images', screensaverRoutes);
 router.use('/export', exportRoutes);
+router.use('/admin', adminRoutes);
 
 export default router;
