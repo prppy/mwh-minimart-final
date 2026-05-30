@@ -248,7 +248,6 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
                       <Text size="xl" className="text-indigoscale-700">
                         Add New Item
                       </Text>
-                      <Text></Text>
                     </Card>
                   </Pressable>
                 </GridItem>

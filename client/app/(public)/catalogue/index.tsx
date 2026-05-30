@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useRouter, useNavigation } from "expo-router";
-import { ShoppingCart } from "lucide-react-native";
+import { ShoppingCart, Plus, Minus } from "lucide-react-native";
 import { Pressable } from "react-native";
 
 import api from "@/utils/api";
@@ -24,7 +24,7 @@ import { Badge, BadgeText } from "@/components/ui/badge";
 const CataloguePage: React.FC = () => {
   const router = useRouter();
   const navigation = useNavigation();
-  const { cartCount, totalPoints } = useCart();
+  const { cart, cartCount, totalPoints, removeFromCart, updateQuantity } = useCart();
   const { role } = useAuth();
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -258,28 +258,50 @@ const CataloguePage: React.FC = () => {
             <ButtonText className="text-white font-bold">
               View Cart ({cartCount})
             </ButtonText>
-            <Badge
-              size="sm"
-              variant="solid"
-              action="error"
-              className="absolute -top-2 -right-2 bg-red-600"
-            >
-              <BadgeText>{cartCount}</BadgeText>
-            </Badge>
+
           </Button>
         )}
 
         {isResident && cartCount > 0 && (
-          <VStack className="p-3 bg-indigoscale-50 rounded-lg" space="xs">
+          <VStack className="p-3 bg-indigoscale-50 rounded-lg" space="sm">
             <Text className="text-indigoscale-700 font-semibold">
               Cart Summary
             </Text>
-            <HStack className="justify-between">
-              <Text className="text-sm">Items:</Text>
-              <Text className="text-sm font-semibold">{cartCount}</Text>
-            </HStack>
-            <HStack className="justify-between">
-              <Text className="text-sm">Total Cost:</Text>
+
+            {/* Per-item breakdown */}
+            {cart.map((item) => (
+              <HStack key={item.id} className="items-center" space="xs">
+                <Text className="text-sm font-semibold text-indigoscale-700 flex-1" numberOfLines={1}>
+                  {item.productName}
+                </Text>
+                <Button
+                  size="xs"
+                  action="secondary"
+                  className="w-6 h-6 rounded-full bg-indigoscale-100 p-0"
+                  onPress={() => updateQuantity(item.id, item.quantity - 1)}
+                >
+                  <ButtonIcon as={Minus} className="text-indigoscale-700" size="xs" />
+                </Button>
+                <Text className="text-sm font-semibold w-4 text-center">
+                  {item.quantity}
+                </Text>
+                <Button
+                  size="xs"
+                  action="secondary"
+                  className="w-6 h-6 rounded-full bg-indigoscale-100 p-0"
+                  onPress={() => updateQuantity(item.id, item.quantity + 1)}
+                >
+                  <ButtonIcon as={Plus} className="text-indigoscale-700" size="xs" />
+                </Button>
+                <Text className="text-xs text-gray-500 w-16 text-right">
+                  {item.points * item.quantity} pts
+                </Text>
+              </HStack>
+            ))}
+
+            {/* Total */}
+            <HStack className="justify-between border-t border-indigoscale-200 pt-2 mt-1">
+              <Text className="text-sm font-semibold">Total:</Text>
               <Text className="text-sm font-semibold text-indigoscale-700">
                 {totalPoints} pts
               </Text>
