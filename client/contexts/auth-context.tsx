@@ -4,7 +4,7 @@ import api from "../utils/api";
 import { authAPI, User } from "../utils/auth";
 import { useIdleTimeout } from "@/hooks/useIdleTimeout";
 
-type Role = "resident" | "officer" | "developer" | null;
+type Role = "resident" | "officer" | "developer" | "admin" | "superadmin" | null;
 
 interface AuthContextType {
   user: User | null;
@@ -147,7 +147,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     resetTimer();
   };
 
-  const isAdmin = role === "officer" || role === "developer";
+  const isAdmin =
+    role === "officer" ||
+    role === "developer" ||
+    role === "admin" ||
+    role === "superadmin";
   const isAuthenticated = !!user;
 
   return (
