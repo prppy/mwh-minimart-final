@@ -3,14 +3,11 @@ avatar
 badge
 box
 button
-calendar
 card
 center
 checkbox
-date-time-picker
 divider
 form-control
-gluestack-ui-provider
 heading
 hstack
 icon
