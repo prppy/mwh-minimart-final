@@ -19,7 +19,6 @@ import * as slider from "@/components/ui/slider";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
 import { Button, ButtonText, ButtonIcon } from "@/components/ui/button";
-import { Badge, BadgeText } from "@/components/ui/badge";
 
 const CataloguePage: React.FC = () => {
   const router = useRouter();

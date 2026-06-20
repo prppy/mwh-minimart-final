@@ -6,7 +6,7 @@ import { useCart } from "@/contexts/cart-context";
 import { useAuth } from "@/contexts/auth-context";
 import api from "@/utils/api";
 
-import { Button, ButtonText, ButtonIcon } from "@/components/ui/button";
+import { Button, ButtonText } from "@/components/ui/button";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
@@ -24,7 +24,11 @@ interface CartModalProps {
   onOpenCart?: () => void; // Callback to open cart from external triggers
 }
 
-const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, onOpenCart }) => {
+const CartModal: React.FC<CartModalProps> = ({
+  isOpen,
+  onClose,
+  onOpenCart,
+}) => {
   const { cart, totalPoints, removeFromCart, updateQuantity, clearCart } =
     useCart();
   const { user } = useAuth();
@@ -85,7 +89,7 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, onOpenCart }) =>
         });
         clearCart();
         setShowConfirmation(true);
-        
+
         // Refresh user data to update points
         // You may want to trigger a user data refresh here
       } else {
@@ -124,11 +128,7 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, onOpenCart }) =>
           <modal.ModalBody>
             {cart.length === 0 ? (
               <VStack className="items-center justify-center py-10" space="md">
-                <Icon
-                  as={ShoppingCart}
-                  size="xl"
-                  className="text-gray-400"
-                />
+                <Icon as={ShoppingCart} size="xl" className="text-gray-400" />
                 <Text className="text-gray-500">Your cart is empty</Text>
               </VStack>
             ) : (
@@ -193,7 +193,10 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, onOpenCart }) =>
             )}
 
             {cart.length > 0 && (
-              <VStack className="mt-4 p-4 bg-indigoscale-50 rounded-lg" space="sm">
+              <VStack
+                className="mt-4 p-4 bg-indigoscale-50 rounded-lg"
+                space="sm"
+              >
                 <HStack className="justify-between">
                   <Text className="font-semibold">Your Points:</Text>
                   <Text className="font-semibold">{userPoints} pts</Text>
@@ -205,10 +208,14 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, onOpenCart }) =>
                   </Text>
                 </HStack>
                 <HStack className="justify-between">
-                  <Text className={`font-semibold ${canAfford ? "text-green-600" : "text-red-600"}`}>
+                  <Text
+                    className={`font-semibold ${canAfford ? "text-green-600" : "text-red-600"}`}
+                  >
                     {canAfford ? "Remaining:" : "Short by:"}
                   </Text>
-                  <Text className={`font-semibold ${canAfford ? "text-green-600" : "text-red-600"}`}>
+                  <Text
+                    className={`font-semibold ${canAfford ? "text-green-600" : "text-red-600"}`}
+                  >
                     {Math.abs(userPoints - totalPoints)} pts
                   </Text>
                 </HStack>
@@ -236,9 +243,7 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, onOpenCart }) =>
                 onPress={handleCheckout}
                 disabled={loading || !canAfford}
                 className={`${
-                  canAfford
-                    ? "bg-indigoscale-700"
-                    : "bg-gray-400"
+                  canAfford ? "bg-indigoscale-700" : "bg-gray-400"
                 }`}
               >
                 {loading ? (
@@ -269,9 +274,7 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, onOpenCart }) =>
             <Heading
               size="lg"
               className={
-                checkoutResult?.success
-                  ? "text-green-600"
-                  : "text-red-600"
+                checkoutResult?.success ? "text-green-600" : "text-red-600"
               }
             >
               {checkoutResult?.success ? "✅ Success!" : "❌ Error"}
@@ -281,21 +284,22 @@ const CartModal: React.FC<CartModalProps> = ({ isOpen, onClose, onOpenCart }) =>
             <Text>{checkoutResult?.message}</Text>
           </alert.AlertDialogBody>
           <alert.AlertDialogFooter>
-            {!checkoutResult?.success && checkoutResult?.message.includes("Insufficient points") && (
-              <Button
-                variant="outline"
-                action="secondary"
-                onPress={() => {
-                  setShowConfirmation(false);
-                  if (onOpenCart) {
-                    onOpenCart();
-                  }
-                }}
-                className="mr-3"
-              >
-                <ButtonText>Go to Cart</ButtonText>
-              </Button>
-            )}
+            {!checkoutResult?.success &&
+              checkoutResult?.message.includes("Insufficient points") && (
+                <Button
+                  variant="outline"
+                  action="secondary"
+                  onPress={() => {
+                    setShowConfirmation(false);
+                    if (onOpenCart) {
+                      onOpenCart();
+                    }
+                  }}
+                  className="mr-3"
+                >
+                  <ButtonText>Go to Cart</ButtonText>
+                </Button>
+              )}
             <Button
               action="primary"
               onPress={() => {
