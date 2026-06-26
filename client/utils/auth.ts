@@ -4,7 +4,7 @@ import api from "./api";
 interface User {
   id: number;
   userName: string;
-  userRole: "resident" | "officer" | "developer";
+  userRole: "resident" | "officer" | "developer" | "admin" | "superadmin";
 }
 
 interface LoginResponse {

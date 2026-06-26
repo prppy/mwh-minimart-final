@@ -90,13 +90,6 @@ model Product {
   @@map("MWH_Product")
 }
 
-model ProductType {
-  id       BigInt    @id @default(autoincrement()) @map("Type_ID")
-  typeName String?   @default("Daily") @map("Type_Name") @db.VarChar
-  products Product[]
-
-  @@map("MWH_Type")
-}
 
 model Task {
   id              Int           @id @default(autoincrement()) @map("Task_ID")
@@ -240,6 +233,8 @@ enum user_role_enum {
   resident
   officer
   developer
+  admin
+  superadmin
 }
 
 enum question_type_enum {
