@@ -18,7 +18,7 @@ import api from "@/utils/api";
 import * as ImagePicker from "expo-image-picker";
 
 // Get the backend URL for displaying uploaded images
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL?.replace('/api', '') || "http://localhost:3000";
+const BACKEND_URL = process.env.BACKEND_URL?.replace('/api', '') || "http://localhost:3000";
 
 interface ScreensaverImage {
   id: number;
