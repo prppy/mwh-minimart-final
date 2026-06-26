@@ -9,6 +9,7 @@ center
 checkbox
 divider
 form-control
+grid
 heading
 hstack
 icon
@@ -19,6 +20,7 @@ modal
 pressable
 select
 slider
+spinner
 table
 text
 textarea
