@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { TouchableOpacity, TextInput, FlatList, ActivityIndicator, ScrollView } from "react-native";
-import { ChevronDown, Search, X } from "lucide-react-native";
+import { Search, X } from "lucide-react-native";
 
 import { Heading } from "@/components/ui/heading";
 import { HStack } from "@/components/ui/hstack";
@@ -30,7 +30,6 @@ import {
   type RequestCategory,
   type ProductRequestItem,
   REQUEST_STATUS_OPTIONS,
-  REQUEST_CATEGORY_OPTIONS,
   REQUEST_SORT_OPTIONS,
 } from "@/utils/types/productRequest";
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ScrollView, ImageBackground } from "react-native";
 import { useRouter } from "expo-router";
-import { Users, HeartPulse, Leaf, ChevronLeft, ChevronRight, HeartHandshake, HandHeart } from "lucide-react-native";
+import { Users, ChevronLeft, ChevronRight, HeartHandshake, HandHeart } from "lucide-react-native";
 
 import { Box } from "@/components/ui/box";
 import { Button, ButtonText } from "@/components/ui/button";

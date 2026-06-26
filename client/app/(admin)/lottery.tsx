@@ -23,7 +23,6 @@ import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
 import { Badge, BadgeText } from "@/components/ui/badge";
 import { Pressable } from "@/components/ui/pressable";
-import { Divider } from "@/components/ui/divider";
 import { Input, InputField, InputIcon, InputSlot } from "@/components/ui/input";
 import { Image as UiImage } from "@/components/ui/image";
 import Checkbox from "@/components/custom-checkbox";

@@ -1,15 +1,12 @@
 import { useEffect, useState } from "react";
-import { Check, EyeOff, Pencil, Plus, Trash, X, Package, MessageSquare, TrendingUp, Award } from "lucide-react-native";
+import { Check, Package, MessageSquare, TrendingUp, Award } from "lucide-react-native";
 import { ScrollView } from "react-native";
 
 import api from "@/utils/api";
-import { Performer } from "@/utils/types";
 
-import LeaderboardCard from "@/components/custom-leaderboard-card";
 import { Heading } from "@/components/ui/heading";
 import { HStack } from "@/components/ui/hstack";
 import { Icon } from "@/components/ui/icon";
-import { Pressable } from "@/components/ui/pressable";
 import * as table from "@/components/ui/table";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";

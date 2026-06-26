@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TouchableOpacity, Platform } from "react-native";
+import { Platform } from "react-native";
 import { ChevronDown } from "lucide-react-native";
 
 import { HStack } from "@/components/ui/hstack";
