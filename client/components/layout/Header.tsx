@@ -60,7 +60,12 @@ const Header: React.FC = () => {
         { name: "Sign Out", route: "/", icon: LogOut, action: "logout" },
       ];
     }
-    if (role === "officer" || role === "developer") {
+    if (
+      role === "admin" ||
+      role === "superadmin" ||
+      role === "officer" ||
+      role === "developer"
+    ) {
       return [
         { name: "Catalogue", route: "/(public)/catalogue", icon: ShoppingBag },
         { name: "Vouchers", route: "/(admin)/voucher-management", icon: TicketCheck },
@@ -80,7 +85,13 @@ const Header: React.FC = () => {
   let activeTabName = activeTab?.name;
 
   // default to Dashboard if user is officer and no tab matches
-  if (!activeTabName && (role === "officer" || role === "developer")) {
+  if (
+    !activeTabName &&
+    (role === "admin" ||
+      role === "superadmin" ||
+      role === "officer" ||
+      role === "developer")
+  ) {
     activeTabName = "Dashboard";
   } else if (!activeTabName && role === "resident") {
     activeTabName = "Profile";
@@ -95,7 +106,12 @@ const Header: React.FC = () => {
     } else if (role === "resident") {
       await logout();
       router.push("/(public)");
-    } else if (role === "officer" || role === "developer") {
+    } else if (
+      role === "admin" ||
+      role === "superadmin" ||
+      role === "officer" ||
+      role === "developer"
+    ) {
       router.push("/(admin)");
     }
   };
