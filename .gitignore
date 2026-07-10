@@ -36,3 +36,6 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# gluestack components — run client/scripts/setup-ui.sh to regenerate
+client/components/ui/
