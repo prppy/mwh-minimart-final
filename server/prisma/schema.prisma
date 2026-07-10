@@ -231,8 +231,8 @@ enum transaction_type_enum {
 
 enum user_role_enum {
   resident
-  officer
-  developer
+  admin
+  superadmin
 }
 
 enum question_type_enum {

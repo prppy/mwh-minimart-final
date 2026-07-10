@@ -6,8 +6,8 @@ dotenv.config({ path: "../.env" });
 
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
-const ACCESS_TOKEN_EXPIRES_IN = process.env.ACCESS_TOKEN_EXPIRES_IN;
-const REFRESH_TOKEN_EXPIRES_IN = process.env.REFRESH_TOKEN_EXPIRES_IN;
+const ACCESS_TOKEN_EXPIRES_IN = process.env.ACCESS_TOKEN_EXPIRES_IN || "1h";
+const REFRESH_TOKEN_EXPIRES_IN = process.env.REFRESH_TOKEN_EXPIRES_IN || "7d";
 
 export const generateAccessToken = async (req, res, next) => {
   try {
@@ -119,7 +119,9 @@ export const verifyAccessToken = async (req, res, next) => {
 
 export const verifyRefreshToken = async (req, res, next) => {
   try {
-    const { refreshToken } = req.cookies;
+    // Accept the refresh token from an httpOnly cookie or the request body
+    // (the mobile/web client sends it in the body; no cookie parser is mounted).
+    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
 
     if (!refreshToken) {
       return res.status(403).json({ message: "Refresh token missing" });
@@ -147,6 +149,51 @@ export const verifyRefreshToken = async (req, res, next) => {
 
     return res.status(400).json({ message: "An unknown error occurred" });
   }
+};
+
+/**
+ * Like verifyAccessToken, but does not reject unauthenticated requests.
+ * Populates req.user when a valid Bearer token is present so controllers
+ * can vary their response by role on endpoints that are partially public.
+ */
+export const optionalAccessToken = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    try {
+      const payload = jwt.verify(authHeader.split(" ")[1], ACCESS_TOKEN_SECRET);
+      const userId = payload.userId || payload.User_ID;
+      const role = payload.role || payload.userRole;
+
+      res.locals.userId = userId;
+      res.locals.User_ID = userId;
+      req.user = { userId, role };
+    } catch {
+      // Invalid/expired token on an optional route: treat as unauthenticated.
+    }
+  }
+
+  next();
+};
+
+/**
+ * Role guard — must run after verifyAccessToken.
+ * Usage: router.post("/", verifyAccessToken, requireRole("admin", "superadmin"), handler)
+ */
+export const requireRole = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user || !req.user.role) {
+      return res.status(403).json({ message: "Access token missing" });
+    }
+
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({
+        message: "Access denied: insufficient permissions",
+      });
+    }
+
+    next();
+  };
 };
 
 export const handleAccessToken = async (req, res) => {

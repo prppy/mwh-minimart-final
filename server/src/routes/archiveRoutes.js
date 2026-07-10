@@ -2,8 +2,12 @@
 import { Router } from 'express';
 import { param, query, body } from 'express-validator';
 import * as archiveController from '../controllers/archiveController.js';
+import { verifyAccessToken, requireRole } from '../middlewares/jwtMiddleware.js';
 
 const archiveRouter = Router();
+
+// Every archive operation is a staff action
+archiveRouter.use(verifyAccessToken, requireRole('admin', 'superadmin'));
 
 // Validation middleware
 const userIdValidation = [

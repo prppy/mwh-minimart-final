@@ -1,14 +1,36 @@
 import { validationResult } from "express-validator";
 import * as userModel from "../models/userModel.js";
 
+const isStaff = (user) => !!user && ["admin", "superadmin"].includes(user.role);
+
+// Unauthenticated callers (the kiosk login picker) only ever need the
+// resident list with enough data to render a name + avatar. The picker cards
+// are colour-coded per resident, so the cosmetic wallpaper fields are
+// included; everything else (points, DOB, serial number, remarks) stays out.
+const toPublicUser = (user) => ({
+  id: user.id,
+  userName: user.userName,
+  userRole: user.userRole,
+  profilePicture: user.profilePicture ?? null,
+  resident: user.resident
+    ? {
+        wallpaperType: user.resident.wallpaperType,
+        backgroundType: user.resident.backgroundType,
+      }
+    : null,
+});
+
 // Get all users with filtering
 export const getAllUsers = async (req, res) => {
   try {
     const { role, batchNumber, limit, offset, search, sortBy, sortOrder } =
       req.query;
 
+    const staffCaller = isStaff(req.user);
+
     const result = await userModel.findMany({
-      role,
+      // Non-staff callers may only list residents
+      role: staffCaller ? role : "resident",
       batchNumber,
       limit,
       offset,
@@ -18,7 +40,9 @@ export const getAllUsers = async (req, res) => {
     });
 
     // Sanitize user data
-    const sanitizedUsers = result.users.map((user) => userModel.sanitize(user));
+    const sanitizedUsers = result.users.map((user) =>
+      staffCaller ? userModel.sanitize(user) : toPublicUser(user)
+    );
 
     res.json({
       success: true,
@@ -35,16 +59,22 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
-// Get user by ID
+// Get users by role
 export const readUsersByRole = async (req, res) => {
   try {
     const { role } = req.query;
     const { includeProfilePicture = "true" } = req.query; // Allow excluding profile pictures for performance
-    console.log(role);
 
-    if (role !== "developer" && role !== "resident" && role !== "officer") {
+    if (role !== "superadmin" && role !== "resident" && role !== "admin") {
       return res.status(400).json({
         message: "Please use a valid user role",
+      });
+    }
+
+    const staffCaller = isStaff(req.user);
+    if (!staffCaller && role !== "resident") {
+      return res.status(403).json({
+        error: { message: "Access denied" },
       });
     }
 
@@ -52,7 +82,9 @@ export const readUsersByRole = async (req, res) => {
       role,
       includeProfilePicture: includeProfilePicture === "true",
     });
-    const sanitizedUsers = result.users.map((user) => UserModel.sanitize(user));
+    const sanitizedUsers = result.users.map((user) =>
+      staffCaller ? userModel.sanitize(user) : toPublicUser(user)
+    );
 
     return res.status(200).json({
       message: "List of users of role " + role,
@@ -75,37 +107,12 @@ export const getUserById = async (req, res) => {
     const { id } = req.params;
     const { includeTransactions = false } = req.query;
 
-    const user = await userModel.findById(parseInt(id), {
-      includeResident: true,
-      includeOfficer: true,
-      includeTransactions: includeTransactions === "true",
-    });
-
-    if (!user) {
-      return res.status(404).json({
-        error: { message: "User not found" },
+    // Residents may only read their own profile
+    if (!isStaff(req.user) && parseInt(id) !== parseInt(req.user.userId)) {
+      return res.status(403).json({
+        error: { message: "Access denied" },
       });
     }
-
-    const sanitizedUser = userModel.sanitize(user);
-
-    res.json({
-      success: true,
-      data: sanitizedUser,
-    });
-  } catch (error) {
-    console.error("Get user error:", error);
-    res.status(500).json({
-      error: { message: "Internal server error" },
-    });
-  }
-};
-
-// Get user by Role
-export const getUserByRole = async (req, res) => {
-  try {
-    const { role } = req.query;
-    const { includeTransactions = false } = req.query;
 
     const user = await userModel.findById(parseInt(id), {
       includeResident: true,
@@ -144,7 +151,58 @@ export const updateUser = async (req, res) => {
     }
 
     const { id } = req.params;
-    const updates = req.body;
+    let updates = req.body;
+
+    const currentUserRole = req.user.role;
+
+    // Retrieve target user profile to verify their role
+    const targetUser = await userModel.findById(parseInt(id));
+    if (!targetUser) {
+      return res.status(404).json({
+        error: { message: "User not found" },
+      });
+    }
+
+    // Residents may only edit their own profile, and only cosmetic fields.
+    if (currentUserRole === "resident") {
+      if (parseInt(id) !== parseInt(req.user.userId)) {
+        return res.status(403).json({
+          error: { message: "Access denied: you can only edit your own profile." },
+        });
+      }
+      updates = {
+        ...(updates.profilePicture !== undefined && {
+          profilePicture: updates.profilePicture,
+        }),
+        ...(updates.resident && {
+          resident: {
+            ...(updates.resident.wallpaperType && {
+              wallpaperType: updates.resident.wallpaperType,
+            }),
+            ...(updates.resident.backgroundType && {
+              backgroundType: updates.resident.backgroundType,
+            }),
+          },
+        }),
+      };
+    }
+
+    // Role-based editing restrictions:
+    // 1. Super Admin can edit anyone and change roles.
+    // 2. Admins have read-only access to profiles — they cannot edit anyone.
+    // 3. Residents may edit only their own cosmetic fields (filtered above).
+    if (currentUserRole === "admin") {
+      return res.status(403).json({
+        error: { message: "Access denied: Only Super Admins can change user profiles." },
+      });
+    }
+    if (currentUserRole !== "superadmin") {
+      if (updates.userRole && updates.userRole !== targetUser.userRole) {
+        return res.status(403).json({
+          error: { message: "Access denied: Only Super Admins can assign user roles." },
+        });
+      }
+    }
 
     const updatedUser = await userModel.updateProfile(parseInt(id), updates);
 
@@ -171,6 +229,15 @@ export const updateUser = async (req, res) => {
 export const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
+
+    const currentUserRole = req.user.role;
+
+    // Strict check: Only Super Admin can delete/remove users!
+    if (currentUserRole !== "superadmin") {
+      return res.status(403).json({
+        error: { message: "Access denied: Only Super Admins can delete/remove users." },
+      });
+    }
 
     await userModel.softDelete(parseInt(id));
 
@@ -213,7 +280,7 @@ export const changePassword = async (req, res) => {
 
     if (
       requestedUserId !== currentUserId &&
-      !["officer", "admin"].includes(userRole)
+      !["admin", "superadmin"].includes(userRole)
     ) {
       return res.status(403).json({
         error: { message: "Access denied" },

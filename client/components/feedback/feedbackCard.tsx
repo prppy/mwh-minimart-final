@@ -8,6 +8,7 @@ import { VStack } from "@/components/ui/vstack";
 import { SentimentBadge } from "@/components/feedback/sentimentBadge";
 import { markFeedbackReviewed, unmarkFeedbackReviewed } from "@/utils/api/feedback";
 import { AVATAR_PALETTE, CATEGORY_STYLES, type FeedbackItem } from "@/utils/types/feedback";
+import { useAuth } from "@/contexts/auth-context";
 
 interface FeedbackCardProps {
   item:           FeedbackItem;
@@ -15,6 +16,7 @@ interface FeedbackCardProps {
 }
 
 export const FeedbackCard: React.FC<FeedbackCardProps> = ({ item, onStatusChange }) => {
+  const { isSuperAdmin } = useAuth();
   const [loading, setLoading] = useState(false);
 
   const avatarStyle   = AVATAR_PALETTE[(item.userId ?? 0) % AVATAR_PALETTE.length];
@@ -106,7 +108,8 @@ export const FeedbackCard: React.FC<FeedbackCardProps> = ({ item, onStatusChange
           )}
         </HStack>
 
-        {item.feedbackStatus === "new" ? (
+        {/* Only Super Admins can change feedback status */}
+        {!isSuperAdmin ? null : item.feedbackStatus === "new" ? (
           <TouchableOpacity
             onPress={handleMarkReviewed}
             disabled={loading}

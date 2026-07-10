@@ -169,7 +169,7 @@ export const getUserPosition = async (req, res) => {
     const currentUserId = req.user.userId;
     const userRole = req.user.role;
 
-    if (requestedUserId !== currentUserId && !['officer', 'admin'].includes(userRole)) {
+    if (requestedUserId !== currentUserId && !['admin', 'superadmin'].includes(userRole)) {
       return res.status(403).json({ 
         error: { message: 'Access denied' }
       });

@@ -30,12 +30,7 @@ export default function Index() {
     return <Redirect href="/(public)" />;
   }
 
-  if (
-    role === "admin" ||
-    role === "superadmin" ||
-    role === "officer" ||
-    role === "developer"
-  ) {
+  if (role === "admin" || role === "superadmin") {
     return <Redirect href="/(admin)" />;
   }
 

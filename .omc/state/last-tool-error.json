@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"ls client/components/ui/\",\"description\":\"List existing gluestack ui components\"}",
+  "error": "Exit code 2\nls: cannot access 'client/components/ui/': No such file or directory",
+  "timestamp": "2026-07-10T20:47:49.277Z",
+  "retry_count": 1
+}

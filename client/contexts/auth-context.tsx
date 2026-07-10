@@ -4,16 +4,17 @@ import api from "../utils/api";
 import { authAPI, User } from "../utils/auth";
 import { useIdleTimeout } from "@/hooks/useIdleTimeout";
 
-type Role = "resident" | "officer" | "developer" | "admin" | "superadmin" | null;
+type Role = "resident" | "admin" | "superadmin" | null;
 
 interface AuthContextType {
   user: User | null;
   role: Role;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   isAuthenticated: boolean;
   loading: boolean;
   loginResident: (userId: number, plainPassword: string) => Promise<void>;
-  loginOfficer: (officerEmail: string, password: string) => Promise<void>;
+  loginAdmin: (officerEmail: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -29,7 +30,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true);
 
   const logout = async () => {
-    await AsyncStorage.multiRemove(["token", "user", "@cart"]); // Clear cart on logout
+    await AsyncStorage.multiRemove(["token", "refreshToken", "user", "@cart"]); // Clear cart on logout
     api.removeAuth();
     setUser(null);
     setRole(null);
@@ -59,29 +60,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     const loadAuth = async () => {
       try {
-        const storedUser = await AsyncStorage.getItem("user");
-        const storedToken = await AsyncStorage.getItem("token");
+        const [storedUser, storedToken, storedRefreshToken] =
+          await AsyncStorage.multiGet(["user", "token", "refreshToken"]).then(
+            (entries) => entries.map(([, value]) => value)
+          );
 
         if (storedUser && storedToken) {
           const parsed = JSON.parse(storedUser);
+
+          // Exchange the refresh token for a fresh access token so restored
+          // sessions don't silently expire mid-use.
+          let activeToken = storedToken;
+          if (storedRefreshToken) {
+            try {
+              const refreshed = await authAPI.refresh(storedRefreshToken);
+              if (refreshed.accessToken) {
+                activeToken = refreshed.accessToken;
+                await AsyncStorage.setItem("token", activeToken);
+              }
+            } catch {
+              // Refresh failed (expired/revoked): drop the stale session.
+              await AsyncStorage.multiRemove(["token", "refreshToken", "user"]);
+              return;
+            }
+          }
+
           setUser(parsed);
           setRole(parsed.userRole); // assumes user has userRole
-          api.setAuthToken(storedToken);
+          api.setAuthToken(activeToken);
 
           // Start counting inactivity as soon as a session is restored.
           resetTimer();
-
-          console.log("🔐 Restored session:", {
-            token: storedToken,
-            user: parsed,
-            role: parsed.userRole,
-          });
-        } else {
-          // TODO: get session details here
-          console.log("No stored auth found");
         }
       } catch (err) {
-        console.error("⚠️ Failed to load session:", err);
+        console.error("Failed to load session:", err);
       } finally {
         setLoading(false);
       }
@@ -90,54 +102,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loginResident = async (userId: number, password: string) => {
-    console.log("🔐 AuthContext loginResident called with:", {
-      userId,
-      passwordLength: password.length,
-    });
-
-    try {
-      const res = await authAPI.loginResident({
-        userId,
-        password,
-      });
-
-      console.log("✅ AuthAPI response received:", {
-        hasAccessToken: !!res.accessToken,
-        hasRefreshToken: !!res.refreshToken,
-        user: res.user,
-      });
-
-      if (!res.accessToken || !res.refreshToken)
-        throw new Error("Invalid login response");
-
-      await AsyncStorage.setItem("token", res.accessToken);
-      await AsyncStorage.setItem("user", JSON.stringify(res.user));
-
-      api.setAuthToken(res.accessToken);
-      setUser(res.user);
-      setRole(res.user.userRole);
-
-      // Start inactivity timer immediately after login.
-      resetTimer();
-
-      console.log("✅ Login successful, stored in AsyncStorage");
-    } catch (error) {
-      console.error("❌ AuthContext loginResident error:", error);
-      throw error; // Re-throw to be caught by calling function
-    }
-  };
-
-  const loginOfficer = async (officerEmail: string, password: string) => {
-    const res = await authAPI.loginOfficer({
-      officerEmail,
-      password,
-    });
+  const storeSession = async (res: Awaited<ReturnType<typeof authAPI.loginResident>>) => {
     if (!res.accessToken || !res.refreshToken)
       throw new Error("Invalid login response");
 
-    await AsyncStorage.setItem("token", res.accessToken);
-    await AsyncStorage.setItem("user", JSON.stringify(res.user));
+    await AsyncStorage.multiSet([
+      ["token", res.accessToken],
+      ["refreshToken", res.refreshToken],
+      ["user", JSON.stringify(res.user)],
+    ]);
 
     api.setAuthToken(res.accessToken);
     setUser(res.user);
@@ -147,11 +120,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     resetTimer();
   };
 
-  const isAdmin =
-    role === "officer" ||
-    role === "developer" ||
-    role === "admin" ||
-    role === "superadmin";
+  const loginResident = async (userId: number, password: string) => {
+    const res = await authAPI.loginResident({ userId, password });
+    await storeSession(res);
+  };
+
+  const loginAdmin = async (officerEmail: string, password: string) => {
+    const res = await authAPI.loginAdmin({ officerEmail, password });
+    await storeSession(res);
+  };
+
+  const isAdmin = role === "admin" || role === "superadmin";
+  const isSuperAdmin = role === "superadmin";
   const isAuthenticated = !!user;
 
   return (
@@ -160,10 +140,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         user,
         role,
         isAdmin,
+        isSuperAdmin,
         isAuthenticated,
         loading,
         loginResident,
-        loginOfficer,
+        loginAdmin,
         logout,
       }}
     >

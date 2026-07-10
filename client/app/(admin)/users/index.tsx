@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { View, Text, ScrollView, Platform } from "react-native";
 import { DataTable } from "react-native-paper";
 import { Plus, X, Pencil } from "lucide-react-native";
+import { useAuth } from "@/contexts/auth-context";
 
 import SearchBar from "@/components/custom-searchbar";
 import RowsPerPageSelector from "@/components/RowsPerPageSelector";
@@ -76,8 +77,9 @@ const EMPTY_FORM: ResidentFormData = {
 };
 
 const UserManagementPage: React.FC = () => {
+  const { isSuperAdmin } = useAuth();
   const [search, setSearch] = useState("");
-  const [selectedRole, setSelectedRole] = useState<"residents" | "officers">(
+  const [selectedRole, setSelectedRole] = useState<"residents" | "staff">(
     "residents",
   );
   const [users, setUsers] = useState<(Resident | Officer)[]>([]);
@@ -98,11 +100,31 @@ const UserManagementPage: React.FC = () => {
   >({});
   const [submitting, setSubmitting] = useState(false);
 
+  // Staff management states
+  type StaffFormData = {
+    userName: string;
+    officerEmail: string;
+    userRole: "admin" | "superadmin";
+    password?: string;
+  };
+
+  const EMPTY_STAFF_FORM: StaffFormData = {
+    userName: "",
+    officerEmail: "",
+    userRole: "admin",
+    password: "",
+  };
+
+  const [showStaffModal, setShowStaffModal] = useState(false);
+  const [editStaffId, setEditStaffId] = useState<number | null>(null);
+  const [staffFormData, setStaffFormData] = useState<StaffFormData>({ ...EMPTY_STAFF_FORM });
+  const [staffFormErrors, setStaffFormErrors] = useState<Partial<Record<keyof StaffFormData, string>>>({});
+
   // Fetch users whenever search / role / pagination changes
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const backendRole = selectedRole === "residents" ? "resident" : "officer";
+      const backendRole = selectedRole === "residents" ? "resident" : "staff";
       const res = await api.get(
         `/users?role=${backendRole}&limit=${itemsPerPage}&offset=${
           page * itemsPerPage
@@ -212,6 +234,82 @@ const UserManagementPage: React.FC = () => {
     });
     setFormErrors({});
     setShowEditModal(true);
+  };
+
+  // Staff management helper functions
+  const validateStaffForm = (): boolean => {
+    const errors: Partial<Record<keyof StaffFormData, string>> = {};
+    if (!staffFormData.userName.trim()) errors.userName = "Full Name is required";
+    if (!staffFormData.officerEmail.trim()) {
+      errors.officerEmail = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(staffFormData.officerEmail.trim())) {
+      errors.officerEmail = "Please enter a valid email";
+    }
+    if (!editStaffId && !staffFormData.password?.trim()) {
+      errors.password = "Password is required";
+    }
+    setStaffFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSaveStaff = async () => {
+    if (!validateStaffForm()) return;
+    setSubmitting(true);
+    try {
+      if (editStaffId) {
+        await api.put(`/users/${editStaffId}`, {
+          userName: staffFormData.userName.trim(),
+          userRole: staffFormData.userRole,
+          officer: {
+            email: staffFormData.officerEmail.trim(),
+          },
+          ...(staffFormData.password?.trim() && { password: staffFormData.password.trim() }),
+        });
+      } else {
+        await api.post("/authentication/register/admin", {
+          userName: staffFormData.userName.trim(),
+          userRole: staffFormData.userRole,
+          officerEmail: staffFormData.officerEmail.trim(),
+          password: staffFormData.password?.trim(),
+        });
+      }
+      setShowStaffModal(false);
+      setStaffFormData({ ...EMPTY_STAFF_FORM });
+      setStaffFormErrors({});
+      setEditStaffId(null);
+      fetchUsers();
+    } catch (err: any) {
+      console.error("Save staff error:", err);
+      alert("Failed to save staff: " + (err.message || "Please try again"));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const openEditStaffModal = (user: any) => {
+    setEditStaffId(user.id);
+    setStaffFormData({
+      userName: user.userName || "",
+      officerEmail: user.officer?.officerEmail || "",
+      userRole: user.userRole === "superadmin" ? "superadmin" : "admin",
+      password: "",
+    });
+    setStaffFormErrors({});
+    setShowStaffModal(true);
+  };
+
+  const handleDeleteUser = async (userId: number) => {
+    if (!confirm("Are you sure you want to remove this user? This action cannot be undone.")) return;
+    setLoading(true);
+    try {
+      await api.delete(`/users/${userId}`);
+      fetchUsers();
+    } catch (err: any) {
+      console.error("Delete user error:", err);
+      alert("Failed to delete user: " + (err.message || "Please try again"));
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Format date for display
@@ -420,6 +518,111 @@ const UserManagementPage: React.FC = () => {
     </VStack>
   );
 
+  // Render the staff form fields (shared between add & edit modals)
+  const renderStaffForm = (isEdit: boolean) => (
+    <VStack space="md" className="w-full">
+      {/* Full Name */}
+      <FormControl isInvalid={!!staffFormErrors.userName}>
+        <FormControlLabel>
+          <FormControlLabelText className="text-typography-700 font-semibold">
+            Full Name *
+          </FormControlLabelText>
+        </FormControlLabel>
+        <Input className="bg-background-50">
+          <InputField
+            placeholder="Enter full name"
+            value={staffFormData.userName}
+            onChangeText={(text) =>
+              setStaffFormData((prev) => ({ ...prev, userName: text }))
+            }
+          />
+        </Input>
+        {staffFormErrors.userName && (
+          <FormControlError>
+            <FormControlErrorText>{staffFormErrors.userName}</FormControlErrorText>
+          </FormControlError>
+        )}
+      </FormControl>
+
+      {/* Email Address */}
+      <FormControl isInvalid={!!staffFormErrors.officerEmail}>
+        <FormControlLabel>
+          <FormControlLabelText className="text-typography-700 font-semibold">
+            Email Address *
+          </FormControlLabelText>
+        </FormControlLabel>
+        <Input className="bg-background-50">
+          <InputField
+            placeholder="Enter email address"
+            value={staffFormData.officerEmail}
+            onChangeText={(text) =>
+              setStaffFormData((prev) => ({ ...prev, officerEmail: text }))
+            }
+            keyboardType="email-address"
+          />
+        </Input>
+        {staffFormErrors.officerEmail && (
+          <FormControlError>
+            <FormControlErrorText>{staffFormErrors.officerEmail}</FormControlErrorText>
+          </FormControlError>
+        )}
+      </FormControl>
+
+      {/* Role Selector */}
+      <FormControl>
+        <FormControlLabel>
+          <FormControlLabelText className="text-typography-700 font-semibold">
+            Role *
+          </FormControlLabelText>
+        </FormControlLabel>
+        <Select
+          selectedValue={staffFormData.userRole}
+          onValueChange={(val) =>
+            setStaffFormData((prev) => ({ ...prev, userRole: val as any }))
+          }
+        >
+          <SelectTrigger className="bg-background-50">
+            <SelectInput placeholder="Select role" />
+          </SelectTrigger>
+          <SelectPortal>
+            <SelectBackdrop />
+            <SelectContent>
+              <SelectDragIndicatorWrapper>
+                <SelectDragIndicator />
+              </SelectDragIndicatorWrapper>
+              <SelectItem label="Admin" value="admin" />
+              <SelectItem label="Super Admin" value="superadmin" />
+            </SelectContent>
+          </SelectPortal>
+        </Select>
+      </FormControl>
+
+      {/* Password */}
+      <FormControl isInvalid={!!staffFormErrors.password}>
+        <FormControlLabel>
+          <FormControlLabelText className="text-typography-700 font-semibold">
+            Password {isEdit ? "(leave blank to keep current)" : "*"}
+          </FormControlLabelText>
+        </FormControlLabel>
+        <Input className="bg-background-50">
+          <InputField
+            placeholder="Enter password"
+            value={staffFormData.password || ""}
+            onChangeText={(text) =>
+              setStaffFormData((prev) => ({ ...prev, password: text }))
+            }
+            secureTextEntry
+          />
+        </Input>
+        {staffFormErrors.password && (
+          <FormControlError>
+            <FormControlErrorText>{staffFormErrors.password}</FormControlErrorText>
+          </FormControlError>
+        )}
+      </FormControl>
+    </VStack>
+  );
+
   // Get remarks display label
   const getRemarksLabel = (val: string | null | undefined): string => {
     if (!val) return "—";
@@ -438,8 +641,8 @@ const UserManagementPage: React.FC = () => {
     "Actions",
   ];
 
-  // Column labels for officers
-  const officerColumns = ["Name", "Role", "Email", "Actions"];
+  // Column labels for staff
+  const staffColumns = ["Name", "Role", "Email", "Actions"];
 
   // Row renderer for residents
   const renderResidentRow = (user: any, index: number) => (
@@ -475,29 +678,53 @@ const UserManagementPage: React.FC = () => {
         {`${user.resident?.currentPoints ?? 0} pts`}
       </DataTable.Cell>
       <DataTable.Cell>
-        <Pressable onPress={() => openEditModal(user)}>
-          <Icon as={Pencil} size="sm" className="text-indigoscale-700" />
-        </Pressable>
+        {isSuperAdmin ? (
+          <HStack space="md" className="items-center">
+            <Pressable onPress={() => openEditModal(user)}>
+              <Icon as={Pencil} size="sm" className="text-indigoscale-700" />
+            </Pressable>
+            <Pressable onPress={() => handleDeleteUser(user.id)}>
+              <Icon as={X} size="sm" className="text-redscale-700" />
+            </Pressable>
+          </HStack>
+        ) : (
+          <Text style={{ color: "#888", fontSize: 12 }}>Read-only</Text>
+        )}
       </DataTable.Cell>
     </DataTable.Row>
   );
 
-  // Row renderer for officers
-  const renderOfficerRow = (user: any, index: number) => (
+  // Row renderer for staff
+  const renderStaffRow = (user: any, index: number) => (
     <DataTable.Row key={index} style={{ backgroundColor: "#fff" }}>
       <DataTable.Cell>{user.userName}</DataTable.Cell>
-      <DataTable.Cell>{user.userRole}</DataTable.Cell>
+      <DataTable.Cell>
+        <Text style={{ fontWeight: "600", textTransform: "capitalize" }}>
+          {user.userRole === "superadmin" ? "Super Admin" : "Admin"}
+        </Text>
+      </DataTable.Cell>
       <DataTable.Cell>{user.officer?.officerEmail || "—"}</DataTable.Cell>
       <DataTable.Cell>
-        <Text>Edit</Text>
+        {isSuperAdmin ? (
+          <HStack space="md" className="items-center">
+            <Pressable onPress={() => openEditStaffModal(user)}>
+              <Icon as={Pencil} size="sm" className="text-indigoscale-700" />
+            </Pressable>
+            <Pressable onPress={() => handleDeleteUser(user.id)}>
+              <Icon as={X} size="sm" className="text-redscale-700" />
+            </Pressable>
+          </HStack>
+        ) : (
+          <Text style={{ color: "#888", fontSize: 12 }}>Read-only</Text>
+        )}
       </DataTable.Cell>
     </DataTable.Row>
   );
 
   const columns =
-    selectedRole === "residents" ? residentColumns : officerColumns;
+    selectedRole === "residents" ? residentColumns : staffColumns;
   const renderRow =
-    selectedRole === "residents" ? renderResidentRow : renderOfficerRow;
+    selectedRole === "residents" ? renderResidentRow : renderStaffRow;
 
   const from = page * itemsPerPage;
   const to = Math.min((page + 1) * itemsPerPage, totalCount);
@@ -530,15 +757,15 @@ const UserManagementPage: React.FC = () => {
 
           <Button
             action="secondary"
-            className={selectedRole === "officers" ? "bg-indigoscale-700" : ""}
+            className={selectedRole === "staff" ? "bg-indigoscale-700" : ""}
             onPress={() => {
-              setSelectedRole("officers");
+              setSelectedRole("staff");
               setPage(0);
             }}
           >
             <ButtonText
               className={
-                selectedRole === "officers"
+                selectedRole === "staff"
                   ? "text-white"
                   : "text-indigoscale-700"
               }
@@ -547,8 +774,8 @@ const UserManagementPage: React.FC = () => {
             </ButtonText>
           </Button>
 
-          {/* Add Resident button — only shown on Residents tab */}
-          {selectedRole === "residents" && (
+          {/* Add Resident button — only shown to Super Admins on Residents tab */}
+          {selectedRole === "residents" && isSuperAdmin && (
             <Button
               action="primary"
               className="bg-indigoscale-700"
@@ -560,6 +787,23 @@ const UserManagementPage: React.FC = () => {
             >
               <ButtonIcon as={Plus} className="text-white" />
               <ButtonText className="text-white">Add Resident</ButtonText>
+            </Button>
+          )}
+
+          {/* Add Staff button — only shown to Super Admins on Staff tab */}
+          {selectedRole === "staff" && isSuperAdmin && (
+            <Button
+              action="primary"
+              className="bg-indigoscale-700"
+              onPress={() => {
+                setStaffFormData({ ...EMPTY_STAFF_FORM });
+                setStaffFormErrors({});
+                setEditStaffId(null);
+                setShowStaffModal(true);
+              }}
+            >
+              <ButtonIcon as={Plus} className="text-white" />
+              <ButtonText className="text-white">Add Staff</ButtonText>
             </Button>
           )}
         </HStack>
@@ -703,6 +947,46 @@ const UserManagementPage: React.FC = () => {
             >
               <ButtonText className="text-white">
                 {submitting ? "Saving..." : "Save Changes"}
+              </ButtonText>
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* ADD / EDIT STAFF MODAL */}
+      <Modal
+        isOpen={showStaffModal}
+        onClose={() => setShowStaffModal(false)}
+        size="lg"
+      >
+        <ModalBackdrop />
+        <ModalContent>
+          <ModalHeader>
+            <Heading size="lg" className="text-indigoscale-700">
+              {editStaffId ? "Edit Staff Member" : "Add New Staff Member"}
+            </Heading>
+            <ModalCloseButton>
+              <Icon as={X} size="md" className="text-typography-500" />
+            </ModalCloseButton>
+          </ModalHeader>
+          <ModalBody>{renderStaffForm(!!editStaffId)}</ModalBody>
+          <ModalFooter>
+            <Button
+              action="secondary"
+              variant="outline"
+              onPress={() => setShowStaffModal(false)}
+              className="mr-3"
+            >
+              <ButtonText>Cancel</ButtonText>
+            </Button>
+            <Button
+              action="primary"
+              className="bg-indigoscale-700"
+              onPress={handleSaveStaff}
+              isDisabled={submitting}
+            >
+              <ButtonText className="text-white">
+                {submitting ? "Saving..." : editStaffId ? "Save Changes" : "Add Staff"}
               </ButtonText>
             </Button>
           </ModalFooter>

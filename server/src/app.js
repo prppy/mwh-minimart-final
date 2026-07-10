@@ -18,6 +18,9 @@ import { scheduleArchiveJob } from "./jobs/archiveJob.js";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust the first proxy hop (Render/Vercel/etc.) so rate limiting sees real client IPs
+app.set("trust proxy", 1);
+
 // Allowed origins for CORS
 const allowedOrigins = [
   process.env.FRONTEND_URL,
@@ -28,7 +31,7 @@ const allowedOrigins = [
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 500, // shared kiosks generate many requests per IP
   message: {
     error: {
       message: "Too many requests from this IP, please try again later.",
@@ -39,7 +42,17 @@ const limiter = rateLimit({
 });
 
 // Middleware — cors MUST come before helmet
-app.use(cors());
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow same-origin/no-origin requests (native apps, curl, health checks)
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error("Not allowed by CORS"));
+    },
+  })
+);
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
 }));
@@ -51,12 +64,6 @@ app.use(urlencoded({ extended: true, limit: "10mb" }));
 
 // Static files for images
 app.use("/uploads", express.static("uploads"));
-
-// Debug middleware - log all requests
-app.use((req, res, next) => {
-  console.log(`📨 ${req.method} ${req.originalUrl} - Body:`, req.body);
-  next();
-});
 
 // API Routes
 app.get("/", (req, res) => {

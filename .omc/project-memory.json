@@ -1,0 +1,141 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1783715461623,
+  "projectRoot": "C:\\Users\\foong\\Documents\\GitHub\\mwh-minimart-final",
+  "techStack": {
+    "languages": [],
+    "frameworks": [],
+    "packageManager": null,
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": null,
+    "lintCommand": null,
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "client": {
+      "path": "client",
+      "purpose": null,
+      "fileCount": 14,
+      "lastAccessed": 1783715461605,
+      "keyFiles": [
+        "app.json",
+        "babel.config.js",
+        "eslint.config.js",
+        "expo-env.d.ts",
+        "global.css"
+      ]
+    },
+    "server": {
+      "path": "server",
+      "purpose": null,
+      "fileCount": 4,
+      "lastAccessed": 1783715461606,
+      "keyFiles": [
+        "package-lock.json",
+        "package.json"
+      ]
+    },
+    "client\\app": {
+      "path": "client\\app",
+      "purpose": "Application code",
+      "fileCount": 3,
+      "lastAccessed": 1783715461606,
+      "keyFiles": [
+        "+not-found.tsx",
+        "index.tsx",
+        "_layout.tsx"
+      ]
+    },
+    "client\\assets": {
+      "path": "client\\assets",
+      "purpose": "Static assets",
+      "fileCount": 5,
+      "lastAccessed": 1783715461607,
+      "keyFiles": [
+        "horizontal_logo_with_words.png",
+        "login.png",
+        "logo.png"
+      ]
+    },
+    "client\\components": {
+      "path": "client\\components",
+      "purpose": "UI components",
+      "fileCount": 14,
+      "lastAccessed": 1783715461607,
+      "keyFiles": [
+        "AIImageGenerator.tsx",
+        "cart-modal.tsx",
+        "custom-checkbox.tsx"
+      ]
+    },
+    "server\\migrations": {
+      "path": "server\\migrations",
+      "purpose": "Database migrations",
+      "fileCount": 3,
+      "lastAccessed": 1783715461607,
+      "keyFiles": [
+        "add_category_icon.sql",
+        "add_serial_number_and_remarks.sql",
+        "manual_add_screensaver_table.sql"
+      ]
+    },
+    "server\\node_modules": {
+      "path": "server\\node_modules",
+      "purpose": "Dependencies",
+      "fileCount": 1,
+      "lastAccessed": 1783715461608,
+      "keyFiles": []
+    },
+    "server\\scripts": {
+      "path": "server\\scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 0,
+      "lastAccessed": 1783715461609,
+      "keyFiles": []
+    },
+    "server\\src": {
+      "path": "server\\src",
+      "purpose": "Source code",
+      "fileCount": 1,
+      "lastAccessed": 1783715461609,
+      "keyFiles": [
+        "app.js"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "server\\package.json",
+      "accessCount": 1,
+      "lastAccessed": 1783715600413,
+      "type": "file"
+    },
+    {
+      "path": "client\\app\\(admin)\\index.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1783716470880,
+      "type": "directory"
+    }
+  ],
+  "userDirectives": []
+}

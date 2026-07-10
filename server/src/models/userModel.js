@@ -1,5 +1,4 @@
 // models/User.js
-import { setMaxIdleHTTPParsers } from "http";
 import { prisma } from "../lib/db.js";
 import bcryptjs from "bcryptjs";
 const { genSalt, hash, compare } = bcryptjs;
@@ -185,11 +184,11 @@ export const create = async (userData) => {
           remarks: roleData.remarks || null,
         },
       });
-    } else if (userRole === "officer") {
+    } else if (userRole === "admin" || userRole === "superadmin") {
       await tx.officer.create({
         data: {
           userId: user.id,
-          officerEmail: roleData.email,
+          officerEmail: roleData.email || roleData.officerEmail,
         },
       });
     }
@@ -215,6 +214,7 @@ export const updateProfile = async (userId, updates) => {
     if (updates.userName) userUpdateData.userName = updates.userName;
     if (updates.profilePicture !== undefined)
       userUpdateData.profilePicture = updates.profilePicture;
+    if (updates.userRole) userUpdateData.userRole = updates.userRole;
 
     if (Object.keys(userUpdateData).length > 0) {
       await tx.user.update({
@@ -222,8 +222,40 @@ export const updateProfile = async (userId, updates) => {
         data: userUpdateData,
       });
     }
+
+    // If the role is changing, ensure appropriate profile tables are populated
+    if (updates.userRole && updates.userRole !== user.userRole) {
+      const newRole = updates.userRole;
+      if (newRole === "resident") {
+        const residentExists = await tx.resident.findUnique({ where: { userId } });
+        if (!residentExists) {
+          await tx.resident.create({
+            data: {
+              userId,
+              serialNumber: updates.resident?.serialNumber || `RES-${userId}`,
+              dateOfAdmission: new Date(),
+              currentPoints: 0,
+              totalPoints: 0,
+              isActive: true,
+            },
+          });
+        }
+      } else if (newRole === "admin" || newRole === "superadmin") {
+        const officerExists = await tx.officer.findUnique({ where: { userId } });
+        if (!officerExists) {
+          await tx.officer.create({
+            data: {
+              userId,
+              officerEmail: updates.officer?.email || updates.officer?.officerEmail || `staff${userId}@mwh.org`,
+            },
+          });
+        }
+      }
+    }
+
     // Update role-specific fields
-    if (user.userRole === "resident" && user.resident && updates.resident) {
+    const currentRole = updates.userRole || user.userRole;
+    if (currentRole === "resident" && updates.resident) {
       const residentUpdates = updates.resident;
       const residentUpdateData = {};
 
@@ -253,23 +285,31 @@ export const updateProfile = async (userId, updates) => {
       }
 
       if (Object.keys(residentUpdateData).length > 0) {
-        await tx.resident.update({
+        await tx.resident.upsert({
           where: { userId },
-          data: residentUpdateData,
+          create: {
+            userId,
+            ...residentUpdateData,
+          },
+          update: residentUpdateData,
         });
       }
-    } else if (user.userRole === "officer" && user.officer && updates.officer) {
+    } else if ((currentRole === "admin" || currentRole === "superadmin") && updates.officer) {
       const officerUpdates = updates.officer;
       const officerUpdateData = {};
 
-      if (officerUpdates.email) {
-        officerUpdateData.officerEmail = officerUpdates.email;
+      if (officerUpdates.email || officerUpdates.officerEmail) {
+        officerUpdateData.officerEmail = officerUpdates.email || officerUpdates.officerEmail;
       }
 
       if (Object.keys(officerUpdateData).length > 0) {
-        await tx.officer.update({
+        await tx.officer.upsert({
           where: { userId },
-          data: officerUpdateData,
+          create: {
+            userId,
+            ...officerUpdateData,
+          },
+          update: officerUpdateData,
         });
       }
     }
@@ -304,6 +344,9 @@ export const findMany = async (options = {}) => {
     sortOrder = "asc",
     includeProfilePicture = true, // Add option to exclude profile pictures for performance
   } = options;
+  // sortOrder is interpolated into raw SQL below — whitelist it
+  const safeSortOrder =
+    String(sortOrder).toLowerCase() === "desc" ? "desc" : "asc";
   const where = {};
   if (role) where.userRole = role;
   if (search) {
@@ -318,9 +361,9 @@ export const findMany = async (options = {}) => {
   };
   let orderBy = {};
   if (sortBy === "userName") {
-    orderBy.userName = sortOrder;
+    orderBy.userName = safeSortOrder;
   } else if (sortBy === "createdAt") {
-    orderBy.createdAt = sortOrder;
+    orderBy.createdAt = safeSortOrder;
   }
   // Use raw query to handle null values properly
   try {
@@ -329,9 +372,13 @@ export const findMany = async (options = {}) => {
     let params = [];
     let paramIndex = 1;
     if (role) {
-      whereClause += ` AND u."User_Role"::text = $${paramIndex}`;
-      params.push(role);
-      paramIndex++;
+      if (role === "staff") {
+        whereClause += ` AND u."User_Role"::text IN ('admin', 'superadmin')`;
+      } else {
+        whereClause += ` AND u."User_Role"::text = $${paramIndex}`;
+        params.push(role);
+        paramIndex++;
+      }
     }
     if (search) {
       whereClause += ` AND u."User_Name" ILIKE $${paramIndex}`;
@@ -368,7 +415,7 @@ export const findMany = async (options = {}) => {
       LEFT JOIN "public"."MWH_Resident" r ON u."User_ID" = r."User_ID"
       LEFT JOIN "public"."MWH_Officer" o ON u."User_ID" = o."User_ID"
       ${whereClause}
-      ORDER BY u."User_Name" ${sortOrder.toUpperCase()}
+      ORDER BY u."User_Name" ${safeSortOrder.toUpperCase()}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `,
       ...params,
@@ -585,13 +632,10 @@ export const insertResident = async (
 };
 
 /**
- * Inserts officer to MWH_User and MWH_Officer tables
- * @param {*} username
- * @param {*} hashedpassword
- * @param {*} userRole
- * @returns
+ * Inserts admin (staff/officer) to MWH_User and MWH_Officer tables
+ * Supports both admin and superadmin roles
  */
-export const insertOfficer = async (
+export const insertAdmin = async (
   username,
   hashedpassword,
   userRole,
@@ -604,11 +648,11 @@ export const insertOfficer = async (
         data: {
           userName: username,
           passwordHash: hashedpassword,
-          userRole: userRole,
+          userRole: userRole || "admin",
         },
       });
 
-      // insert into mwh_resident
+      // insert into mwh_officer profile table
       const createdOfficer = await prisma.officer.create({
         data: {
           userId: createdUser.id,
@@ -630,26 +674,10 @@ export const insertOfficer = async (
 
     console.error("Transaction failed:", error);
 
-    throw new Error("Failed to create resident account");
+    throw new Error("Failed to create admin account");
   }
 };
 
-/**
- * Inserts developer to MWH_User table (no linking table for developer role)
- * @param {*} username
- * @param {*} hashedpassword
- */
-export const insertDeveloper = async (username, hashedPassword, userRole) => {
-  const userData = {
-    userName: username,
-    passwordHash: hashedPassword,
-    userRole: userRole,
-  };
-
-  const createdUser = await prisma.user.create({ data: userData });
-
-  return createdUser.id;
-};
 
 /**
  * selects user from MWH_User table based on userid
@@ -697,14 +725,13 @@ export const selectUsersByRole = async (role) => {
 };
 
 /**
- * selects user from MWH_Officer table based on officer email
- * @param {*} officerEmail
- * @returns
+ * selects user from MWH_Officer table based on admin email
+ * Supports both admin and superadmin roles
  */
-export const selectOfficerByOfficerEmail = async (officerEmail) => {
+export const selectAdminByAdminEmail = async (adminEmail) => {
   const selectedOfficer = await prisma.officer.findFirst({
     where: {
-      officerEmail: officerEmail,
+      officerEmail: adminEmail,
     },
     select: {
       officerEmail: true,
@@ -725,3 +752,4 @@ export const selectOfficerByOfficerEmail = async (officerEmail) => {
 
   return selectedOfficer;
 };
+

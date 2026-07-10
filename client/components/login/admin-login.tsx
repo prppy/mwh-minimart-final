@@ -16,18 +16,18 @@ import { Eye, EyeOff, Fingerprint, UserRound } from "lucide-react-native";
 
 const AdminLoginForm: React.FC = () => {
   const logo = require("@/assets/horizontal_logo_with_words.png");
-  const { loginOfficer } = useAuth();
+  const { loginAdmin } = useAuth();
   const router = useRouter();
 
-  const [officerEmail, setOfficerEmail] = useState("");
+  const [adminEmail, setAdminEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isEmailInvalid, setIsEmailInvalid] = useState(false);
   const [isPasswordInvalid, setIsPasswordInvalid] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleOfficerLogin = async () => {
-    if (!officerEmail.trim()) {
+  const handleAdminLogin = async () => {
+    if (!adminEmail.trim()) {
       setIsEmailInvalid(true);
       return;
     }
@@ -39,16 +39,14 @@ const AdminLoginForm: React.FC = () => {
 
     setLoading(true);
     try {
-      await loginOfficer(officerEmail.trim(), password.trim());
+      await loginAdmin(adminEmail.trim(), password.trim());
 
-      // login successful
-      console.log("Officer logged in:", officerEmail);
-      setOfficerEmail("");
+      setAdminEmail("");
       setPassword("");
 
       router.push("/(admin)");
     } catch (error: any) {
-      console.error("Officer login failed:", error);
+      console.error("Admin login failed");
       // show some error message to user
       alert("Login failed: " + (error.message || "Please try again"));
     } finally {
@@ -68,8 +66,8 @@ const AdminLoginForm: React.FC = () => {
         <Input>
           <InputField
             placeholder="Email"
-            value={officerEmail}
-            onChangeText={(text) => setOfficerEmail(text)}
+            value={adminEmail}
+            onChangeText={(text) => setAdminEmail(text)}
           />
         </Input>
         <FormControlError>
@@ -104,7 +102,7 @@ const AdminLoginForm: React.FC = () => {
 
       <HStack className="w-full justify-center" space="lg">
         <Pressable
-          onPress={handleOfficerLogin}
+          onPress={handleAdminLogin}
           disabled={loading}
           className="bg-indigoscale-700 p-2 rounded-full"
         >
@@ -112,7 +110,7 @@ const AdminLoginForm: React.FC = () => {
         </Pressable>
         <Button
           action="primary"
-          onPress={handleOfficerLogin}
+          onPress={handleAdminLogin}
           isDisabled={loading}
           className="bg-indigoscale-700"
         >

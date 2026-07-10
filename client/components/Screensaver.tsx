@@ -9,9 +9,9 @@ import Animated, {
 import api from "@/utils/api";
 
 // Get the backend URL for loading uploaded images
-const BACKEND_URL = process.env.BACKEND_URL?.replace('/api', '') || "http://localhost:3000";
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL?.replace('/api', '') || "http://localhost:3000";
 
-// DEFAULT IMAGES - Used as fallback if no images are uploaded by officers
+// DEFAULT IMAGES - Used as fallback if no images are uploaded by admins
 // To change these default images, replace the require() paths below with your own images
 // Make sure the images are in the /client/assets/background/ folder
 const DEFAULT_SCREENSAVER_IMAGES = [

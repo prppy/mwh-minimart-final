@@ -2,6 +2,11 @@
 import { Router } from 'express';
 import { body, param, query } from 'express-validator';
 import * as ProductController from '../controllers/productController.js';
+import { verifyAccessToken, requireRole } from '../middlewares/jwtMiddleware.js';
+
+// Product changes (items, pricing, photos) are restricted to Super Admins;
+// regular admins have read-only access.
+const superAdminOnly = [verifyAccessToken, requireRole('superadmin')];
 
 const productRouter = Router();
 
@@ -119,9 +124,9 @@ productRouter.get('/', productQueryValidation, ProductController.getAllProducts)
 productRouter.get('/category/:categoryId', productIdValidation, ProductController.getProductsByCategory);
 productRouter.get('/:id', productIdValidation, ProductController.getProductById);
 
-// Officer/Admin only routes
-productRouter.post('/', productValidation, ProductController.createProduct);
-productRouter.put('/:id', productIdValidation, productUpdateValidation, ProductController.updateProduct);
-productRouter.delete('/:id', productIdValidation, ProductController.deleteProduct);
+// Super Admin only routes
+productRouter.post('/', superAdminOnly, productValidation, ProductController.createProduct);
+productRouter.put('/:id', superAdminOnly, productIdValidation, productUpdateValidation, ProductController.updateProduct);
+productRouter.delete('/:id', superAdminOnly, productIdValidation, ProductController.deleteProduct);
 
 export default productRouter;

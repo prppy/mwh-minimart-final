@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
-    "setup": "node scripts/setup.js"
+    "setup": "node scripts/setup.js",
+    "lint": "eslint src/",
+    "test": "jest"
   },
   "type": "module",
   "dependencies": {

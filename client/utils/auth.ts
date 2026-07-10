@@ -4,7 +4,7 @@ import api from "./api";
 interface User {
   id: number;
   userName: string;
-  userRole: "resident" | "officer" | "developer" | "admin" | "superadmin";
+  userRole: "resident" | "admin" | "superadmin";
 }
 
 interface LoginResponse {
@@ -58,13 +58,6 @@ export const authAPI = {
     loginData: ResidentLoginRequest
   ): Promise<AuthResponse> => {
     try {
-      console.log("🌐 authAPI.loginResident - Making request to /authentication/login/resident");
-      console.log("📤 Request payload:", {
-        userId: loginData.userId,
-        passwordLength: loginData.password.length,
-        endpoint: "/authentication/login/resident",
-      });
-      
       const response = await api.post<AuthResponse>(
         "/authentication/login/resident",
         {
@@ -72,35 +65,37 @@ export const authAPI = {
           password: loginData.password,
         }
       );
-      
-      console.log("📥 authAPI response received:", {
-        status: response.status,
-        data: response.data,
-      });
-      
       return response.data;
-    } catch (error: any) {
-      console.error("❌ authAPI.loginResident failed:", {
-        error,
-        status: error.status,
-        message: error.message,
-        data: error.data,
-      });
+    } catch (error) {
+      console.error("Resident login failed");
       throw error;
     }
   },
 
   /**
-   * Login as an officer
-   * @param loginData - Email and password for officer login
+   * Exchange a refresh token for a new access token
+   * @param refreshToken - The stored refresh token
+   * @returns Promise containing the new access token
+   */
+  refresh: async (refreshToken: string): Promise<{ accessToken?: string }> => {
+    const response = await api.post<{ accessToken?: string }>(
+      "/authentication/refresh",
+      { refreshToken }
+    );
+    return response.data;
+  },
+
+  /**
+   * Login as an admin (supports both admin and superadmin)
+   * @param loginData - Email and password for login
    * @returns Promise containing the authentication response
    */
-  loginOfficer: async (
+  loginAdmin: async (
     loginData: OfficerLoginRequest
   ): Promise<AuthResponse> => {
     try {
       const response = await api.post<AuthResponse>(
-        "/authentication/login/officer",
+        "/authentication/login/admin",
         {
           officerEmail: loginData.officerEmail,
           password: loginData.password,
@@ -108,10 +103,11 @@ export const authAPI = {
       );
       return response.data;
     } catch (error) {
-      console.error("Officer login failed:", error);
+      console.error("Admin login failed:", error);
       throw error;
     }
   },
+
 };
 
 // Additional API functions can be added here for other features

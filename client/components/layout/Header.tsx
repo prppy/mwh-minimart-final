@@ -60,12 +60,7 @@ const Header: React.FC = () => {
         { name: "Sign Out", route: "/", icon: LogOut, action: "logout" },
       ];
     }
-    if (
-      role === "admin" ||
-      role === "superadmin" ||
-      role === "officer" ||
-      role === "developer"
-    ) {
+    if (role === "admin" || role === "superadmin") {
       return [
         { name: "Catalogue", route: "/(public)/catalogue", icon: ShoppingBag },
         { name: "Vouchers", route: "/(admin)/voucher-management", icon: TicketCheck },
@@ -85,13 +80,7 @@ const Header: React.FC = () => {
   let activeTabName = activeTab?.name;
 
   // default to Dashboard if user is officer and no tab matches
-  if (
-    !activeTabName &&
-    (role === "admin" ||
-      role === "superadmin" ||
-      role === "officer" ||
-      role === "developer")
-  ) {
+  if (!activeTabName && (role === "admin" || role === "superadmin")) {
     activeTabName = "Dashboard";
   } else if (!activeTabName && role === "resident") {
     activeTabName = "Profile";
@@ -100,18 +89,14 @@ const Header: React.FC = () => {
   }
 
   // handle presses
-  const handleLogoPress = async () => {
+  const handleLogoPress = () => {
     if (!user) {
       router.push("/(public)");
     } else if (role === "resident") {
-      await logout();
-      router.push("/(public)");
-    } else if (
-      role === "admin" ||
-      role === "superadmin" ||
-      role === "officer" ||
-      role === "developer"
-    ) {
+      // Tapping the logo should navigate home, NOT sign the resident out —
+      // logging out here silently wipes their cart. Sign-out has its own button.
+      router.push("/(resident)/profile");
+    } else if (role === "admin" || role === "superadmin") {
       router.push("/(admin)");
     }
   };
@@ -130,7 +115,11 @@ const Header: React.FC = () => {
   return (
     <VStack>
       <HStack className="w-full justify-between items-center px-4 bg-white">
-        <Pressable onPress={handleLogoPress}>
+        <Pressable
+          onPress={handleLogoPress}
+          accessibilityRole="button"
+          accessibilityLabel="MWH Minimart home"
+        >
           <HStack>
             <Image
               size="lg"
@@ -161,6 +150,8 @@ const Header: React.FC = () => {
                 <Button
                   key={tab.name}
                   onPress={() => handleTabPress(tab)}
+                  accessibilityRole="button"
+                  accessibilityLabel={tab.name}
                   className={
                     isAuthButton
                       ? isActive

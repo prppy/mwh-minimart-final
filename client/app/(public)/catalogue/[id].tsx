@@ -26,7 +26,7 @@ import { VStack } from "@/components/ui/vstack";
 const ProductDetailPage: React.FC = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { isAdmin, isAuthenticated } = useAuth();
+  const { isSuperAdmin, isAuthenticated } = useAuth();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [tempProduct, setTempProduct] = useState<Product | null>(null);
@@ -367,7 +367,7 @@ const ProductDetailPage: React.FC = () => {
               <ButtonIcon as={lucideReactNative.ChevronLeft} />
               <ButtonText>Back</ButtonText>
             </Button>
-            {isAuthenticated && isAdmin && (
+            {isAuthenticated && isSuperAdmin && (
               <>
                 <Button
                   action="positive"

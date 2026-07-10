@@ -8,8 +8,13 @@ import {
   deleteScreensaverImage,
   updateScreensaverImageOrder,
 } from "../controllers/screensaverController.js";
+import { verifyAccessToken, requireRole } from "../middlewares/jwtMiddleware.js";
 
 const router = express.Router();
+
+// Screensaver photo changes are restricted to Super Admins; regular admins
+// have read-only access.
+const superAdminOnly = [verifyAccessToken, requireRole("superadmin")];
 
 // Ensure uploads directory exists
 const uploadsDir = "uploads/";
@@ -49,10 +54,10 @@ const upload = multer({
   },
 });
 
-// Routes
+// Routes — GET stays public: the kiosk screensaver shows before anyone logs in
 router.get("/", getScreensaverImages);
-router.post("/", upload.single("image"), uploadScreensaverImage);
-router.delete("/:id", deleteScreensaverImage);
-router.patch("/:id/order", updateScreensaverImageOrder);
+router.post("/", superAdminOnly, upload.single("image"), uploadScreensaverImage);
+router.delete("/:id", superAdminOnly, deleteScreensaverImage);
+router.patch("/:id/order", superAdminOnly, updateScreensaverImageOrder);
 
 export default router;

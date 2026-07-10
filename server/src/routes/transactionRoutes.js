@@ -1,8 +1,11 @@
 import express from 'express';
 import { body, param, query } from 'express-validator';
 import * as TransactionController from '../controllers/transactionController.js';
+import { verifyAccessToken, requireRole } from '../middlewares/jwtMiddleware.js';
 
 const transactionRouter = express.Router();
+
+const staffOnly = [verifyAccessToken, requireRole('admin', 'superadmin')];
 
 // Validation middleware
 const userIdValidation = [
@@ -133,18 +136,19 @@ const summaryValidation = [
 // transactionRouter.get('/analytics/trends', trendsValidation, TransactionController.getTransactionTrends);
 
 // Officer/Admin routes
-transactionRouter.get('/', transactionQueryValidation, TransactionController.getAllTransactions);
+transactionRouter.get('/', staffOnly, transactionQueryValidation, TransactionController.getAllTransactions);
 
 // Transaction creation routes
-transactionRouter.post('/redemption', redemptionValidation, TransactionController.createRedemption);
-transactionRouter.post('/completion', completionValidation, TransactionController.createCompletion);
-transactionRouter.post('/completion/bulk', TransactionController.createBulkCompletion);
-transactionRouter.post('/abscondence', abscondenceValidation, TransactionController.createAbscondence);
+// Redemption is initiated from the kiosk cart by a logged-in resident or by staff.
+transactionRouter.post('/redemption', verifyAccessToken, redemptionValidation, TransactionController.createRedemption);
+transactionRouter.post('/completion', staffOnly, completionValidation, TransactionController.createCompletion);
+transactionRouter.post('/completion/bulk', staffOnly, TransactionController.createBulkCompletion);
+transactionRouter.post('/abscondence', staffOnly, abscondenceValidation, TransactionController.createAbscondence);
 
 // User transaction routes
-transactionRouter.get('/user/:userId', userIdValidation, TransactionController.getUserTransactions);
-transactionRouter.get('/user/:userId/summary', userIdValidation.concat(summaryValidation), TransactionController.getPointsSummary);
+transactionRouter.get('/user/:userId', verifyAccessToken, userIdValidation, TransactionController.getUserTransactions);
+transactionRouter.get('/user/:userId/summary', verifyAccessToken, userIdValidation.concat(summaryValidation), TransactionController.getPointsSummary);
 
-transactionRouter.get('/:id', transactionIdValidation, TransactionController.getTransactionById);
+transactionRouter.get('/:id', staffOnly, transactionIdValidation, TransactionController.getTransactionById);
 
 export default transactionRouter;

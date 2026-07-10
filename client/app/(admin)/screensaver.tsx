@@ -16,9 +16,10 @@ import { Card } from "@/components/ui/card";
 import { Plus, Trash2, Eye } from "lucide-react-native";
 import api from "@/utils/api";
 import * as ImagePicker from "expo-image-picker";
+import { useAuth } from "@/contexts/auth-context";
 
 // Get the backend URL for displaying uploaded images
-const BACKEND_URL = process.env.BACKEND_URL?.replace('/api', '') || "http://localhost:3000";
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL?.replace('/api', '') || "http://localhost:3000";
 
 interface ScreensaverImage {
   id: number;
@@ -28,6 +29,7 @@ interface ScreensaverImage {
 }
 
 export default function ScreensaverManager() {
+  const { isSuperAdmin } = useAuth();
   const [images, setImages] = useState<ScreensaverImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -116,7 +118,7 @@ export default function ScreensaverManager() {
       if (error.response?.status === 503) {
         Alert.alert(
           "Database Setup Required",
-          "The screensaver database table hasn't been created yet. Please ask your developer to run the SQL migration:\n\n" +
+          "The screensaver database table hasn't been created yet. Please ask your superAdmin to run the SQL migration:\n\n" +
           "Go to Supabase SQL Editor and run:\n" +
           "CREATE TABLE IF NOT EXISTS \"MWH_Screensaver_Image\" (...)\n\n" +
           "For now, the screensaver will use default images.",
@@ -181,31 +183,40 @@ export default function ScreensaverManager() {
           </Text>
         </VStack>
 
-        {/* Add Image Button */}
-        <Card className="p-4 bg-white">
-          <VStack space="md">
-            <HStack className="justify-between items-center">
-              <VStack className="flex-1">
-                <Heading size="md" className="text-indigoscale-900">
-                  Add New Image
-                </Heading>
-                <Text className="text-gray-600 text-sm">
-                  Upload images for the screensaver rotation
-                </Text>
-              </VStack>
-              <Button
-                onPress={handlePickImage}
-                disabled={uploading}
-                className="bg-indigoscale-700"
-              >
-                <ButtonIcon as={Plus} className="text-white" />
-                <ButtonText className="text-white">
-                  {uploading ? "Uploading..." : "Add Image"}
-                </ButtonText>
-              </Button>
-            </HStack>
-          </VStack>
-        </Card>
+        {/* Add Image Button — only Super Admins can change screensaver photos */}
+        {isSuperAdmin ? (
+          <Card className="p-4 bg-white">
+            <VStack space="md">
+              <HStack className="justify-between items-center">
+                <VStack className="flex-1">
+                  <Heading size="md" className="text-indigoscale-900">
+                    Add New Image
+                  </Heading>
+                  <Text className="text-gray-600 text-sm">
+                    Upload images for the screensaver rotation
+                  </Text>
+                </VStack>
+                <Button
+                  onPress={handlePickImage}
+                  disabled={uploading}
+                  className="bg-indigoscale-700"
+                >
+                  <ButtonIcon as={Plus} className="text-white" />
+                  <ButtonText className="text-white">
+                    {uploading ? "Uploading..." : "Add Image"}
+                  </ButtonText>
+                </Button>
+              </HStack>
+            </VStack>
+          </Card>
+        ) : (
+          <Card className="p-4 bg-white">
+            <Text className="text-gray-600 text-sm">
+              You have read-only access. Only Super Admins can add or remove
+              screensaver images.
+            </Text>
+          </Card>
+        )}
 
         {/* Images Grid */}
         <VStack space="md">
@@ -256,17 +267,19 @@ export default function ScreensaverManager() {
                     </VStack>
 
                     {/* Actions */}
-                    <VStack space="xs">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-red-600"
-                        onPress={() => handleDeleteImage(image.id)}
-                      >
-                        <ButtonIcon as={Trash2} className="text-red-600" />
-                        <ButtonText className="text-red-600">Delete</ButtonText>
-                      </Button>
-                    </VStack>
+                    {isSuperAdmin && (
+                      <VStack space="xs">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-red-600"
+                          onPress={() => handleDeleteImage(image.id)}
+                        >
+                          <ButtonIcon as={Trash2} className="text-red-600" />
+                          <ButtonText className="text-red-600">Delete</ButtonText>
+                        </Button>
+                      </VStack>
+                    )}
                   </HStack>
                 </Card>
               ))}

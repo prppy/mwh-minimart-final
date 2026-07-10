@@ -1,0 +1,264 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1783715440837,
+  "projectRoot": "C:\\Users\\foong\\Documents\\GitHub\\mwh-minimart-final\\client",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "react",
+        "version": "19.1.0",
+        "category": "frontend"
+      },
+      {
+        "name": "react-dom",
+        "version": "19.1.0",
+        "category": "frontend"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": null,
+    "lintCommand": "npm run lint",
+    "devCommand": "npm run dev",
+    "scripts": {
+      "dev": "expo start",
+      "start": "expo start",
+      "reset-project": "node ./scripts/reset-project.js",
+      "android": "expo start --android",
+      "ios": "expo start --ios",
+      "web": "expo start --web",
+      "build:web": "expo export --platform web",
+      "lint": "expo lint",
+      "typecheck": "tsc --noEmit"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "app",
+      "assets",
+      "components",
+      "scripts"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "app": {
+      "path": "app",
+      "purpose": "Application code",
+      "fileCount": 3,
+      "lastAccessed": 1783715440807,
+      "keyFiles": [
+        "+not-found.tsx",
+        "index.tsx",
+        "_layout.tsx"
+      ]
+    },
+    "assets": {
+      "path": "assets",
+      "purpose": "Static assets",
+      "fileCount": 5,
+      "lastAccessed": 1783715440807,
+      "keyFiles": [
+        "horizontal_logo_with_words.png",
+        "login.png",
+        "logo.png",
+        "logo_with_words.png",
+        "monopoly.jpg"
+      ]
+    },
+    "components": {
+      "path": "components",
+      "purpose": "UI components",
+      "fileCount": 14,
+      "lastAccessed": 1783715440814,
+      "keyFiles": [
+        "AIImageGenerator.tsx",
+        "cart-modal.tsx",
+        "custom-checkbox.tsx",
+        "custom-empty-alert.tsx",
+        "custom-fortune-wheel.tsx"
+      ]
+    },
+    "constants": {
+      "path": "constants",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1783715440814,
+      "keyFiles": [
+        "colors.ts",
+        "types.ts"
+      ]
+    },
+    "contexts": {
+      "path": "contexts",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1783715440814,
+      "keyFiles": [
+        "auth-context.tsx",
+        "cart-context.tsx"
+      ]
+    },
+    "hooks": {
+      "path": "hooks",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1783715440815,
+      "keyFiles": [
+        "useIdleTimeout.tsx"
+      ]
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 3,
+      "lastAccessed": 1783715440815,
+      "keyFiles": [
+        "add-ui.sh",
+        "setup-ui.sh",
+        "ui-components.txt"
+      ]
+    },
+    "utils": {
+      "path": "utils",
+      "purpose": "Utility functions",
+      "fileCount": 7,
+      "lastAccessed": 1783715440815,
+      "keyFiles": [
+        "api.ts",
+        "auth.ts",
+        "hooks.ts",
+        "searchUtils.ts",
+        "styleUtils.ts"
+      ]
+    },
+    "utils\\api": {
+      "path": "utils\\api",
+      "purpose": "API routes",
+      "fileCount": 2,
+      "lastAccessed": 1783715440817,
+      "keyFiles": [
+        "feedback.ts",
+        "productRequests.ts"
+      ]
+    },
+    "utils\\types": {
+      "path": "utils\\types",
+      "purpose": "Type definitions",
+      "fileCount": 2,
+      "lastAccessed": 1783715440817,
+      "keyFiles": [
+        "feedback.ts",
+        "productRequest.ts"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "components\\custom-searchable-grid.tsx",
+      "accessCount": 5,
+      "lastAccessed": 1783717638972,
+      "type": "directory"
+    },
+    {
+      "path": "app\\(admin)\\screensaver.tsx",
+      "accessCount": 5,
+      "lastAccessed": 1783717660498,
+      "type": "file"
+    },
+    {
+      "path": "components\\feedback\\feedbackCard.tsx",
+      "accessCount": 4,
+      "lastAccessed": 1783717676187,
+      "type": "file"
+    },
+    {
+      "path": "app\\(public)\\catalogue\\[id].tsx",
+      "accessCount": 3,
+      "lastAccessed": 1783717633990,
+      "type": "file"
+    },
+    {
+      "path": "app\\(admin)\\users\\[id].tsx",
+      "accessCount": 2,
+      "lastAccessed": 1783717252375,
+      "type": "file"
+    },
+    {
+      "path": "",
+      "accessCount": 2,
+      "lastAccessed": 1783717535413,
+      "type": "directory"
+    },
+    {
+      "path": "app\\(admin)\\users\\index.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1783717679638,
+      "type": "file"
+    },
+    {
+      "path": "contexts\\auth-context.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1783717438701,
+      "type": "file"
+    },
+    {
+      "path": "app\\(admin)",
+      "accessCount": 1,
+      "lastAccessed": 1783717467214,
+      "type": "directory"
+    },
+    {
+      "path": "components",
+      "accessCount": 1,
+      "lastAccessed": 1783717468692,
+      "type": "directory"
+    },
+    {
+      "path": "app\\(public)\\catalogue\\index.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1783717547637,
+      "type": "directory"
+    },
+    {
+      "path": "components\\login\\resident-login.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1783719600077,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

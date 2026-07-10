@@ -3,6 +3,9 @@ import express from 'express';
 import { body, param, query } from 'express-validator';
 const taskRouter = express.Router();
 import * as TasksController from '../controllers/taskController.js';
+import { verifyAccessToken, requireRole } from '../middlewares/jwtMiddleware.js';
+
+const staffOnly = [verifyAccessToken, requireRole('admin', 'superadmin')];
 
 // Validation middleware for getting a task
 const taskIdValidation = [
@@ -85,8 +88,8 @@ taskRouter.get('/', TasksController.getAllTasks);
 taskRouter.get('/category/:categoryId', TasksController.getTasksByCategory);
 taskRouter.get('/:id', taskIdValidation, TasksController.getTaskById);
 
-taskRouter.post('/', createTaskValidation, TasksController.createTask);
-taskRouter.put('/:id', updateTaskValidation, TasksController.updateTask);
-taskRouter.delete('/:id', TasksController.deleteTask);
+taskRouter.post('/', staffOnly, createTaskValidation, TasksController.createTask);
+taskRouter.put('/:id', staffOnly, updateTaskValidation, TasksController.updateTask);
+taskRouter.delete('/:id', staffOnly, TasksController.deleteTask);
 
 export default taskRouter;

@@ -495,7 +495,8 @@ class ApiError extends Error {
 
 // Create and configure the API instance
 const api = new ApiService({
-  baseURL: process.env.BACKEND_URL || "http://localhost:3000/api",
+  // Only EXPO_PUBLIC_* env vars are inlined into the client bundle by Expo
+  baseURL: process.env.EXPO_PUBLIC_BACKEND_URL || "http://localhost:3000/api",
   defaultHeaders: {
     "Content-Type": "application/json",
     Accept: "application/json",

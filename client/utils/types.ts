@@ -28,7 +28,7 @@ type Resident = {
 type Officer = {
   id: number;
   userName: string;
-  userRole: "officer";
+  userRole: "admin" | "superadmin";
   profilePicture: string | undefined;
 
   createdAt: Date;

@@ -49,7 +49,7 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
   enableCart = false,
   categoryId = "all",
 }) => {
-  const { isAdmin, isAuthenticated, role } = useAuth();
+  const { isSuperAdmin, isAuthenticated, role } = useAuth();
   const { addToCart, isInCart } = useCart();
   const [sortOption, setSortOption] = useState<SortOption>("custom");
   const [search, setSearch] = useState("");
@@ -234,7 +234,7 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
         <VStack className="flex-1 overflow-hidden">
           <ScrollView>
             <Grid className="gap-5" _extra={{ className: "grid-cols-2" }}>
-              {isAuthenticated && isAdmin && !isReorderMode && (
+              {isAuthenticated && isSuperAdmin && !isReorderMode && (
                 <GridItem _extra={{ className: "col-span-1" }}>
                   <Pressable onPress={onAddPress}>
                     <Card className="bg-white" size="md" variant="outline">
@@ -302,7 +302,7 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
                 </GridItem>
               ))}
               {/* filler if odd to prevent weird ui */}
-              {(displayItems.length + (isAuthenticated && isAdmin && !isReorderMode ? 1 : 0)) %
+              {(displayItems.length + (isAuthenticated && isSuperAdmin && !isReorderMode ? 1 : 0)) %
                 2 !==
                 0 && <GridItem _extra={{ className: "col-span-1" }}></GridItem>}
             </Grid>
