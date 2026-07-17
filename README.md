@@ -1,6 +1,6 @@
 # MWH Minimart
 
-A minimart management app with a React Native (Expo) frontend and an Express + Prisma backend
+A minimart management app with a React Native (Expo) frontend and an Express + Prisma backend.
 
 ---
 
