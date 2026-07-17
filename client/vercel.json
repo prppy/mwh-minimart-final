@@ -1,4 +1,5 @@
 {
+    "buildCommand": "bash scripts/setup-ui.sh && npm run build:web",
     "rewrites": [
         {
             "source": "/(.*)",

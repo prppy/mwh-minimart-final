@@ -27,6 +27,9 @@ const AdminLoginForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const handleOfficerLogin = async () => {
+    setIsEmailInvalid(false);
+    setIsPasswordInvalid(false);
+
     if (!officerEmail.trim()) {
       setIsEmailInvalid(true);
       return;
