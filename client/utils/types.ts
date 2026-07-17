@@ -3,7 +3,7 @@ import { User } from "./auth";
 type Resident = {
   id: number;
   userName: string;
-  userRole: "resident";
+  userRole: "resident" | "officer" | "developer" | "admin" | "superadmin";
   profilePicture: string | undefined;
 
   createdAt: Date;

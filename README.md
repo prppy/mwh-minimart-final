@@ -32,6 +32,10 @@ npm install
 bash scripts/setup-ui.sh   # generates Gluestack UI components
 ```
 
+> **Prerequisites for `setup-ui.sh`**
+> - Node.js **v18 or higher** is required by the Gluestack CLI. If you use nvm, the script will switch automatically; otherwise ensure your active Node version is v18+.
+> - If this is the **first time** Gluestack has been set up on your machine, run `npx gluestack-ui init` inside `client/` before the setup script. This is a one-time interactive step that configures the CLI for the project.
+
 ### Running the app
 
 ```bash
