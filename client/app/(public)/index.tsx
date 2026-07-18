@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { Users, ChevronLeft, ChevronRight, HeartHandshake, HandHeart } from "lucide-react-native";
 
 import { Box } from "@/components/ui/box";
-import { Button, ButtonText } from "@/components/ui/button";
+import { Button, ButtonText } from "@/components/button";
 import { Center } from "@/components/ui/center";
 import { Heading } from "@/components/ui/heading";
 import { HStack } from "@/components/ui/hstack";
