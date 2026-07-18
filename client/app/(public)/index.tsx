@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ScrollView, ImageBackground } from "react-native";
+import { ScrollView, ImageBackground, useWindowDimensions, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Users, ChevronLeft, ChevronRight, HeartHandshake, HandHeart } from "lucide-react-native";
 
@@ -17,11 +17,16 @@ import { Card } from "@/components/ui/card";
 
 import api from "@/utils/api";
 import { Product } from "@/utils/types";
+import Footer from "@/components/layout/Footer";
+
+const MOBILE_BREAKPOINT = 768;
 
 const PublicLandingPage: React.FC = () => {
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const { width } = useWindowDimensions();
+  const isMobile = width < MOBILE_BREAKPOINT;
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -45,7 +50,7 @@ const PublicLandingPage: React.FC = () => {
 
   return (
     <ScrollView className="flex-1 bg-gray-50">
-      <Box className="w-full h-[500px] justify-center items-center overflow-hidden relative">
+      <Box className={`w-full ${isMobile ? 'h-[300px]' : 'h-[500px]'} justify-center items-center overflow-hidden relative`}>
         <Image
           source={require("@/assets/images/hero_bg.jpg")}
           className="absolute inset-0 w-full h-full"
@@ -55,7 +60,7 @@ const PublicLandingPage: React.FC = () => {
         />
 
         <Box className="absolute inset-0 bg-black/50" />
-        <VStack className="absolute inset-0 z-10 px-10 py-16 max-w-7xl mx-auto w-full justify-center items-start">
+        <VStack className={`absolute inset-0 z-10 ${isMobile ? 'px-4 py-8' : 'px-10 py-16'} max-w-7xl mx-auto w-full justify-center items-start`}>
           <VStack space="lg" className="max-w-2xl">
             <Heading size="3xl" className="text-white">
               Welcome back! Your{"\n"}rewards are waiting.
@@ -77,12 +82,12 @@ const PublicLandingPage: React.FC = () => {
       </Box>
 
       {/* How to Earn & Spend Points */}
-      <VStack className="px-10 py-16 max-w-7xl mx-auto w-full" space="xl">
+      <VStack className={`${isMobile ? 'px-4 py-8' : 'px-10 py-16'} max-w-7xl mx-auto w-full`} space="xl">
         <Heading size="xl" className="text-indigoscale-900 mb-4">
           How to Earn & Spend Points
         </Heading>
-        <HStack space="lg" className="justify-between flex-wrap gap-4">
-          <Card className="flex-1 min-w-[300px] p-6 bg-white border border-gray-200 shadow-sm rounded-xl">
+        <View style={{ flexDirection: isMobile ? 'column' : 'row', flexWrap: 'wrap', gap: 16 }}>
+          <Card className={`${isMobile ? 'w-full' : 'flex-1 min-w-[300px]'} p-6 bg-white border border-gray-200 shadow-sm rounded-xl`}>
             <VStack space="md">
               <Icon as={Users} size="xl" className="text-indigoscale-700 h-8 w-8" />
               <Heading size="md" className="text-indigoscale-900">Good Behaviour</Heading>
@@ -91,7 +96,7 @@ const PublicLandingPage: React.FC = () => {
               </Text>
             </VStack>
           </Card>
-          <Card className="flex-1 min-w-[300px] p-6 bg-white border border-gray-200 shadow-sm rounded-xl">
+          <Card className={`${isMobile ? 'w-full' : 'flex-1 min-w-[300px]'} p-6 bg-white border border-gray-200 shadow-sm rounded-xl`}>
             <VStack space="md">
               <Icon as={HeartHandshake} size="xl" className="text-indigoscale-700 h-8 w-8" />
               <Heading size="md" className="text-indigoscale-900">Daily Tasks</Heading>
@@ -100,7 +105,7 @@ const PublicLandingPage: React.FC = () => {
               </Text>
             </VStack>
           </Card>
-          <Card className="flex-1 min-w-[300px] p-6 bg-white border border-gray-200 shadow-sm rounded-xl">
+          <Card className={`${isMobile ? 'w-full' : 'flex-1 min-w-[300px]'} p-6 bg-white border border-gray-200 shadow-sm rounded-xl`}>
             <VStack space="md">
               <Icon as={HandHeart} size="xl" className="text-indigoscale-700 h-8 w-8" />
               <Heading size="md" className="text-indigoscale-900">Goal Achievement</Heading>
@@ -109,11 +114,11 @@ const PublicLandingPage: React.FC = () => {
               </Text>
             </VStack>
           </Card>
-        </HStack>
+        </View>
       </VStack>
 
       {/* Featured Products */}
-      <VStack className="px-10 pb-20 max-w-7xl mx-auto w-full" space="xl">
+      <VStack className={`${isMobile ? 'px-4 pb-10' : 'px-10 pb-20'} max-w-7xl mx-auto w-full`} space="xl">
         <HStack className="justify-between items-center mb-4">
           <Heading size="xl" className="text-indigoscale-900">
             Featured Products
@@ -128,11 +133,11 @@ const PublicLandingPage: React.FC = () => {
           </HStack>
         </HStack>
 
-        <HStack space="lg" className="flex-wrap justify-center gap-4">
+        <View style={{ flexDirection: isMobile ? 'column' : 'row', flexWrap: 'wrap', gap: 16, justifyContent: 'center' }}>
           {products.map((product) => (
             <Pressable
               key={product.id}
-              className="flex-1 min-w-[250px]"
+              className={isMobile ? 'w-full' : 'flex-1 min-w-[250px]'}
               onPress={() => router.push(`/(public)/catalogue/${product.id}`)}
             >
               <Card className="p-4 bg-white border border-gray-100 shadow-sm rounded-xl h-full">
@@ -161,8 +166,9 @@ const PublicLandingPage: React.FC = () => {
           {products.length === 0 && !loading && (
             <Text>No featured products available.</Text>
           )}
-        </HStack>
+        </View>
       </VStack>
+      <Footer />
     </ScrollView>
   );
 };

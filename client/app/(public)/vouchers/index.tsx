@@ -1,6 +1,8 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter } from "expo-router";
-import { ScrollView, Pressable, Platform } from "react-native";
+import { ScrollView, Pressable, Platform, useWindowDimensions, View } from "react-native";
+
+const MOBILE_BREAKPOINT = 768;
 
 let DatePicker: any = null;
 if (Platform.OS === "web") {
@@ -142,6 +144,8 @@ type SortDir = "desc" | "asc";
 
 const VouchersPage: React.FC = () => {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isMobile = width < MOBILE_BREAKPOINT;
 
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [taskCategories, setTaskCategories] = useState<TaskCategory[]>([]);
@@ -346,7 +350,7 @@ const VouchersPage: React.FC = () => {
       </VStack>
 
       {/* Search & Sort Controls */}
-      <HStack className="items-center gap-3 mt-3">
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12, marginTop: 12 }}>
         <HStack className="flex-1 items-center bg-white border border-gray-300 rounded-lg px-3">
           <Icon as={Search} size="sm" className="text-gray-400" />
           <Input variant="outline" className="flex-1 border-0">
@@ -426,11 +430,11 @@ const VouchersPage: React.FC = () => {
             )}
           </HStack>
         </Pressable>
-      </HStack>
+      </View>
 
       {/* Date Range — revealed when Date button is pressed */}
       {showDateRange && (
-        <HStack className="items-end gap-3 mt-2 bg-white p-3 rounded-lg border border-gray-200 z-50" style={{ overflow: 'visible' }}>
+        <View style={{ flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'flex-end', gap: 12, marginTop: 8, backgroundColor: '#fff', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', zIndex: 50 }}>
           <VStack className="flex-1" space="xs">
             <Text size="xs" className="text-gray-500" bold>
               From
@@ -482,7 +486,7 @@ const VouchersPage: React.FC = () => {
               </HStack>
             </Pressable>
           )}
-        </HStack>
+        </View>
       )}
 
       <Divider className="mt-3" />

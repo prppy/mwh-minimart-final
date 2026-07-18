@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Platform } from "react-native";
+import { Platform, ScrollView, useWindowDimensions, View } from "react-native";
+
+const MOBILE_BREAKPOINT = 768;
 import * as lucideReactNative from "lucide-react-native";
 
 import api, { ApiError } from "@/utils/api";
@@ -26,6 +28,8 @@ const VoucherDetailPage: React.FC = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { isAdmin, isAuthenticated } = useAuth();
+  const { width } = useWindowDimensions();
+  const isMobile = width < MOBILE_BREAKPOINT;
 
   const [voucher, setVoucher] = useState<Voucher | null>(null);
   const [tempVoucher, setTempVoucher] = useState<Voucher | null>(null);
@@ -193,10 +197,10 @@ const VoucherDetailPage: React.FC = () => {
 
   if (!voucher) return <Spinner />;
 
-  return (
-    <HStack className="w-full h-full gap-5 p-5 bg-indigoscale-100 items-start">
+  const content = (
+    <View style={{ flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 20, padding: isMobile ? 12 : 20, width: "100%", flex: isMobile ? undefined : 1 }} className="bg-indigoscale-100 items-start">
       {/* image */}
-      <Center className="w-1/2 min-h-64 p-5 bg-white rounded-lg">
+      <Center className={`${isMobile ? "w-full" : "w-1/2"} min-h-64 p-5 bg-white rounded-lg`}>
         {/* TODO: configure images for vouchers */}
         {/* {editing ? (
           <>
@@ -524,8 +528,14 @@ const VoucherDetailPage: React.FC = () => {
         errorHeading={errorDialogHeading}
         errorMessage={errorDialogMessage}
       />
-    </HStack>
+    </View>
   );
+
+  return isMobile ? (
+    <ScrollView className="flex-1 bg-indigoscale-100">
+      {content}
+    </ScrollView>
+  ) : content;
 };
 
 export default VoucherDetailPage;

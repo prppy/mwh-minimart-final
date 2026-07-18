@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { View, Text, ScrollView, Platform } from "react-native";
+import { View, Text, ScrollView, Platform, useWindowDimensions } from "react-native";
+
+const MOBILE_BREAKPOINT = 768;
 import { DataTable } from "react-native-paper";
 import { Plus, X, Pencil, Download, Trash, Check, Tag, Gift, Star, Award, Heart, Zap, Shield, BookOpen, Coffee, Music, Smile, Sun, Moon, Cloud, Flame, Anchor, Bell, Camera, Compass, Feather, Key, Map } from "lucide-react-native";
 import api from "@/utils/api";
@@ -22,6 +24,9 @@ type Task = { id: number; taskName: string; taskDescription: string; points: num
 type Resident = { id: number; userName: string; resident?: { serialNumber?: string; isActive?: boolean; remarks?: string; currentPoints?: number } };
 
 const VoucherAdminPage: React.FC = () => {
+  const { width } = useWindowDimensions();
+  const isMobile = width < MOBILE_BREAKPOINT;
+
   const [activeTab, setActiveTab] = useState<"categories" | "vouchers" | "award">("categories");
   const [categories, setCategories] = useState<Category[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -203,7 +208,7 @@ const VoucherAdminPage: React.FC = () => {
   return (
     <VStack className="flex-1 p-5 bg-indigoscale-500">
       {/* TABS */}
-      <HStack space="md" className="mb-4">
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
         {(["categories", "vouchers", "award"] as const).map(tab => (
           <Button key={tab} action="secondary" className={tabBtn(tab, activeTab)} onPress={() => setActiveTab(tab)}>
             <ButtonText className={tabTxt(tab, activeTab)}>{tab === "categories" ? "Categories" : tab === "vouchers" ? "Vouchers" : "Award Points"}</ButtonText>
@@ -214,7 +219,7 @@ const VoucherAdminPage: React.FC = () => {
           <ButtonIcon as={Download} className="text-white" />
           <ButtonText className="text-white">Export Excel</ButtonText>
         </Button>
-      </HStack>
+      </View>
 
       {/* CATEGORIES TAB */}
       {activeTab === "categories" && (
@@ -225,7 +230,8 @@ const VoucherAdminPage: React.FC = () => {
               <ButtonIcon as={Plus} className="text-white" /><ButtonText className="text-white">Add Category</ButtonText>
             </Button>
           </HStack>
-          <View style={{ borderRadius: 12, overflow: "hidden" }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={true} style={{ borderRadius: 12 }}>
+            <View style={{ minWidth: 600 }}>
             <DataTable>
               <DataTable.Header style={{ backgroundColor: "#E6E6FA" }}>
                 <DataTable.Title textStyle={{ fontWeight: "bold" }}>Icon</DataTable.Title>
@@ -250,7 +256,8 @@ const VoucherAdminPage: React.FC = () => {
                 </DataTable.Row>
               ))}</ScrollView>
             </DataTable>
-          </View>
+            </View>
+          </ScrollView>
         </VStack>
       )}
 
@@ -263,7 +270,8 @@ const VoucherAdminPage: React.FC = () => {
               <ButtonIcon as={Plus} className="text-white" /><ButtonText className="text-white">Add Voucher</ButtonText>
             </Button>
           </HStack>
-          <View style={{ borderRadius: 12, overflow: "hidden" }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={true} style={{ borderRadius: 12 }}>
+          <View style={{ minWidth: 600 }}>
             <DataTable>
               <DataTable.Header style={{ backgroundColor: "#E6E6FA" }}>
                 <DataTable.Title textStyle={{ fontWeight: "bold" }}>Name</DataTable.Title>
@@ -285,12 +293,13 @@ const VoucherAdminPage: React.FC = () => {
               ))}</ScrollView>
             </DataTable>
           </View>
+          </ScrollView>
         </VStack>
       )}
 
       {/* AWARD TAB */}
       {activeTab === "award" && (
-        <HStack className="flex-1 gap-4">
+        <View style={{ flexDirection: isMobile ? 'column' : 'row', flex: 1, gap: 16 }}>
           {/* Residents list */}
           <VStack className="flex-1 bg-white rounded-xl p-4" style={{ maxHeight: 600 }}>
             <HStack className="justify-between mb-2">
@@ -361,7 +370,7 @@ const VoucherAdminPage: React.FC = () => {
               ))}</ScrollView>
             </VStack>
           </VStack>
-        </HStack>
+        </View>
       )}
 
       {/* CATEGORY MODAL */}

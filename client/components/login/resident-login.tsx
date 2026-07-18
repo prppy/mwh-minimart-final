@@ -1,6 +1,6 @@
 import { Resident } from "@/utils/types";
 import { useEffect, useMemo, useState } from "react";
-import { ScrollView } from "react-native";
+import { ScrollView, useWindowDimensions } from "react-native";
 import EmptyAlert from "../custom-empty-alert";
 import { Center } from "../ui/center";
 import SearchBar from "../custom-searchbar";
@@ -25,8 +25,12 @@ import { Input, InputField, InputIcon, InputSlot } from "../ui/input";
 import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "expo-router";
 
+const MOBILE_BREAKPOINT = 768;
+
 const ResidentLoginForm: React.FC = () => {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isMobile = width < MOBILE_BREAKPOINT;
 
   const [residents, setResidents] = useState<Resident[]>([]);
   const [search, setSearch] = useState("");
@@ -146,7 +150,7 @@ const ResidentLoginForm: React.FC = () => {
 
   return (
     <>
-      <Center className="w-1/2 p-5 bg-white rounded-lg">
+      <Center className={`${isMobile ? 'w-[90%]' : 'w-1/2'} p-5 bg-white rounded-lg`}>
         {loading ? (
           <CustomSpinner text="Loading residents..." />
         ) : residents.length === 0 ? (

@@ -20,7 +20,7 @@ import { VStack } from "@/components/ui/vstack";
 import { useRouter } from "expo-router";
 import { ChevronDown, ChevronLeft } from "lucide-react-native";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, useWindowDimensions } from "react-native";
 
 import { submitRating } from "@/utils/api/feedback";
 
@@ -33,8 +33,12 @@ const FEEDBACK_CATEGORIES = [
   { label: "Complaint",  value: "complaint"  },
 ];
 
+const MOBILE_BREAKPOINT = 768;
+
 const RateUsPage: React.FC = () => {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isMobile = width < MOBILE_BREAKPOINT;
 
   const [residentName,     setResidentName]     = useState("");
   const [rating,           setRating]           = useState<number | null>(null);
@@ -79,7 +83,8 @@ const RateUsPage: React.FC = () => {
       >
         <Center className="flex-1 bg-white">
           <VStack
-            className="w-1/3 p-5 border border-indigoscale-700 rounded-lg"
+            className="p-5 border border-indigoscale-700 rounded-lg"
+            style={{ width: "100%", maxWidth: 500, alignSelf: "center" }}
             space="lg"
           >
             {/* Name */}

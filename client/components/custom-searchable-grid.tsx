@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView } from "react-native";
+import { Pressable, ScrollView, useWindowDimensions } from "react-native";
 import { Plus, ShoppingCart } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -41,6 +41,8 @@ interface SearchableGridProps {
   categoryId?: number | string;
 }
 
+const MOBILE_BREAKPOINT = 768;
+
 const SearchableGrid: React.FC<SearchableGridProps> = ({
   items,
   onItemPress,
@@ -49,6 +51,8 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
   enableCart = false,
   categoryId = "all",
 }) => {
+  const { width } = useWindowDimensions();
+  const isMobile = width < MOBILE_BREAKPOINT;
   const { isAdmin, isAuthenticated, role } = useAuth();
   const { addToCart, isInCart } = useCart();
   const [sortOption, setSortOption] = useState<SortOption>("custom");
@@ -199,12 +203,12 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
 
   return (
     <VStack className="flex-1 gap-5" space="md">
-      <HStack className="w-full justify-between gap-3 items-center">
+      <HStack className="w-full justify-between gap-3 items-center" style={{ flexWrap: 'wrap' }}>
         {/* search bar */}
         <SearchBar search={search} setSearch={setSearch} />
 
-        {/* sort buttons */}
-        {!isReorderMode &&
+        {/* sort buttons - hidden on mobile */}
+        {!isMobile && !isReorderMode &&
           sortButtons.map((btn) => (
             <Button
               key={btn.value}
@@ -233,12 +237,12 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
       ) : (
         <VStack className="flex-1 overflow-hidden">
           <ScrollView>
-            <Grid className="gap-5" _extra={{ className: "grid-cols-2" }}>
+            <Grid className="gap-5" _extra={{ className: isMobile ? "grid-cols-1" : "grid-cols-2" }}>
               {isAuthenticated && isAdmin && !isReorderMode && (
                 <GridItem _extra={{ className: "col-span-1" }}>
                   <Pressable onPress={onAddPress}>
                     <Card className="bg-white" size="md" variant="outline">
-                      <Center className="w-full h-64 bg-indigoscale-300 rounded-md mb-5">
+                      <Center className={`w-full ${isMobile ? 'h-40' : 'h-64'} bg-indigoscale-300 rounded-md mb-5`}>
                         <Icon
                           as={Plus}
                           size={64}
@@ -256,7 +260,7 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
                 <GridItem key={item.id} _extra={{ className: "col-span-1" }}>
                   <Card className="bg-white" size="md" variant="outline">
                     <Pressable onPress={() => !isReorderMode && onItemPress(item)}>
-                      <Center className="w-full h-64 bg-indigoscale-300 rounded-md mb-5">
+                      <Center className={`w-full ${isMobile ? 'h-40' : 'h-64'} bg-indigoscale-300 rounded-md mb-5`}>
                         {item.image ? (
                           <Image
                             source={{ uri: item.image }}

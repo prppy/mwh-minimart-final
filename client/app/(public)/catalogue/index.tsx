@@ -1,7 +1,7 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useRouter, useNavigation } from "expo-router";
-import { ShoppingCart, Plus, Minus } from "lucide-react-native";
-import { Pressable } from "react-native";
+import { ShoppingCart, Plus, Minus, SlidersHorizontal, X } from "lucide-react-native";
+import { Pressable, useWindowDimensions, View, Animated, ScrollView, Modal } from "react-native";
 
 import api from "@/utils/api";
 import { Category, Product } from "@/utils/types";
@@ -20,7 +20,11 @@ import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
 import { Button, ButtonText, ButtonIcon } from "@/components/button";
 
+const MOBILE_BREAKPOINT = 768;
+
 const CataloguePage: React.FC = () => {
+  const { width } = useWindowDimensions();
+  const isMobile = width < MOBILE_BREAKPOINT;
   const router = useRouter();
   const navigation = useNavigation();
   const { cart, cartCount, totalPoints, removeFromCart, updateQuantity } = useCart();
@@ -33,6 +37,8 @@ const CataloguePage: React.FC = () => {
   const [points, setPoints] = useState(50000);
   const [loading, setLoading] = useState(true);
   const [showCart, setShowCart] = useState(false);
+  const [showFilterSheet, setShowFilterSheet] = useState(false);
+  const sheetAnim = useRef(new Animated.Value(0)).current;
 
   // Announcement Banner States
   const [showNewBanner, setShowNewBanner] = useState(false);
@@ -240,9 +246,140 @@ const CataloguePage: React.FC = () => {
     return products.filter((p) => p.available).length;
   }, [products]);
 
+  // Count active filters for badge
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (selectedCategories.length < categories.length && selectedCategories.length > 0) count++;
+    if (selectedTypes.length < 2) count++;
+    if (points < 50000) count++;
+    return count;
+  }, [selectedCategories, categories.length, selectedTypes, points]);
+
+  const openFilterSheet = () => {
+    setShowFilterSheet(true);
+    Animated.timing(sheetAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const closeFilterSheet = () => {
+    Animated.timing(sheetAnim, {
+      toValue: 0,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => setShowFilterSheet(false));
+  };
+
+  // Shared filter controls component
+  const renderFilterControls = () => (
+    <>
+      {/* category filter */}
+      <VStack space="xs">
+        <Text className="text-indigoscale-700 font-semibold" size="lg">
+          Category
+        </Text>
+        <VStack space="sm">
+          {sortedCategories.map((category) => {
+            const isSelected = selectedCategories.includes(category.id.toString());
+            return (
+              <Checkbox
+                key={category.id}
+                value={category.id.toString()}
+                isChecked={isSelected}
+                onChange={(checked) => {
+                  if (checked) {
+                    setSelectedCategories((prev) => [...prev, category.id.toString()]);
+                  } else {
+                    setSelectedCategories((prev) =>
+                      prev.filter((id) => id !== category.id.toString())
+                    );
+                  }
+                }}
+              >
+                {category.categoryName}
+              </Checkbox>
+            );
+          })}
+        </VStack>
+      </VStack>
+
+      {/* type filter */}
+      <VStack space="xs">
+        <Text className="text-indigoscale-700 font-semibold" size="lg">
+          Type
+        </Text>
+        <VStack space="sm">
+          <Checkbox
+            value="Daily"
+            isChecked={selectedTypes.includes("Daily")}
+            onChange={(checked) => {
+              if (checked) {
+                setSelectedTypes((prev) => [...prev, "Daily"]);
+              } else {
+                setSelectedTypes((prev) => prev.filter((t) => t !== "Daily"));
+              }
+            }}
+          >
+            Daily
+          </Checkbox>
+          <Checkbox
+            value="Showcase"
+            isChecked={selectedTypes.includes("Showcase")}
+            onChange={(checked) => {
+              if (checked) {
+                setSelectedTypes((prev) => [...prev, "Showcase"]);
+              } else {
+                setSelectedTypes((prev) => prev.filter((t) => t !== "Showcase"));
+              }
+            }}
+          >
+            Showcase
+          </Checkbox>
+        </VStack>
+      </VStack>
+
+      {/* points filter */}
+      <VStack space="xs">
+        <Text className="text-indigoscale-700 font-semibold" size="lg">
+          Points (0 - {points.toLocaleString()})
+        </Text>
+        <slider.Slider
+          minValue={0}
+          maxValue={50000}
+          step={50}
+          defaultValue={50000}
+          onChange={(val) => {
+            const numVal = Array.isArray(val) ? val[0] : val;
+            setPoints(numVal || 0);
+          }}
+        >
+          <slider.SliderTrack>
+            <slider.SliderFilledTrack
+              className="
+              bg-indigoscale-500 rounded-full
+              data-[active=true]:bg-indigoscale-500
+              data-[hover=true]:bg-indigoscale-500
+            "
+            />
+          </slider.SliderTrack>
+          <slider.SliderThumb
+            className="
+              w-5 h-5 rounded-full shadow
+              bg-indigoscale-700
+              data-[active=true]:bg-indigoscale-700
+              data-[hover=true]:bg-indigoscale-700
+            "
+          />
+        </slider.Slider>
+      </VStack>
+    </>
+  );
+
   return (
-    <HStack className="flex-1 gap-5 p-5 pb-5 bg-indigoscale-100 items-stretch">
-      <VStack
+    <View style={{ flex: 1, flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 12 : 20, padding: isMobile ? 12 : 20, paddingBottom: isMobile ? 12 : 20, backgroundColor: undefined }} className="bg-indigoscale-100 items-stretch">
+      {!isMobile && <VStack
         className="w-1/4 self-start p-5 bg-white border border-gray-300 rounded-lg"
         space="xl"
       >
@@ -308,109 +445,60 @@ const CataloguePage: React.FC = () => {
           </VStack>
         )}
 
-        {/* category filter */}
-        <VStack space="xs">
-          <Text className="text-indigoscale-700 font-semibold" size={"lg"}>
-            Category
-          </Text>
-          <VStack space="sm">
-            {sortedCategories.map((category) => {
-              const isSelected = selectedCategories.includes(category.id.toString());
-              return (
-                <Checkbox
-                  key={category.id}
-                  value={category.id.toString()}
-                  isChecked={isSelected}
-                  onChange={(checked) => {
-                    if (checked) {
-                      setSelectedCategories((prev) => [...prev, category.id.toString()]);
-                    } else {
-                      setSelectedCategories((prev) =>
-                        prev.filter((id) => id !== category.id.toString())
-                      );
-                    }
-                  }}
-                >
-                  {category.categoryName}
-                </Checkbox>
-              );
-            })}
-          </VStack>
-        </VStack>
-
-        {/* type filter */}
-        <VStack space="xs">
-          <Text className="text-indigoscale-700 font-semibold" size={"lg"}>
-            Type
-          </Text>
-          <VStack space="sm">
-            <Checkbox
-              value="Daily"
-              isChecked={selectedTypes.includes("Daily")}
-              onChange={(checked) => {
-                if (checked) {
-                  setSelectedTypes((prev) => [...prev, "Daily"]);
-                } else {
-                  setSelectedTypes((prev) => prev.filter((t) => t !== "Daily"));
-                }
-              }}
-            >
-              Daily
-            </Checkbox>
-            <Checkbox
-              value="Showcase"
-              isChecked={selectedTypes.includes("Showcase")}
-              onChange={(checked) => {
-                if (checked) {
-                  setSelectedTypes((prev) => [...prev, "Showcase"]);
-                } else {
-                  setSelectedTypes((prev) => prev.filter((t) => t !== "Showcase"));
-                }
-              }}
-            >
-              Showcase
-            </Checkbox>
-          </VStack>
-        </VStack>
-
-        {/* points filter */}
-        <VStack space="xs">
-          <Text className="text-indigoscale-700 font-semibold" size={"lg"}>
-            Points (0 - {points.toLocaleString()})
-          </Text>
-          <slider.Slider
-            minValue={0}
-            maxValue={50000}
-            step={50}
-            defaultValue={50000}
-            onChange={(val) => {
-              const numVal = Array.isArray(val) ? val[0] : val;
-              setPoints(numVal || 0);
-            }}
-          >
-            <slider.SliderTrack>
-              <slider.SliderFilledTrack
-                className="
-                bg-indigoscale-500 rounded-full
-                data-[active=true]:bg-indigoscale-500
-                data-[hover=true]:bg-indigoscale-500
-              "
-              />
-            </slider.SliderTrack>
-            <slider.SliderThumb
-              className="
-                w-5 h-5 rounded-full shadow
-                bg-indigoscale-700
-                data-[active=true]:bg-indigoscale-700
-                data-[hover=true]:bg-indigoscale-700
-              "
-            />
-          </slider.Slider>
-        </VStack>
-      </VStack>
+        {renderFilterControls()}
+      </VStack>}
 
       {/* products grid & announcements */}
       <VStack className="flex-1" space="md">
+        {/* Mobile filter button */}
+        {isMobile && (
+          <HStack className="gap-2">
+            <Pressable
+              onPress={openFilterSheet}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+                backgroundColor: activeFilterCount > 0 ? '#273C73' : '#FFFFFF',
+                paddingHorizontal: 16,
+                paddingVertical: 10,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: '#273C73',
+              }}
+            >
+              <SlidersHorizontal size={18} color={activeFilterCount > 0 ? '#FFFFFF' : '#273C73'} />
+              <Text
+                style={{
+                  color: activeFilterCount > 0 ? '#FFFFFF' : '#273C73',
+                  fontWeight: '600',
+                  fontSize: 14,
+                }}
+              >
+                Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+              </Text>
+            </Pressable>
+            {isResident && cartCount > 0 && (
+              <Pressable
+                onPress={() => setShowCart(true)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 8,
+                  backgroundColor: '#273C73',
+                  paddingHorizontal: 16,
+                  paddingVertical: 10,
+                  borderRadius: 12,
+                }}
+              >
+                <ShoppingCart size={18} color="#FFFFFF" />
+                <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 14 }}>
+                  Cart ({cartCount})
+                </Text>
+              </Pressable>
+            )}
+          </HStack>
+        )}
         {/* Announcement Banners */}
         <VStack space="sm" className="mb-2">
           {showNewBanner && newItems.length > 0 && (
@@ -473,7 +561,125 @@ const CataloguePage: React.FC = () => {
         onClose={() => setShowCart(false)}
         onOpenCart={() => setShowCart(true)}
       />
-    </HStack>
+
+      {/* Mobile Filter Bottom Sheet */}
+      {isMobile && (
+        <Modal
+          visible={showFilterSheet}
+          transparent
+          animationType="none"
+          onRequestClose={closeFilterSheet}
+        >
+          {/* Backdrop */}
+          <Pressable
+            onPress={closeFilterSheet}
+            style={{
+              flex: 1,
+              backgroundColor: 'rgba(0,0,0,0.4)',
+              justifyContent: 'flex-end',
+            }}
+          >
+            {/* Sheet container — stop propagation so tapping inside doesn't close */}
+            <Animated.View
+              style={{
+                transform: [{
+                  translateY: sheetAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [600, 0],
+                  }),
+                }],
+                backgroundColor: '#FFFFFF',
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+                maxHeight: '80%',
+                paddingBottom: 24,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: -4 },
+                shadowOpacity: 0.15,
+                shadowRadius: 12,
+                elevation: 20,
+              }}
+            >
+              <Pressable onPress={(e) => e.stopPropagation()}>
+                {/* Drag handle */}
+                <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 4 }}>
+                  <View
+                    style={{
+                      width: 40,
+                      height: 5,
+                      borderRadius: 3,
+                      backgroundColor: '#D1D5DB',
+                    }}
+                  />
+                </View>
+
+                {/* Header */}
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    paddingHorizontal: 20,
+                    paddingVertical: 12,
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#E5E7EB',
+                  }}
+                >
+                  <Text style={{ fontSize: 18, fontWeight: '700', color: '#273C73' }}>
+                    Filters
+                  </Text>
+                  <HStack className="gap-3 items-center">
+                    <Pressable
+                      onPress={() => {
+                        setSelectedCategories(categories.map((c) => c.id.toString()));
+                        setSelectedTypes(['Daily', 'Showcase']);
+                        setPoints(50000);
+                      }}
+                    >
+                      <Text style={{ fontSize: 14, color: '#6B7280', fontWeight: '500' }}>
+                        Reset
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={closeFilterSheet}
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 16,
+                        backgroundColor: '#F3F4F6',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <X size={18} color="#6B7280" />
+                    </Pressable>
+                  </HStack>
+                </View>
+
+                {/* Filter content */}
+                <ScrollView
+                  style={{ paddingHorizontal: 20, paddingTop: 16 }}
+                  contentContainerStyle={{ paddingBottom: 20, gap: 24 }}
+                >
+                  {renderFilterControls()}
+
+                  {/* Apply button */}
+                  <Button
+                    size="lg"
+                    onPress={closeFilterSheet}
+                    className="bg-indigoscale-700 rounded-xl"
+                  >
+                    <ButtonText className="text-white font-bold">
+                      Show {filteredProducts.length} results
+                    </ButtonText>
+                  </Button>
+                </ScrollView>
+              </Pressable>
+            </Animated.View>
+          </Pressable>
+        </Modal>
+      )}
+    </View>
   );
 };
 

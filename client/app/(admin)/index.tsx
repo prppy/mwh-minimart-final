@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Check, Package, MessageSquare, TrendingUp, Award } from "lucide-react-native";
-import { ScrollView } from "react-native";
+import { ScrollView, useWindowDimensions, View } from "react-native";
+
+const MOBILE_BREAKPOINT = 768;
 
 import api from "@/utils/api";
 
@@ -41,6 +43,8 @@ interface AdminMetrics {
 const AdminPage: React.FC = () => {
   const [metrics, setMetrics] = useState<AdminMetrics | null>(null);
   const [loading, setLoading] = useState(true);
+  const { width } = useWindowDimensions();
+  const isMobile = width < MOBILE_BREAKPOINT;
 
   useEffect(() => {
     const fetchMetrics = async () => {
@@ -61,12 +65,12 @@ const AdminPage: React.FC = () => {
 
   return (
     <ScrollView className="flex-1 bg-indigoscale-500">
-      <VStack className="p-5 gap-6">
+      <VStack className={isMobile ? "p-3 gap-4" : "p-5 gap-6"}>
         
         {/* Stat Cards Grid */}
-        <HStack className="w-full gap-4 flex-wrap">
+        <View style={{ flexDirection: isMobile ? "column" : "row", flexWrap: "wrap", gap: isMobile ? 8 : 16, width: "100%" }}>
           {/* Card 1: Stocks Available */}
-          <VStack className="flex-1 min-w-[200px] p-5 bg-white rounded-xl shadow-md gap-2 border-l-4 border-indigoscale-500">
+          <VStack className={`${isMobile ? 'w-full' : 'flex-1 min-w-[200px]'} p-5 bg-white rounded-xl shadow-md gap-2 border-l-4 border-indigoscale-500`}>
             <HStack className="justify-between items-center">
               <Text className="text-indigoscale-700 font-bold">Stocks Available</Text>
               <Icon as={Package} className="text-indigoscale-500" size="xl" />
@@ -78,7 +82,7 @@ const AdminPage: React.FC = () => {
           </VStack>
 
           {/* Card 2: Feedbacks Received */}
-          <VStack className="flex-1 min-w-[200px] p-5 bg-white rounded-xl shadow-md gap-2 border-l-4 border-greenscale-500">
+          <VStack className={`${isMobile ? 'w-full' : 'flex-1 min-w-[200px]'} p-5 bg-white rounded-xl shadow-md gap-2 border-l-4 border-greenscale-500`}>
             <HStack className="justify-between items-center">
               <Text className="text-greenscale-700 font-bold">Feedbacks Received</Text>
               <Icon as={MessageSquare} className="text-greenscale-500" size="xl" />
@@ -90,7 +94,7 @@ const AdminPage: React.FC = () => {
           </VStack>
 
           {/* Card 3: Feedbacks Resolved */}
-          <VStack className="flex-1 min-w-[200px] p-5 bg-white rounded-xl shadow-md gap-2 border-l-4 border-orangescale-500">
+          <VStack className={`${isMobile ? 'w-full' : 'flex-1 min-w-[200px]'} p-5 bg-white rounded-xl shadow-md gap-2 border-l-4 border-orangescale-500`}>
             <HStack className="justify-between items-center">
               <Text className="text-orangescale-700 font-bold">Feedbacks Resolved</Text>
               <Icon as={Check} className="text-orangescale-500" size="xl" />
@@ -100,11 +104,11 @@ const AdminPage: React.FC = () => {
             </Heading>
             <Text className="text-xs text-typography-500">Addressed feedback status</Text>
           </VStack>
-        </HStack>
+        </View>
 
-        <HStack className="w-full gap-5 flex-wrap">
+        <View style={{ flexDirection: isMobile ? 'column' : 'row', flexWrap: 'wrap', gap: 20, width: '100%' }}>
           {/* Left Column: Vouchers & Points Summary */}
-          <VStack className="flex-[2] min-w-[300px] gap-6">
+          <VStack className={`${isMobile ? 'w-full' : 'flex-[2] min-w-[300px]'} gap-6`}>
             <VStack className="w-full gap-4 p-5 bg-white rounded-xl shadow-md">
               <HStack className="items-center gap-2">
                 <Icon as={Award} className="text-indigoscale-700" size="xl" />
@@ -113,42 +117,43 @@ const AdminPage: React.FC = () => {
                 </Heading>
               </HStack>
               
-              <table.Table className="w-full">
-                <table.TableHeader>
-                  <table.TableRow className="bg-indigoscale-100">
-                    <table.TableHead>Resident</table.TableHead>
-                    <table.TableHead>Vouchers Completed</table.TableHead>
-                    <table.TableHead>Total Issued</table.TableHead>
-                    <table.TableHead>Current Balance</table.TableHead>
-                  </table.TableRow>
-                </table.TableHeader>
-                <table.TableBody>
-                  {loading ? (
-                    <table.TableRow>
-                      <table.TableData className="text-center" colSpan={4}>Loading resident metrics...</table.TableData>
+              <ScrollView horizontal>
+                <table.Table className="w-full">
+                  <table.TableHeader>
+                    <table.TableRow className="bg-indigoscale-100">
+                      <table.TableHead>Resident</table.TableHead>
+                      <table.TableHead>Vouchers Completed</table.TableHead>
+                      <table.TableHead>Total Issued</table.TableHead>
+                      <table.TableHead>Current Balance</table.TableHead>
                     </table.TableRow>
-                  ) : metrics?.residentMetrics.length === 0 ? (
-                    <table.TableRow>
-                      <table.TableData className="text-center" colSpan={4}>No resident data available</table.TableData>
-                    </table.TableRow>
-                  ) : (
-                    metrics?.residentMetrics.map((r) => (
-                      <table.TableRow key={r.userId}>
-                        <table.TableData className="font-semibold text-indigoscale-900">{r.userName}</table.TableData>
-                        <table.TableData>{r.vouchersCount} completed</table.TableData>
-                        <table.TableData className="font-bold text-greenscale-700">{r.totalPoints} pts</table.TableData>
-                        <table.TableData className="font-bold text-indigoscale-700">{r.currentPoints} pts</table.TableData>
+                  </table.TableHeader>
+                  <table.TableBody>
+                    {loading ? (
+                      <table.TableRow>
+                        <table.TableData className="text-center" colSpan={4}>Loading resident metrics...</table.TableData>
                       </table.TableRow>
-                    ))
-                  )}
-                </table.TableBody>
-              </table.Table>
+                    ) : metrics?.residentMetrics.length === 0 ? (
+                      <table.TableRow>
+                        <table.TableData className="text-center" colSpan={4}>No resident data available</table.TableData>
+                      </table.TableRow>
+                    ) : (
+                      metrics?.residentMetrics.map((r) => (
+                        <table.TableRow key={r.userId}>
+                          <table.TableData className="font-semibold text-indigoscale-900">{r.userName}</table.TableData>
+                          <table.TableData>{r.vouchersCount} completed</table.TableData>
+                          <table.TableData className="font-bold text-greenscale-700">{r.totalPoints} pts</table.TableData>
+                          <table.TableData className="font-bold text-indigoscale-700">{r.currentPoints} pts</table.TableData>
+                        </table.TableRow>
+                      ))
+                    )}
+                  </table.TableBody>
+                </table.Table>
+              </ScrollView>
             </VStack>
           </VStack>
 
           {/* Right Column: High Demand Items */}
-          <VStack className="flex-1 min-w-[250px] gap-6">
-            {/* High Demand Items */}
+          <VStack className={`${isMobile ? 'w-full' : 'flex-1 min-w-[250px]'} gap-6`}>
             <VStack className="w-full gap-4 p-5 bg-white rounded-xl shadow-md">
               <HStack className="items-center gap-2">
                 <Icon as={TrendingUp} className="text-greenscale-700" size="xl" />
@@ -157,7 +162,8 @@ const AdminPage: React.FC = () => {
                 </Heading>
               </HStack>
               
-              <table.Table className="w-full">
+              <ScrollView horizontal showsHorizontalScrollIndicator={isMobile}>
+              <table.Table className="w-full" style={{ minWidth: 300 }}>
                 <table.TableHeader>
                   <table.TableRow className="bg-greenscale-100">
                     <table.TableHead>Product</table.TableHead>
@@ -185,9 +191,10 @@ const AdminPage: React.FC = () => {
                   )}
                 </table.TableBody>
               </table.Table>
+              </ScrollView>
             </VStack>
           </VStack>
-        </HStack>
+        </View>
 
       </VStack>
     </ScrollView>

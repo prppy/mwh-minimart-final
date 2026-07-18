@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { ScrollView } from "react-native";
+import { ScrollView, useWindowDimensions, View } from "react-native";
+import * as lucide from "lucide-react-native";
 import {
   ArrowDownAZ,
   ArrowUpZA,
@@ -9,12 +10,17 @@ import {
   RotateCcw,
 } from "lucide-react-native";
 
+const MOBILE_BREAKPOINT = 768;
+
 import api from "@/utils/api";
 import { Product, Resident, WheelParticipant } from "@/utils/types";
 
 import EmptyAlert from "@/components/custom-empty-alert";
 import FortuneWheel from "@/components/custom-fortune-wheel";
 import CustomSpinner from "@/components/custom-spinner";
+import PrizeSelector from "@/components/lottery/prize-selector";
+import ResidentCard from "@/components/lottery/resident-card";
+import WinnerDialog from "@/components/lottery/winner-dialog";
 
 import { Button, ButtonText } from "@/components/button";
 import { Heading } from "@/components/ui/heading";
@@ -24,9 +30,7 @@ import { Text } from "@/components/ui/text";
 import { Badge, BadgeText } from "@/components/ui/badge";
 import { Pressable } from "@/components/ui/pressable";
 import { Input, InputField, InputIcon, InputSlot } from "@/components/ui/input";
-import { Image as UiImage } from "@/components/ui/image";
-import Checkbox from "@/components/custom-checkbox";
-import { Center } from "@/components/ui/center";
+import { Icon } from "@/components/ui/icon";
 import * as alert from "@/components/ui/alert-dialog";
 
 // types
@@ -227,86 +231,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
   );
 };
 
-// Winner Dialog
 
-interface WinnerDialogProps {
-  winner: string | null;
-  onClose: () => void;
-}
-
-const WinnerDialog: React.FC<WinnerDialogProps> = ({ winner, onClose }) => (
-  <alert.AlertDialog isOpen={!!winner} onClose={onClose}>
-    <alert.AlertDialogBackdrop />
-    <alert.AlertDialogContent>
-      <alert.AlertDialogHeader>
-        <Heading size="lg" className="text-indigoscale-700">
-          {winner?.startsWith("Error") ? "Oops!" : "🎉 Congratulations!"}
-        </Heading>
-      </alert.AlertDialogHeader>
-      <alert.AlertDialogBody className="mt-2 mb-4">
-        <Text className="text-xl text-center" bold>
-          {winner}
-        </Text>
-      </alert.AlertDialogBody>
-      <alert.AlertDialogFooter>
-        <Button
-          action="primary"
-          size="sm"
-          onPress={onClose}
-          className="bg-indigoscale-700"
-        >
-          <ButtonText>Awesome!</ButtonText>
-        </Button>
-      </alert.AlertDialogFooter>
-    </alert.AlertDialogContent>
-  </alert.AlertDialog>
-);
-
-// Resident list item
-
-interface ResidentListItemProps {
-  resident: Resident;
-  isSelected: boolean;
-  isEligible: boolean;
-  onToggle: (id: string) => void;
-}
-
-const ResidentListItem: React.FC<ResidentListItemProps> = ({
-  resident,
-  isSelected,
-  isEligible,
-  onToggle,
-}) => (
-  <Checkbox
-    key={resident.id}
-    value={resident.id.toString()}
-    isChecked={isSelected}
-    isDisabled={!isEligible}
-    onChange={() => isEligible && onToggle(resident.id.toString())}
-    className="w-full"
-  >
-    <VStack
-      className={`flex-1 p-3 border-2 rounded-xl ${
-        isEligible
-          ? `bg-${resident.wallpaperType}scale-300 border-${resident.wallpaperType}scale-500`
-          : "bg-gray-100 border-gray-200 opacity-40"
-      }`}
-    >
-      <Heading
-        size="lg"
-        className={isEligible ? `text-${resident.wallpaperType}scale-700` : "text-gray-400"}
-        bold
-      >
-        {resident.userName}
-      </Heading>
-      <Text className={isEligible ? `text-${resident.wallpaperType}scale-700` : "text-gray-400"}>
-        Points: {resident.currentPoints ?? 0} | Batch:{" "}
-        {resident.batchNumber || "-"}
-        {!isEligible && "  ⛔ Can't afford"}
-      </Text>
-    </VStack>
-  </Checkbox>
-);
 
 // Active filter pills
 
@@ -413,6 +338,9 @@ const FilterButton: React.FC<FilterButtonProps> = ({
 //  Main Page
 
 const LotteryPage: React.FC = () => {
+  const { width } = useWindowDimensions();
+  const isMobile = width < MOBILE_BREAKPOINT;
+
   const [search, setSearch] = useState("");
   const [residents, setResidents] = useState<Resident[]>([]);
   const [selectedResidents, setSelectedResidents] = useState<string[]>([]);
@@ -676,210 +604,280 @@ const LotteryPage: React.FC = () => {
 
   // render
 
-  return (
-    <HStack className="flex-1 bg-indigoscale-500 gap-5 p-5">
-      {/* Spin & Win Wheel */}
-      <VStack className="flex-1" space="lg">
-        {/* item selection grid */}
-        <VStack className="bg-white rounded-2xl p-4" space="sm">
-          <Heading className="text-indigoscale-700" size="md">
-            Spinning for
-          </Heading>
+  const wheelSize = isMobile ? Math.min(280, width - 60) : 380;
+  const [phase, setPhase] = useState<"setup" | "spin">("setup");
+  const [setupTab, setSetupTab] = useState<"prize" | "residents">("prize");
 
-          {/* search */}
-          <Input variant="outline" size="md">
-            <InputSlot className="pl-3">
-              <InputIcon as={Search} className="text-indigoscale-500" />
-            </InputSlot>
-            <InputField
-              placeholder="Search items..."
-              value={itemSearch}
-              onChangeText={setItemSearch}
-              className="text-indigoscale-700"
-            />
-            {itemSearch.length > 0 && (
-              <InputSlot className="pr-3">
-                <Pressable onPress={() => setItemSearch("")}>
-                  <InputIcon as={X} className="text-indigoscale-400" />
-                </Pressable>
-              </InputSlot>
-            )}
-          </Input>
+  const readyToSpin = !!selectedItemId && selectedResidents.length > 0;
 
-          {/* product tiles — showcase items only */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <HStack space="sm">
-              {showcaseProducts.length === 0 ? (
-                <Text className="text-gray-400 italic py-2">
-                  No showcase items available
+  // ===== PHASE 2: SPIN =====
+  if (phase === "spin") {
+    return (
+      <View className="flex-1 bg-indigoscale-500" style={{ alignItems: "center", justifyContent: "center", padding: isMobile ? 12 : 24 }}>
+        {/* Back button */}
+        <Pressable
+          onPress={() => setPhase("setup")}
+          style={{
+            position: "absolute",
+            top: isMobile ? 12 : 24,
+            left: isMobile ? 12 : 24,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 6,
+            backgroundColor: "rgba(255,255,255,0.15)",
+            paddingHorizontal: 14,
+            paddingVertical: 8,
+            borderRadius: 10,
+            zIndex: 10,
+          }}
+        >
+          <Icon as={lucide.ArrowLeft} size="sm" style={{ color: "#FFFFFF" }} />
+          <Text style={{ color: "#FFFFFF", fontWeight: "600", fontSize: 14 }}>
+            Back to Setup
+          </Text>
+        </Pressable>
+
+        {/* Wheel + Controls */}
+        <VStack style={{ alignItems: "center", gap: 16, maxWidth: 500 }}>
+          {/* Summary pills */}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
+            <View
+              style={{
+                backgroundColor: "rgba(255,255,255,0.15)",
+                paddingHorizontal: 14,
+                paddingVertical: 6,
+                borderRadius: 10,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <Icon as={lucide.Users} size="sm" style={{ color: "#FFFFFF" }} />
+              <Text style={{ color: "#FFFFFF", fontWeight: "700", fontSize: 13 }}>
+                {wheelParticipants.length} Participants
+              </Text>
+            </View>
+            {selectedItem && (
+              <View
+                style={{
+                  backgroundColor: "rgba(255,255,255,0.15)",
+                  paddingHorizontal: 14,
+                  paddingVertical: 6,
+                  borderRadius: 10,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <Icon as={lucide.Gift} size="sm" style={{ color: "#FFFFFF" }} />
+                <Text style={{ color: "#FFFFFF", fontWeight: "600", fontSize: 13 }} numberOfLines={1}>
+                  {selectedItem.productName} — {selectedItem.points} pts
                 </Text>
-              ) : (
-                showcaseProducts.map((product) => {
-                  const isSelected = selectedItemId === String(product.id);
-                  return (
-                    <Pressable
-                      key={product.id}
-                      onPress={() =>
-                        setSelectedItemId(isSelected ? "" : String(product.id))
-                      }
-                      className={`w-28 rounded-xl overflow-hidden border-2 ${
-                        isSelected
-                          ? "border-indigoscale-700"
-                          : "border-transparent"
-                      }`}
-                    >
-                      <UiImage
-                        source={product.imageUrl}
-                        alt={product.productName}
-                        className="w-28 h-28"
-                        resizeMode="cover"
-                      />
-                      <VStack
-                        className={`p-2 ${
-                          isSelected ? "bg-indigoscale-100" : "bg-gray-50"
-                        }`}
-                      >
-                        <Text
-                          size="xs"
-                          bold
-                          className="text-indigoscale-700"
-                          numberOfLines={2}
-                        >
-                          {product.productName}
-                        </Text>
-                        <Text size="xs" className="text-indigoscale-500">
-                          {product.points} pts
-                        </Text>
-                      </VStack>
-                    </Pressable>
-                  );
-                })
-              )}
-            </HStack>
-          </ScrollView>
+              </View>
+            )}
+          </View>
 
-          {!selectedItemId && (
-            <Text size="xs" className="text-gray-400 italic">
-              Tap an item to select what you're spinning for
-            </Text>
-          )}
-        </VStack>
-
-        <Center className="flex-1 w-full gap-5 p-5">
+          {/* The Wheel */}
           <FortuneWheel
             options={wheelOptions}
             colors={wheelColors}
             onSpinEnd={handleSpinEnd}
             isSpinning={spinning}
-          />
-          <VStack space="md">
-            <Button
-              action="secondary"
-              onPress={handleSpin}
-              disabled={spinning || wheelParticipants.length < 1}
-            >
-              <ButtonText>
-                {spinning ? "Spinning..." : "Spin the Wheel!"}
-              </ButtonText>
-            </Button>
-            <Text className="text-white text-center" bold>
-              Participants: {wheelParticipants.length}
-            </Text>
-          </VStack>
-        </Center>
-      </VStack>
-
-      {/* Resident Selection Panel */}
-      <VStack className="flex-1 bg-white gap-3 p-5 rounded-2xl">
-        <Heading className="text-indigoscale-700" size="xl">
-          Select Residents
-        </Heading>
-
-        {/* Toolbar */}
-        <HStack space="sm" className="items-center">
-          <Input variant="outline" size="md" className="flex-1">
-            <InputSlot className="pl-3">
-              <InputIcon as={Search} className="text-indigoscale-500" />
-            </InputSlot>
-            <InputField
-              placeholder="Search residents..."
-              value={search}
-              onChangeText={setSearch}
-              className="text-indigoscale-700"
-            />
-            {search.length > 0 && (
-              <InputSlot className="pr-3">
-                <Pressable onPress={() => setSearch("")}>
-                  <InputIcon as={X} className="text-indigoscale-400" />
-                </Pressable>
-              </InputSlot>
-            )}
-          </Input>
-
-          <FilterButton
-            activeFilterCount={activeFilterCount}
-            onPress={() => setFilterModalOpen(true)}
+            size={wheelSize}
           />
 
-          <Button action="secondary" size="sm" onPress={handleSelectAll}>
-            <ButtonText>Select All</ButtonText>
-          </Button>
-          <Button action="secondary" size="sm" onPress={handleDeselectAll}>
-            <ButtonText>Deselect All</ButtonText>
-          </Button>
-        </HStack>
-
-        {/* Active filter pills — dismissable inline */}
-        <ActiveFilterPills
-          filters={filters}
-          onClearMinPoints={() => setFilters((f) => ({ ...f, minPoints: "" }))}
-          onClearSortOrder={() =>
-            setFilters((f) => ({ ...f, sortOrder: "none" }))
-          }
-        />
-
-        {/* Count */}
-        <Text className="text-gray-400 text-xs">
-          Showing {filteredResidents.length} of {residents.length} residents
-        </Text>
-
-        {/* Resident list */}
-        {loading ? (
-          <CustomSpinner text="Loading residents..." />
-        ) : filteredResidents.length === 0 ? (
-          <EmptyAlert text="No residents found!" />
-        ) : (
-          <ScrollView
-            className="flex-1"
-            contentContainerStyle={{ paddingBottom: 20 }}
+          {/* Spin Button */}
+          <Pressable
+            onPress={handleSpin}
+            disabled={spinning || wheelParticipants.length < 1}
+            style={{
+              backgroundColor: spinning ? "#4B5563" : "#273C73",
+              paddingHorizontal: 40,
+              paddingVertical: 16,
+              borderRadius: 14,
+              opacity: spinning ? 0.6 : 1,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+            }}
           >
-            <VStack space="sm">
-              {filteredResidents.map((res) => (
-                <ResidentListItem
-                  key={res.id}
-                  resident={res}
-                  isSelected={selectedResidents.includes(res.id.toString())}
-                  isEligible={!selectedItem || (res.currentPoints ?? 0) >= selectedItem.points}
-                  onToggle={toggleResident}
-                />
-              ))}
+            <Icon
+              as={spinning ? lucide.Loader2 : lucide.Sparkles}
+              size="md"
+              style={{ color: "#FFFFFF" }}
+            />
+            <Text style={{ color: "#FFFFFF", fontWeight: "800", fontSize: 18 }}>
+              {spinning ? "Spinning..." : "Spin the Wheel!"}
+            </Text>
+          </Pressable>
+        </VStack>
+
+        {/* Winner Dialog */}
+        <WinnerDialog
+          winner={winner}
+          onClose={handleCloseWinner}
+          selectedItemName={selectedItem?.productName}
+          redemptionStatus={redemptionStatus}
+          redemptionError={redemptionError}
+        />
+      </View>
+    );
+  }
+
+  // ===== PHASE 1: SETUP =====
+
+  const renderResidentPanel = () => (
+    <VStack
+      className="flex-1 bg-white rounded-2xl"
+      style={{ padding: isMobile ? 12 : 20, gap: 12 }}
+    >
+      {/* Panel Header (desktop) */}
+      {!isMobile && (
+        <HStack className="items-center justify-between">
+          <HStack className="items-center gap-3">
+            <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: "#EEF2FF", alignItems: "center", justifyContent: "center" }}>
+              <Icon as={lucide.Users} size="sm" style={{ color: "#6366F1" }} />
+            </View>
+            <VStack>
+              <Heading size="md" style={{ color: "#1F2937" }}>Select Residents</Heading>
+              <Text style={{ fontSize: 12, color: "#9CA3AF" }}>{filteredResidents.length} of {residents.length} shown</Text>
             </VStack>
-          </ScrollView>
-        )}
-      </VStack>
+          </HStack>
+          <HStack className="gap-2">
+            <Pressable onPress={handleSelectAll} style={{ backgroundColor: "#EEF2FF", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}>
+              <Text style={{ fontSize: 12, color: "#6366F1", fontWeight: "600" }}>All</Text>
+            </Pressable>
+            <Pressable onPress={handleDeselectAll} style={{ backgroundColor: "#F3F4F6", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}>
+              <Text style={{ fontSize: 12, color: "#6B7280", fontWeight: "600" }}>None</Text>
+            </Pressable>
+          </HStack>
+        </HStack>
+      )}
 
-      {/* Filter Modal */}
-      <FilterModal
-        isOpen={filterModalOpen}
-        onClose={() => setFilterModalOpen(false)}
-        filters={filters}
-        onApply={setFilters}
-      />
+      {/* Quick actions (mobile) */}
+      {isMobile && (
+        <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+          <Text style={{ fontSize: 12, color: "#9CA3AF", flex: 1 }}>{filteredResidents.length} of {residents.length} residents</Text>
+          <Pressable onPress={handleSelectAll} style={{ backgroundColor: "#EEF2FF", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}>
+            <Text style={{ fontSize: 12, color: "#6366F1", fontWeight: "600" }}>All</Text>
+          </Pressable>
+          <Pressable onPress={handleDeselectAll} style={{ backgroundColor: "#F3F4F6", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}>
+            <Text style={{ fontSize: 12, color: "#6B7280", fontWeight: "600" }}>None</Text>
+          </Pressable>
+        </View>
+      )}
 
-      {/* Winner Dialog */}
-      <WinnerDialog winner={winner} onClose={() => setWinner(null)} />
-    </HStack>
+      {/* Search + Filter */}
+      <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+        <Input variant="outline" size="md" className="flex-1" style={{ borderRadius: 12, borderColor: "#E5E7EB" }}>
+          <InputSlot className="pl-3"><InputIcon as={Search} style={{ color: "#9CA3AF" }} /></InputSlot>
+          <InputField placeholder="Search residents..." value={search} onChangeText={setSearch} style={{ color: "#374151" }} />
+          {search.length > 0 && (
+            <InputSlot className="pr-3"><Pressable onPress={() => setSearch("")}><InputIcon as={X} style={{ color: "#9CA3AF" }} /></Pressable></InputSlot>
+          )}
+        </Input>
+        <FilterButton activeFilterCount={activeFilterCount} onPress={() => setFilterModalOpen(true)} />
+      </View>
+
+      <ActiveFilterPills filters={filters} onClearMinPoints={() => setFilters((f) => ({ ...f, minPoints: "" }))} onClearSortOrder={() => setFilters((f) => ({ ...f, sortOrder: "none" }))} />
+
+      {selectedResidents.length > 0 && (
+        <View style={{ backgroundColor: "#EEF2FF", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Icon as={lucide.CheckCircle2} size="sm" style={{ color: "#6366F1" }} />
+          <Text style={{ fontSize: 13, color: "#4338CA", fontWeight: "600" }}>{selectedResidents.length} selected for spin</Text>
+        </View>
+      )}
+
+      {loading ? (
+        <CustomSpinner text="Loading residents..." />
+      ) : filteredResidents.length === 0 ? (
+        <EmptyAlert text="No residents found!" />
+      ) : (
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20, gap: 8 }}>
+          {filteredResidents.map((res) => (
+            <ResidentCard
+              key={res.id}
+              resident={res}
+              isSelected={selectedResidents.includes(res.id.toString())}
+              isEligible={!selectedItem || (res.currentPoints ?? 0) >= selectedItem.points}
+              onToggle={toggleResident}
+            />
+          ))}
+        </ScrollView>
+      )}
+    </VStack>
+  );
+
+  return (
+    <View className="flex-1 bg-indigoscale-500">
+      {isMobile ? (
+        /* ===== MOBILE: Tabbed layout ===== */
+        <View style={{ flex: 1, padding: 12, paddingBottom: readyToSpin ? 72 : 12 }}>
+          {/* Tab bar */}
+          <View style={{ flexDirection: "row", backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 12, padding: 3, marginBottom: 12 }}>
+            <Pressable
+              onPress={() => setSetupTab("prize")}
+              style={{
+                flex: 1, paddingVertical: 10, borderRadius: 10,
+                backgroundColor: setupTab === "prize" ? "#FFFFFF" : "transparent",
+                alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6,
+              }}
+            >
+              <Icon as={lucide.Gift} size="xs" style={{ color: setupTab === "prize" ? "#273C73" : "rgba(255,255,255,0.7)" }} />
+              <Text style={{ fontSize: 14, fontWeight: "700", color: setupTab === "prize" ? "#273C73" : "rgba(255,255,255,0.7)" }}>
+                Prize{selectedItemId ? " ✓" : ""}
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setSetupTab("residents")}
+              style={{
+                flex: 1, paddingVertical: 10, borderRadius: 10,
+                backgroundColor: setupTab === "residents" ? "#FFFFFF" : "transparent",
+                alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6,
+              }}
+            >
+              <Icon as={lucide.Users} size="xs" style={{ color: setupTab === "residents" ? "#273C73" : "rgba(255,255,255,0.7)" }} />
+              <Text style={{ fontSize: 14, fontWeight: "700", color: setupTab === "residents" ? "#273C73" : "rgba(255,255,255,0.7)" }}>
+                Residents{selectedResidents.length > 0 ? ` (${selectedResidents.length})` : ""}
+              </Text>
+            </Pressable>
+          </View>
+
+          {/* Tab content — full remaining height */}
+          {setupTab === "prize" ? (
+            <PrizeSelector products={showcaseProducts} selectedItemId={selectedItemId} onSelectItem={setSelectedItemId} itemSearch={itemSearch} onSearchChange={setItemSearch} />
+          ) : (
+            renderResidentPanel()
+          )}
+        </View>
+      ) : (
+        /* ===== DESKTOP: Side-by-side ===== */
+        <View style={{ flexDirection: 'row', flex: 1, gap: 20, padding: 20, paddingBottom: readyToSpin ? 80 : 20 }}>
+          <PrizeSelector products={showcaseProducts} selectedItemId={selectedItemId} onSelectItem={setSelectedItemId} itemSearch={itemSearch} onSearchChange={setItemSearch} />
+          {renderResidentPanel()}
+        </View>
+      )}
+
+      {/* Ready to Spin Bar */}
+      {readyToSpin && (
+        <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: "#273C73", paddingHorizontal: isMobile ? 14 : 20, paddingVertical: isMobile ? 10 : 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.1)" }}>
+          <VStack>
+            <Text style={{ color: "#FFFFFF", fontWeight: "700", fontSize: isMobile ? 14 : 15 }}>Ready to spin!</Text>
+            <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 12 }}>{selectedItem?.productName} · {selectedResidents.length} participant{selectedResidents.length !== 1 ? "s" : ""}</Text>
+          </VStack>
+          <Pressable onPress={() => setPhase("spin")} style={{ backgroundColor: "#FFFFFF", paddingHorizontal: isMobile ? 16 : 24, paddingVertical: isMobile ? 10 : 12, borderRadius: 12, flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Icon as={lucide.Sparkles} size="sm" style={{ color: "#273C73" }} />
+            <Text style={{ color: "#273C73", fontWeight: "800", fontSize: isMobile ? 14 : 15 }}>Go to Wheel</Text>
+          </Pressable>
+        </View>
+      )}
+
+      <FilterModal isOpen={filterModalOpen} onClose={() => setFilterModalOpen(false)} filters={filters} onApply={setFilters} />
+    </View>
   );
 };
 
 export default LotteryPage;
+
+
+

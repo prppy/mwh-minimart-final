@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { View, Text, ScrollView, Platform } from "react-native";
+import { View, Text, ScrollView, Platform, useWindowDimensions } from "react-native";
 import { DataTable } from "react-native-paper";
 import { Plus, X, Pencil } from "lucide-react-native";
 
@@ -501,14 +501,16 @@ const UserManagementPage: React.FC = () => {
 
   const from = page * itemsPerPage;
   const to = Math.min((page + 1) * itemsPerPage, totalCount);
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
 
   return (
     <VStack className="flex-1 p-5 bg-indigoscale-500">
       {/* TOP BAR */}
-      <HStack className="w-full justify-between gap-5 items-center">
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', width: '100%', justifyContent: 'space-between', gap: isMobile ? 8 : 20, alignItems: 'center' }}>
         <SearchBar search={search} setSearch={setSearch} />
 
-        <HStack space="md" className="items-center">
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
           <Button
             action="secondary"
             className={selectedRole === "residents" ? "bg-indigoscale-700" : ""}
@@ -562,11 +564,12 @@ const UserManagementPage: React.FC = () => {
               <ButtonText className="text-white">Add Resident</ButtonText>
             </Button>
           )}
-        </HStack>
-      </HStack>
+        </View>
+      </View>
 
       {/* TABLE */}
-      <View style={{ borderRadius: 12, overflow: "hidden", marginTop: 20 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={true} style={{ borderRadius: 12, marginTop: 20 }}>
+      <View style={{ minWidth: selectedRole === 'residents' ? 800 : 500 }}>
         <DataTable>
           {/* TABLE HEADER */}
           <DataTable.Header style={{ backgroundColor: "#E6E6FA" }}>
@@ -628,6 +631,7 @@ const UserManagementPage: React.FC = () => {
           </View>
         </DataTable>
       </View>
+      </ScrollView>
 
       {/* ADD RESIDENT MODAL */}
       <Modal
