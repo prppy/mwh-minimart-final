@@ -6,7 +6,7 @@ import { useCart } from "@/contexts/cart-context";
 import { useAuth } from "@/contexts/auth-context";
 import api from "@/utils/api";
 
-import { Button, ButtonText } from "@/components/ui/button";
+import { Button, ButtonText } from "@/components/button";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";

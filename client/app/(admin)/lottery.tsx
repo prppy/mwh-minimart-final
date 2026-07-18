@@ -16,7 +16,7 @@ import EmptyAlert from "@/components/custom-empty-alert";
 import FortuneWheel from "@/components/custom-fortune-wheel";
 import CustomSpinner from "@/components/custom-spinner";
 
-import { Button, ButtonText } from "@/components/ui/button";
+import { Button, ButtonText } from "@/components/button";
 import { Heading } from "@/components/ui/heading";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";

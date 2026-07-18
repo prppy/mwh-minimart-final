@@ -17,7 +17,7 @@ import { VStack } from "../ui/vstack";
 import { Text } from "../ui/text";
 import { Heading } from "../ui/heading";
 import { Pressable } from "../ui/pressable";
-import { Button, ButtonIcon, ButtonText } from "../ui/button";
+import { Button, ButtonIcon, ButtonText } from "@/components/button";
 import { Divider } from "../ui/divider";
 import { useWindowDimensions } from "react-native";
 
@@ -161,16 +161,9 @@ const Header: React.FC = () => {
                 <Button
                   key={tab.name}
                   onPress={() => handleTabPress(tab)}
-                  className={
-                    isAuthButton
-                      ? isActive
-                        ? "bg-redscale-500 border-redscale-700 data-[hover=true]:border-redscale-700"
-                        : "border-redscale-700 data-[hover=true]:border-redscale-700"
-                      : isActive
-                        ? "bg-indigoscale-700 border-indigoscale-900"
-                        : "border-indigoscale-900"
-                  }
+                  action={isAuthButton ? "negative" : "primary"}
                   variant="outline"
+                  active={isActive}
                   size="sm"
                 >
                   <ButtonIcon
@@ -179,10 +172,10 @@ const Header: React.FC = () => {
                       isAuthButton
                         ? isActive
                           ? "text-white"
-                          : "text-redscale-500" // redscale-500
+                          : "text-destructive"
                         : isActive
                           ? "text-white"
-                          : "text-indigoscale-700" // indigoscale-700
+                          : "text-indigoscale-700"
                     }
                   />
                   {!isCompact && (
@@ -190,11 +183,11 @@ const Header: React.FC = () => {
                       className={
                         isAuthButton
                           ? isActive
-                            ? "text-white text-md data-[hover=true]:text-redscale-500"
-                            : "text-redscale-500 text-md data-[hover=true]:text-redscale-500"
+                            ? "text-white text-md"
+                            : "text-destructive text-md"
                           : isActive
-                            ? "text-white text-md data-[hover=true]:text-indigoscale-700"
-                            : "text-indigoscale-700 text-md data-[hover=true]:text-indigoscale-700"
+                            ? "text-white text-md"
+                            : "text-indigoscale-700 text-md"
                       }
                     >
                       {tab.name}

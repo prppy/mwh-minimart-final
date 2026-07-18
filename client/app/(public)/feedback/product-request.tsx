@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { ChevronLeft, ChevronDown } from "lucide-react-native";
 
-import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
+import { Button, ButtonIcon, ButtonText } from "@/components/button";
 import { Center } from "@/components/ui/center";
 import { Input, InputField } from "@/components/ui/input";
 import {
@@ -141,8 +141,7 @@ const ProductRequestPage: React.FC = () => {
             )}
 
             <Button
-              action="primary"
-              className="bg-redscale-500"
+              action="negative"
               onPress={handleSubmit}
               disabled={submitting}
             >

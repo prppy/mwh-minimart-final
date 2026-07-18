@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Text } from "@/components/ui/text";
 import { Heading } from "@/components/ui/heading";
-import { Button, ButtonText, ButtonIcon } from "@/components/ui/button";
+import { Button, ButtonText, ButtonIcon } from "@/components/button";
 import { VStack } from "@/components/ui/vstack";
 import { HStack } from "@/components/ui/hstack";
 import { Card } from "@/components/ui/card";
@@ -258,13 +258,13 @@ export default function ScreensaverManager() {
                     {/* Actions */}
                     <VStack space="xs">
                       <Button
-                        size="sm"
+                        action="negative"
                         variant="outline"
-                        className="border-red-600"
+                        size="sm"
                         onPress={() => handleDeleteImage(image.id)}
                       >
-                        <ButtonIcon as={Trash2} className="text-red-600" />
-                        <ButtonText className="text-red-600">Delete</ButtonText>
+                        <ButtonIcon as={Trash2} className="text-destructive" />
+                        <ButtonText className="text-destructive">Delete</ButtonText>
                       </Button>
                     </VStack>
                   </HStack>

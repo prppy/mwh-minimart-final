@@ -1,5 +1,5 @@
 import * as alert from "../ui/alert-dialog";
-import { Button, ButtonText } from "../ui/button";
+import { Button, ButtonText } from "@/components/button";
 import { Heading } from "../ui/heading";
 import { Text } from "../ui/text";
 

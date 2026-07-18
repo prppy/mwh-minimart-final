@@ -10,7 +10,7 @@ import api from "@/utils/api";
 
 import { VStack } from "@/components/ui/vstack";
 import { HStack } from "@/components/ui/hstack";
-import { Button, ButtonText, ButtonIcon } from "@/components/ui/button";
+import { Button, ButtonText, ButtonIcon } from "@/components/button";
 import { Input, InputField } from "@/components/ui/input";
 import { Heading } from "@/components/ui/heading";
 import { Icon } from "@/components/ui/icon";
