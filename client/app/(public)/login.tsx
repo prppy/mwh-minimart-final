@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import AdminLoginForm from "@/components/login/admin-login";
 import ResidentLoginForm from "@/components/login/resident-login";
-import { Button, ButtonText } from "@/components/ui/button";
+import { Button, ButtonText } from "@/components/button";
 import { Center } from "@/components/ui/center";
 import { HStack } from "@/components/ui/hstack";
 import { ImageBackground } from "@/components/ui/image-background";

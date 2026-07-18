@@ -16,7 +16,7 @@ import Spinner from "@/components/custom-spinner";
 
 import * as alert from "@/components/ui/alert-dialog";
 import { Badge, BadgeText } from "@/components/ui/badge";
-import { Button, ButtonIcon, ButtonText } from "@/components/ui/button";
+import { Button, ButtonIcon, ButtonText } from "@/components/button";
 import { Center } from "@/components/ui/center";
 import { Heading } from "@/components/ui/heading";
 import { HStack } from "@/components/ui/hstack";

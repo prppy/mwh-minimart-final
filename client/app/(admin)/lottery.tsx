@@ -22,7 +22,7 @@ import PrizeSelector from "@/components/lottery/prize-selector";
 import ResidentCard from "@/components/lottery/resident-card";
 import WinnerDialog from "@/components/lottery/winner-dialog";
 
-import { Button, ButtonText } from "@/components/ui/button";
+import { Button, ButtonText } from "@/components/button";
 import { Heading } from "@/components/ui/heading";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";

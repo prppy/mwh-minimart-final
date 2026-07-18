@@ -19,10 +19,30 @@ module.exports = {
       pattern:
         /(bg|border|text|stroke|fill)-(indigoscale|redscale|orangescale|yellowscale|greenscale|bluescale|purplescale)-(100|300|500|700|900)/,
     },
+    {
+      pattern:
+        /(bg|border|text|stroke|fill)-(background|card|foreground|border|muted|destructive|accent|popover)(\/(80|90|10))?/,
+    },
   ],
   theme: {
     extend: {
       colors: {
+        /* Gluestack-style color aliases (used by generated components) */
+        foreground: "rgb(var(--foreground, 23 23 23) / <alpha-value>)",
+        card: "rgb(var(--card, 255 255 255) / <alpha-value>)",
+        "card-foreground": "rgb(var(--foreground, 23 23 23) / <alpha-value>)",
+        border: "rgb(var(--border, 229 229 229) / <alpha-value>)",
+        input: "rgb(var(--input, 229 229 229) / <alpha-value>)",
+        destructive: "rgb(var(--destructive, 213 69 42) / <alpha-value>)",
+        muted: "rgb(var(--muted, 245 245 245) / <alpha-value>)",
+        "muted-foreground": "rgb(var(--muted-foreground, 115 115 115) / <alpha-value>)",
+        accent: "rgb(var(--accent, 245 245 245) / <alpha-value>)",
+        "accent-foreground": "rgb(var(--accent-foreground, 23 23 23) / <alpha-value>)",
+        ring: "rgb(var(--ring, 103 130 203) / <alpha-value>)",
+        popover: "rgb(var(--popover, 255 255 255) / <alpha-value>)",
+        "popover-foreground": "rgb(var(--popover-foreground, 10 10 10) / <alpha-value>)",
+
+        /* MWH Color scales */
         indigoscale: {
           100: "#D9E0F2", // lightest
           300: "#A0B1DF",
@@ -60,7 +80,25 @@ module.exports = {
           500: "#852AD5",
           700: "#43156B",
         },
+
+        /* Tailwind color system (extended palette) */
+        "primary-scale": {
+          0: "rgb(var(--color-primary-0)/<alpha-value>)",
+          50: "rgb(var(--color-primary-50)/<alpha-value>)",
+          100: "rgb(var(--color-primary-100)/<alpha-value>)",
+          200: "rgb(var(--color-primary-200)/<alpha-value>)",
+          300: "rgb(var(--color-primary-300)/<alpha-value>)",
+          400: "rgb(var(--color-primary-400)/<alpha-value>)",
+          500: "rgb(var(--color-primary-500)/<alpha-value>)",
+          600: "rgb(var(--color-primary-600)/<alpha-value>)",
+          700: "rgb(var(--color-primary-700)/<alpha-value>)",
+          800: "rgb(var(--color-primary-800)/<alpha-value>)",
+          900: "rgb(var(--color-primary-900)/<alpha-value>)",
+          950: "rgb(var(--color-primary-950)/<alpha-value>)",
+        },
         primary: {
+          DEFAULT: "rgb(var(--primary, 103 130 203) / <alpha-value>)",
+          foreground: "rgb(var(--primary-foreground, 250 250 250) / <alpha-value>)",
           0: "rgb(var(--color-primary-0)/<alpha-value>)",
           50: "rgb(var(--color-primary-50)/<alpha-value>)",
           100: "rgb(var(--color-primary-100)/<alpha-value>)",
@@ -189,6 +227,7 @@ module.exports = {
           950: "rgb(var(--color-outline-950)/<alpha-value>)",
         },
         background: {
+          DEFAULT: "rgb(var(--background, 255 255 255) / <alpha-value>)",
           0: "rgb(var(--color-background-0)/<alpha-value>)",
           50: "rgb(var(--color-background-50)/<alpha-value>)",
           100: "rgb(var(--color-background-100)/<alpha-value>)",

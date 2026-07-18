@@ -20,7 +20,7 @@ import {
   ModalContent,
   ModalFooter,
 } from "../ui/modal";
-import { Button, ButtonText } from "../ui/button";
+import { Button, ButtonText } from "@/components/button";
 import { Input, InputField, InputIcon, InputSlot } from "../ui/input";
 import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "expo-router";

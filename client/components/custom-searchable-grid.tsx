@@ -6,7 +6,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import EmptyAlert from "./custom-empty-alert";
 import SearchBar from "./custom-searchbar";
 
-import { Button, ButtonText, ButtonIcon } from "./ui/button";
+import { Button, ButtonText, ButtonIcon } from "@/components/button";
 import { Card } from "./ui/card";
 import { Center } from "./ui/center";
 import { Grid, GridItem } from "./ui/grid";

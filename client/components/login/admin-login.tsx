@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { useAuth } from "@/contexts/auth-context";
 
-import { Button, ButtonIcon, ButtonText } from "../ui/button";
+import { Button, ButtonIcon, ButtonText } from "@/components/button";
 import { FormControl, FormControlError, FormControlErrorText } from "../ui/form-control";
 import { HStack } from "../ui/hstack";
 import { Icon } from "../ui/icon";

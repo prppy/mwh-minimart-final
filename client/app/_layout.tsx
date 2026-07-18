@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 import "react-native-reanimated";
-import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
+import { GluestackUIProvider } from "@/components/GluestackUIProvider";
 import "@/global.css";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AuthProvider } from "@/contexts/auth-context";
