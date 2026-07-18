@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { Image, Pressable, Dimensions, StyleSheet, ActivityIndicator } from "react-native";
+import {
+  Image,
+  Pressable,
+  Dimensions,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
 import { useRouter } from "expo-router";
 import Animated, {
   useSharedValue,
@@ -9,16 +15,18 @@ import Animated, {
 import api from "@/utils/api";
 
 // Get the backend URL for loading uploaded images
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL?.replace('/api', '') || "http://localhost:3000";
+const BACKEND_URL =
+  process.env.EXPO_PUBLIC_BACKEND_URL?.replace("/api", "") ||
+  "http://localhost:3000";
 
 // DEFAULT IMAGES - Used as fallback if no images are uploaded by officers
 // To change these default images, replace the require() paths below with your own images
 // Make sure the images are in the /client/assets/background/ folder
 const DEFAULT_SCREENSAVER_IMAGES = [
-  require("@/assets/background/art.png"),
-  require("@/assets/background/education.png"),
-  require("@/assets/background/games.png"),
-  require("@/assets/background/nature.png"),
+  require("@/assets/background/swirled/art.png"),
+  require("@/assets/background/swirled/education.png"),
+  require("@/assets/background/swirled/games.png"),
+  require("@/assets/background/swirled/nature.png"),
 ];
 
 const IMAGE_DURATION = 5000; // 5 seconds per image
@@ -47,12 +55,16 @@ export default function Screensaver({ onInteraction }: ScreensaverProps) {
         } else {
           // Use default images if no images uploaded
           console.log("No custom images found, using defaults");
-          setImages(DEFAULT_SCREENSAVER_IMAGES.map((_, index) => `default_${index}`));
+          setImages(
+            DEFAULT_SCREENSAVER_IMAGES.map((_, index) => `default_${index}`),
+          );
         }
       } catch (error) {
         console.error("Failed to fetch screensaver images:", error);
         // Use default images on error
-        setImages(DEFAULT_SCREENSAVER_IMAGES.map((_, index) => `default_${index}`));
+        setImages(
+          DEFAULT_SCREENSAVER_IMAGES.map((_, index) => `default_${index}`),
+        );
       } finally {
         setLoading(false);
       }
@@ -106,7 +118,7 @@ export default function Screensaver({ onInteraction }: ScreensaverProps) {
 
   const currentImage = images[currentImageIndex];
   const isDefaultImage = currentImage?.startsWith("default_");
-  
+
   // Construct full URL for uploaded images
   const imageSource = isDefaultImage
     ? DEFAULT_SCREENSAVER_IMAGES[parseInt(currentImage.split("_")[1])]

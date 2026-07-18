@@ -13,11 +13,11 @@ type LeaderboardCardProps = {
 };
 
 const themes: Record<string, any> = {
-  arts: require("@/assets/background/art.png"),
-  education: require("@/assets/background/education.png"),
-  games: require("@/assets/background/games.png"),
-  nature: require("@/assets/background/nature.png"),
-  sports: require("@/assets/background/sports.png"),
+  arts: require("@/assets/background/swirled/art.png"),
+  education: require("@/assets/background/swirled/education.png"),
+  games: require("@/assets/background/swirled/games.png"),
+  nature: require("@/assets/background/swirled/nature.png"),
+  sports: require("@/assets/background/swirled/sports.png"),
 };
 
 const LeaderboardCard: React.FC<LeaderboardCardProps> = ({
@@ -38,7 +38,7 @@ const LeaderboardCard: React.FC<LeaderboardCardProps> = ({
     >
       <Image
         source={bgSource}
-        className="w-full h-[175%] opacity-50 absolute"
+        className="w-full h-[175%] opacity-100 absolute"
         resizeMode="cover"
         alt="wallpaper"
       />
@@ -54,8 +54,12 @@ const LeaderboardCard: React.FC<LeaderboardCardProps> = ({
         <HStack
           className={`flex-1 bg-${regularColourClass} items-center justify-between p-3 rounded-lg`}
         >
-          <Text size="lg" className="text-white" bold>{name}</Text>
-          <Text size="lg" className="text-white">{vouchersAwarded} Vouchers</Text>
+          <Text size="lg" className="text-white" bold>
+            {name}
+          </Text>
+          <Text size="lg" className="text-white">
+            {vouchersAwarded} Vouchers
+          </Text>
         </HStack>
       </HStack>
     </Box>
