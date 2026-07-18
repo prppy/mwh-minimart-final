@@ -255,6 +255,8 @@ enum wallpaper_theme_type_enum {
   sports
   arts
   education
+  nature
+  games
 }
 
 enum feedback_category {

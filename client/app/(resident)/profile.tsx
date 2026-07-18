@@ -4,10 +4,11 @@ import {
   AvatarFallbackText,
   AvatarImage,
 } from "@/components/ui/avatar";
+import { Box } from "@/components/ui/box";
 import { Heading } from "@/components/ui/heading";
 import { HStack } from "@/components/ui/hstack";
 import { Icon } from "@/components/ui/icon";
-import { ImageBackground } from "@/components/ui/image-background";
+import { Image } from "@/components/ui/image";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
 import { useAuth } from "@/contexts/auth-context";
@@ -53,16 +54,19 @@ const ProfilePage: React.FC = () => {
   };
 
   useEffect(() => {
+    // Only navigate if router is ready to prevent "navigate before mounting" error
     if (!isAuthenticated || !user) {
-      router.replace("/(public)/catalogue");
-      return;
+      const timer = setTimeout(() => {
+        router.replace("/(public)/catalogue");
+      }, 0);
+      return () => clearTimeout(timer);
     }
 
     (async () => {
       try {
         const [userRes, rankRes] = await Promise.all([
           api.get(`users/${user.id}`),
-          api.get(`leaderboard/user/${user.id}/position`)
+          api.get(`leaderboard/user/${user.id}/position`),
         ]);
         setResident(mapResident(userRes.data.data));
         if (rankRes.data?.success && rankRes.data?.data) {
@@ -92,35 +96,33 @@ const ProfilePage: React.FC = () => {
   const colorOptions = ["red", "orange", "yellow", "green", "blue", "purple"];
 
   // TODO: update more themes?
-  const styleOptions = [
-    "sports",
-    "arts",
-    "education",
-    // "nature",
-    // "games"
-  ];
+  const styleOptions = ["sports", "arts", "education", "nature", "games"];
 
-  const backgrounds: Record<string, any> = {
-    sports: require("@/assets/background/sports.png"),
-    arts: require("@/assets/background/art.png"),
-    education: require("@/assets/background/education.png"),
-    // games: require("@/assets/background/games.png"),
-    // nature: require("@/assets/background/nature.png"),
+  const backgroundImages: Record<string, any> = {
+    sports: require("@/assets/background/neat/sports.png"),
+    arts: require("@/assets/background/neat/art.png"),
+    education: require("@/assets/background/neat/education.png"),
+    nature: require("@/assets/background/neat/nature.png"),
+    games: require("@/assets/background/neat/games.png"),
   };
 
   const icons: Record<string, lucide.LucideIcon> = {
     sports: lucide.Volleyball,
     arts: lucide.Palette,
     education: lucide.BookText,
+    nature: lucide.TreeDeciduous,
+    games: lucide.Gamepad2,
   };
 
   return (
-    <VStack className={`flex-1 bg-${wallpaperType}scale-300`}>
-      <ImageBackground
-        className="flex-1 flex-row gap-20 p-20"
-        source={backgrounds[backgroundType]}
-        imageStyle={{ opacity: 0.3 }}
-      >
+    <Box className={`flex-1 bg-${wallpaperType}scale-300 relative`}>
+      <Image
+        source={backgroundImages[backgroundType]}
+        className="w-full h-full opacity-100 absolute"
+        resizeMode="cover"
+        alt="profile-background"
+      />
+      <VStack className="flex-1 flex-row gap-20 p-20 z-10 relative">
         <Avatar className={`border-8 w-96 h-96 border-${regular} bg-${dark}`}>
           <AvatarFallbackText className="text-3xl ">
             {resident.userName}
@@ -128,16 +130,20 @@ const ProfilePage: React.FC = () => {
           <AvatarImage source={{ uri: resident.profilePicture }} />
         </Avatar>
         <VStack className="flex-1 gap-3">
-          <Heading size="4xl" underline className={darkText}>
-            {resident.userName}
-          </Heading>
-          <Heading size="2xl" className={darkText}>
-            {rank !== null ? `You are #${rank} on the Leaderboard!` : "Loading rank..."}
-          </Heading>
-          <Heading
-            size="2xl"
-            className={darkText}
-          >{`You have ${resident.totalPoints} points`}</Heading>
+          <VStack className={`w-full bg-${regular} rounded-lg p-4 gap-1`}>
+            <Heading size="4xl" className="text-white">
+              {resident.userName}
+            </Heading>
+            <Heading size="2xl" className="text-white">
+              {rank !== null
+                ? `You are #${rank} on the Leaderboard!`
+                : "Loading rank..."}
+            </Heading>
+            <Heading
+              size="2xl"
+              className="text-white"
+            >{`You have ${resident.totalPoints} points`}</Heading>
+          </VStack>
           <HStack className="w-full" space="md">
             {/* colour selectors */}
             <Selector title="Colour" colorTheme={darkText}>
@@ -169,8 +175,8 @@ const ProfilePage: React.FC = () => {
             <Icon as={lucide.ChevronDown} size="xl" className={darkText} />
           </HStack>
         </VStack>
-      </ImageBackground>
-    </VStack>
+      </VStack>
+    </Box>
   );
 };
 
