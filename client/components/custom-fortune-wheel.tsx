@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Text, Animated, Easing, Platform } from "react-native";
+import { Text, Animated, Easing, Platform, useWindowDimensions } from "react-native";
 import { Box } from "./ui/box";
 import Svg, { Circle, G, Path, Text as RNSVGText } from "react-native-svg";
 
@@ -16,8 +16,11 @@ const FortuneWheel: React.FC<FortuneWheelProps> = ({
   colors,
   onSpinEnd,
   isSpinning,
-  size = 500,
+  size: sizeProp = 500,
 }) => {
+  const { width: screenWidth } = useWindowDimensions();
+  // Cap wheel size to fit screen with padding
+  const size = Math.min(sizeProp, screenWidth - 40);
   // useNativeDriver is not supported for transform animations on React Native Web
   const nativeDriver = Platform.OS !== "web";
   const spinValue = useRef(new Animated.Value(0)).current;
@@ -275,7 +278,7 @@ const FortuneWheel: React.FC<FortuneWheelProps> = ({
       <Animated.View
         style={[{ position: "absolute", top: -40, zIndex: 10 }, arrowStyle]}
       >
-        <Svg width={60} height={60} viewBox="0 0 60 60">
+        <Svg width={Math.max(40, size * 0.12)} height={Math.max(40, size * 0.12)} viewBox="0 0 60 60">
           <Circle cx={30} cy={32} r={22} fill="rgba(255,107,53,0.2)" />
           <Circle cx={30} cy={32} r={18} fill="rgba(255,107,53,0.3)" />
           <Path d="M30 50 L20 30 L30 35 L40 30 Z" fill="rgba(0,0,0,0.3)" />
@@ -300,7 +303,7 @@ const FortuneWheel: React.FC<FortuneWheelProps> = ({
                 x={s.textPos.x}
                 y={s.textPos.y}
                 fill="#000"
-                fontSize={12}
+                fontSize={Math.max(10, size * 0.024)}
                 textAnchor="middle"
                 alignmentBaseline="middle"
                 transform={`rotate(${s.textPos.rotation > 180

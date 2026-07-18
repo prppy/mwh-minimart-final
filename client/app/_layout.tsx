@@ -6,9 +6,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AuthProvider } from "@/contexts/auth-context";
 import { CartProvider } from "@/contexts/cart-context";
 import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
 import { useState } from "react";
-import { Pressable, Platform } from "react-native";
+import { Pressable, Platform, View } from "react-native";
 import { useIdleTimeout } from "@/hooks/useIdleTimeout";
 import Screensaver from "@/components/Screensaver";
 
@@ -50,8 +49,9 @@ export default function RootLayout() {
             >
               <SafeAreaView style={{ flex: 1 }}>
                 <Header />
-                <Stack screenOptions={{ headerShown: false }} />
-                <Footer />
+                <View style={{ flex: 1 }}>
+                  <Stack screenOptions={{ headerShown: false }} />
+                </View>
               </SafeAreaView>
             </Pressable>
           )}

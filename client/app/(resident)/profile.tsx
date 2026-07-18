@@ -17,12 +17,17 @@ import { Resident } from "@/utils/types";
 import { useRouter } from "expo-router";
 import * as lucide from "lucide-react-native";
 import { useEffect, useState } from "react";
+import { useWindowDimensions, View } from "react-native";
+
+const MOBILE_BREAKPOINT = 768;
 
 const ProfilePage: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
   const router = useRouter();
   const [resident, setResident] = useState<Resident>();
   const [rank, setRank] = useState<number | null>(null);
+  const { width } = useWindowDimensions();
+  const isMobile = width < MOBILE_BREAKPOINT;
 
   // helper methods:
   const mapResident = (data: any): Resident => {
@@ -122,8 +127,16 @@ const ProfilePage: React.FC = () => {
         resizeMode="cover"
         alt="profile-background"
       />
-      <VStack className="flex-1 flex-row gap-20 p-20 z-10 relative">
-        <Avatar className={`border-8 w-96 h-96 border-${regular} bg-${dark}`}>
+      <View style={{
+        flex: 1,
+        flexDirection: isMobile ? 'column' : 'row',
+        gap: isMobile ? 16 : 80,
+        padding: isMobile ? 16 : 80,
+        zIndex: 10,
+        position: 'relative' as const,
+        alignItems: isMobile ? 'center' : 'flex-start',
+      }}>
+        <Avatar className={`border-${isMobile ? '4' : '8'} ${isMobile ? 'w-32 h-32' : 'w-96 h-96'} border-${regular} bg-${dark}`}>
           <AvatarFallbackText className="text-3xl ">
             {resident.userName}
           </AvatarFallbackText>
@@ -131,20 +144,20 @@ const ProfilePage: React.FC = () => {
         </Avatar>
         <VStack className="flex-1 gap-3">
           <VStack className={`w-full bg-${regular} rounded-lg p-4 gap-1`}>
-            <Heading size="4xl" className="text-white">
+            <Heading size={isMobile ? "2xl" : "4xl"} className="text-white">
               {resident.userName}
             </Heading>
-            <Heading size="2xl" className="text-white">
+            <Heading size={isMobile ? "lg" : "2xl"} className="text-white">
               {rank !== null
                 ? `You are #${rank} on the Leaderboard!`
                 : "Loading rank..."}
             </Heading>
             <Heading
-              size="2xl"
+              size={isMobile ? "lg" : "2xl"}
               className="text-white"
             >{`You have ${resident.totalPoints} points`}</Heading>
           </VStack>
-          <HStack className="w-full" space="md">
+          <View style={{ flexDirection: isMobile ? "column" : "row", width: "100%", gap: isMobile ? 8 : 12 }}>
             {/* colour selectors */}
             <Selector title="Colour" colorTheme={darkText}>
               {colorOptions.map((c) => (
@@ -168,14 +181,14 @@ const ProfilePage: React.FC = () => {
                 />
               ))}
             </Selector>
-          </HStack>
+          </View>
           {/* TODO: recent transactions */}
           <HStack className="w-full gap-2 p-5 justify-between items-center bg-white rounded-lg">
             <Heading className={darkText}>Your Recent Transactions</Heading>
             <Icon as={lucide.ChevronDown} size="xl" className={darkText} />
           </HStack>
         </VStack>
-      </VStack>
+      </View>
     </Box>
   );
 };

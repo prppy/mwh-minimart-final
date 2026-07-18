@@ -63,7 +63,7 @@ const AdminLoginForm: React.FC = () => {
   const handleForgotPassword = () => {};
 
   return (
-    <VStack space="lg" className="w-1/3 p-5 bg-white rounded-lg">
+    <VStack space="lg" className="p-5 bg-white rounded-lg" style={{ width: "100%", maxWidth: 450, alignSelf: "center" }}>
       <Image source={logo} alt="logo" className="w-full" />
 
       <FormControl isInvalid={isEmailInvalid}>

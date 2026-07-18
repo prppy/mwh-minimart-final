@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import { ScrollView, useWindowDimensions, View } from "react-native";
+
+const MOBILE_BREAKPOINT = 768;
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as lucideReactNative from "lucide-react-native";
 
@@ -27,6 +30,8 @@ const ProductDetailPage: React.FC = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { isAdmin, isAuthenticated } = useAuth();
+  const { width } = useWindowDimensions();
+  const isMobile = width < MOBILE_BREAKPOINT;
 
   const [product, setProduct] = useState<Product | null>(null);
   const [tempProduct, setTempProduct] = useState<Product | null>(null);
@@ -163,10 +168,10 @@ const ProductDetailPage: React.FC = () => {
 
   if (!product) return <Spinner text="Loading product..." />;
 
-  return (
-    <HStack className="w-full h-full gap-5 p-5 bg-indigoscale-100 items-start">
+  const content = (
+    <View style={{ flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 20, padding: isMobile ? 12 : 20, width: "100%", flex: isMobile ? undefined : 1 }} className="bg-indigoscale-100 items-start">
       {/* image */}
-      <Center className="w-1/2 min-h-64 p-5 bg-white rounded-lg">
+      <Center className={`${isMobile ? "w-full" : "w-1/2"} min-h-64 p-5 bg-white rounded-lg`}>
         {editing ? (
           <>
             {tempProduct?.imageUrl ? (
@@ -489,8 +494,14 @@ const ProductDetailPage: React.FC = () => {
         errorHeading={errorDialogHeading}
         errorMessage={errorDialogMessage}
       />
-    </HStack>
+    </View>
   );
+
+  return isMobile ? (
+    <ScrollView className="flex-1 bg-indigoscale-100">
+      {content}
+    </ScrollView>
+  ) : content;
 };
 
 export default ProductDetailPage;

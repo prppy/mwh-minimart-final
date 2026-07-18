@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, useWindowDimensions } from "react-native";
 import { useRouter } from "expo-router";
 import { ChevronLeft, ChevronDown } from "lucide-react-native";
 
@@ -28,8 +28,12 @@ const REQUEST_CATEGORIES = [
   { label: "Other",       value: "other"       },
 ];
 
+const MOBILE_BREAKPOINT = 768;
+
 const ProductRequestPage: React.FC = () => {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isMobile = width < MOBILE_BREAKPOINT;
 
   const [residentName,     setResidentName]     = useState("");
   const [productName,      setProductName]      = useState("");
@@ -78,7 +82,8 @@ const ProductRequestPage: React.FC = () => {
       >
         <Center className="flex-1 bg-white">
           <VStack
-            className="w-1/3 p-5 border border-indigoscale-700 rounded-lg"
+            className="p-5 border border-indigoscale-700 rounded-lg"
+            style={{ width: "100%", maxWidth: 500, alignSelf: "center" }}
             space="lg"
           >
             {/* Name */}
