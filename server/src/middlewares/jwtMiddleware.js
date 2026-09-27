@@ -117,6 +117,14 @@ export const verifyAccessToken = async (req, res, next) => {
   }
 };
 
+// Must run after verifyAccessToken (reads req.user.role)
+export const requireRole = (...roles) => (req, res, next) => {
+  if (!req.user || !roles.includes(req.user.role)) {
+    return res.status(403).json({ message: "Insufficient permissions" });
+  }
+  next();
+};
+
 export const verifyRefreshToken = async (req, res, next) => {
   try {
     const { refreshToken } = req.cookies;

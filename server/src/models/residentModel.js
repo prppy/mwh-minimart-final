@@ -114,8 +114,6 @@ export const getLeaderboard = async (options = {}) => {
             profilePicture: true,
           },
         },
-        Wallpaper_Colour: true,
-        Wallpaper_Theme: true,
       },
       orderBy: {
         [orderField]: "desc",

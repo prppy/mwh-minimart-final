@@ -304,6 +304,8 @@ export const findMany = async (options = {}) => {
     sortOrder = "asc",
     includeProfilePicture = true, // Add option to exclude profile pictures for performance
   } = options;
+  // Whitelist sort direction — it is interpolated into raw SQL below
+  const order = String(sortOrder).toUpperCase() === "DESC" ? "DESC" : "ASC";
   const where = {};
   if (role) where.userRole = role;
   if (search) {
@@ -368,7 +370,7 @@ export const findMany = async (options = {}) => {
       LEFT JOIN "public"."MWH_Resident" r ON u."User_ID" = r."User_ID"
       LEFT JOIN "public"."MWH_Officer" o ON u."User_ID" = o."User_ID"
       ${whereClause}
-      ORDER BY u."User_Name" ${sortOrder.toUpperCase()}
+      ORDER BY u."User_Name" ${order}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `,
       ...params,

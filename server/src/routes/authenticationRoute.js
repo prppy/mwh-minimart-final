@@ -9,16 +9,6 @@ import * as authenticationController from "../controllers/authenticationControll
 import * as argonMiddleware from "../middlewares/argonMiddleware.js";
 import * as jwtMiddleware from "../middlewares/jwtMiddleware.js";
 
-// register officer
-// router.post("/register/officer", 
-//     // authenticationController.checkUserExists, 
-//     argonMiddleware.generateHashedPassword, 
-//     authenticationController.createOfficer, 
-//     jwtMiddleware.generateAccessToken, 
-//     jwtMiddleware.generateRefreshToken, 
-//     authenticationController.sendAuthResponse
-// );
-
 // register resident
 router.post("/register/resident", 
     // authenticationController.checkUserExists, 
@@ -29,9 +19,11 @@ router.post("/register/resident",
     authenticationController.sendAuthResponse
 );
 
-// register officer
-router.post("/register/officer", 
-    // authenticationController.checkUserExists, 
+// register officer (staff only)
+router.post("/register/officer",
+    jwtMiddleware.verifyAccessToken,
+    jwtMiddleware.requireRole("admin", "superadmin", "developer"),
+    // authenticationController.checkUserExists,
     argonMiddleware.generateHashedPassword, 
     authenticationController.createOfficer, 
     jwtMiddleware.generateAccessToken, 
@@ -39,9 +31,11 @@ router.post("/register/officer",
     authenticationController.sendAuthResponse
 );
 
-// register developer
-router.post("/register/developer", 
-    // authenticationController.checkUserExists, 
+// register developer (staff only)
+router.post("/register/developer",
+    jwtMiddleware.verifyAccessToken,
+    jwtMiddleware.requireRole("admin", "superadmin", "developer"),
+    // authenticationController.checkUserExists,
     argonMiddleware.generateHashedPassword, 
     authenticationController.createDeveloper, 
     jwtMiddleware.generateAccessToken, 

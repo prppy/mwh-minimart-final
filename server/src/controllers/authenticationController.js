@@ -3,7 +3,6 @@ import * as userModel from "../models/userModel.js";
 // create resident in system
 export const createResident = async (req, res, next) => {
   try {
-    console.log("BODY RECEIVED:", req.body);
     const { userName, password, dateOfBirth, batchNumber, serialNumber, dateOfAdmission, isActive, remarks } = req.body;
     if (!userName || !password) {
       return res

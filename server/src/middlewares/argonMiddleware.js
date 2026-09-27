@@ -14,7 +14,6 @@ import crypto from "crypto";
  */
 export const generateHashedPassword = async (req, res, next) => {
   try {
-    console.log(req.body);
     const plainPassword = req.body.password;
     const PEPPERED_SECRET = process.env.PEPPERED_SECRET;
 

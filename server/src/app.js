@@ -16,6 +16,8 @@ import mainRoutes from "./routes/mainRoutes.js";
 import { scheduleArchiveJob } from "./jobs/archiveJob.js";
 
 const app = express();
+// Behind Koyeb's proxy: use the client IP from X-Forwarded-For (one hop) for rate limiting
+app.set("trust proxy", 1);
 const PORT = process.env.PORT || 3000;
 
 // Allowed origins for CORS
@@ -51,12 +53,6 @@ app.use(urlencoded({ extended: true, limit: "10mb" }));
 
 // Static files for images
 app.use("/uploads", express.static("uploads"));
-
-// Debug middleware - log all requests
-app.use((req, res, next) => {
-  console.log(`📨 ${req.method} ${req.originalUrl} - Body:`, req.body);
-  next();
-});
 
 // API Routes
 app.get("/", (req, res) => {

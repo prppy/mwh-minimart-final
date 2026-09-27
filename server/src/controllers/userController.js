@@ -52,7 +52,7 @@ export const readUsersByRole = async (req, res) => {
       role,
       includeProfilePicture: includeProfilePicture === "true",
     });
-    const sanitizedUsers = result.users.map((user) => UserModel.sanitize(user));
+    const sanitizedUsers = result.users.map((user) => userModel.sanitize(user));
 
     return res.status(200).json({
       message: "List of users of role " + role,
