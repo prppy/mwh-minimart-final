@@ -14,19 +14,14 @@ import {
   X,
 } from "lucide-react-native";
 import { HStack } from "../ui/hstack";
-import { Image } from "../ui/image";
+import Logo from "./Logo";
 import { VStack } from "../ui/vstack";
 import { Text } from "../ui/text";
 import { Heading } from "../ui/heading";
 import { Pressable } from "../ui/pressable";
 import { Button, ButtonIcon, ButtonText } from "@/components/button";
 import { Divider } from "../ui/divider";
-import {
-  useWindowDimensions,
-  Animated,
-  Platform,
-  View,
-} from "react-native";
+import { useWindowDimensions, Animated, Platform, View } from "react-native";
 import { useState, useRef, useEffect } from "react";
 
 const MOBILE_BREAKPOINT = 768;
@@ -99,7 +94,11 @@ const Header: React.FC = () => {
     ) {
       return [
         { name: "Catalogue", route: "/(public)/catalogue", icon: ShoppingBag },
-        { name: "Vouchers", route: "/(admin)/voucher-management", icon: TicketCheck },
+        {
+          name: "Vouchers",
+          route: "/(admin)/voucher-management",
+          icon: TicketCheck,
+        },
         { name: "Users", route: "/(admin)/users", icon: Users },
         { name: "Feedback", route: "/(admin)/feedback", icon: MessageSquare },
         { name: "Spin & Win", route: "/(admin)/lottery", icon: Trophy },
@@ -191,13 +190,7 @@ const Header: React.FC = () => {
         >
           <IconComponent
             size={20}
-            color={
-              isActive
-                ? "#FFFFFF"
-                : isAuthButton
-                  ? "#D5452A"
-                  : "#273C73"
-            }
+            color={isActive ? "#FFFFFF" : isAuthButton ? "#D5452A" : "#273C73"}
           />
           <Text
             style={{
@@ -280,13 +273,9 @@ const Header: React.FC = () => {
   return (
     <VStack style={{ zIndex: 50 }}>
       <HStack className="w-full justify-between items-center px-4 bg-white">
-        <Pressable onPress={handleLogoPress}>
+        <Pressable onPress={handleLogoPress} style={{ flexShrink: 0 }}>
           <HStack>
-            <Image
-              size="lg"
-              source={require("@/assets/logo.png")}
-              alt="MWH Logo"
-            />
+            <Logo />
             <VStack className="justify-center ml-2">
               <Heading className="text-2xl text-indigoscale-900" bold>
                 MWH
