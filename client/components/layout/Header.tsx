@@ -12,12 +12,14 @@ import {
   Monitor,
   Menu,
   X,
+  Receipt,
+  ClipboardList,
+  Settings,
 } from "lucide-react-native";
+import BrandLogo from "../brand-logo";
 import { HStack } from "../ui/hstack";
-import { Image } from "../ui/image";
 import { VStack } from "../ui/vstack";
 import { Text } from "../ui/text";
-import { Heading } from "../ui/heading";
 import { Pressable } from "../ui/pressable";
 import { Button, ButtonIcon, ButtonText } from "@/components/button";
 import { Divider } from "../ui/divider";
@@ -38,7 +40,6 @@ const Header: React.FC = () => {
 
   const { width } = useWindowDimensions();
   const isMobile = width < MOBILE_BREAKPOINT;
-  const isCompact = width < 1000;
 
   const [menuOpen, setMenuOpen] = useState(false);
   const animatedHeight = useRef(new Animated.Value(0)).current;
@@ -87,6 +88,7 @@ const Header: React.FC = () => {
         { name: "Vouchers", route: "/(public)/vouchers", icon: TicketCheck },
         { name: "Feedback", route: "/(public)/feedback", icon: MessageSquare },
         { name: "Leaderboard", route: "/leaderboard", icon: Trophy },
+        { name: "My Orders", route: "/(resident)/my-orders", icon: Receipt },
         { name: "Profile", route: "/(resident)/profile", icon: UserCircle },
         { name: "Sign Out", route: "/", icon: LogOut, action: "logout" },
       ];
@@ -99,19 +101,22 @@ const Header: React.FC = () => {
     ) {
       return [
         { name: "Catalogue", route: "/(public)/catalogue", icon: ShoppingBag },
+        { name: "Orders", route: "/(admin)/orders", icon: ClipboardList },
         { name: "Vouchers", route: "/(admin)/voucher-management", icon: TicketCheck },
         { name: "Users", route: "/(admin)/users", icon: Users },
         { name: "Feedback", route: "/(admin)/feedback", icon: MessageSquare },
         { name: "Spin & Win", route: "/(admin)/lottery", icon: Trophy },
         { name: "Screensaver", route: "/(admin)/screensaver", icon: Monitor },
+        { name: "Settings", route: "/(admin)/settings", icon: Settings },
         { name: "Sign Out", route: "/", icon: LogOut, action: "logout" },
-        // { name: "Settings", route: "/(admin)/settings", icon: Settings }, // TODO: settings page
       ];
     }
     return [];
   };
 
   const tabs = getTabs();
+  // Show icon-only tabs when the labels wouldn't fit next to the logo
+  const isCompact = width < (tabs.length > 7 ? 1400 : 1100);
   const activeTab = tabs.find((tab) => isActiveTab(tab.route));
   let activeTabName = activeTab?.name;
 
@@ -280,22 +285,8 @@ const Header: React.FC = () => {
   return (
     <VStack style={{ zIndex: 50 }}>
       <HStack className="w-full justify-between items-center px-4 bg-white">
-        <Pressable onPress={handleLogoPress}>
-          <HStack>
-            <Image
-              size="lg"
-              source={require("@/assets/logo.png")}
-              alt="MWH Logo"
-            />
-            <VStack className="justify-center ml-2">
-              <Heading className="text-2xl text-indigoscale-900" bold>
-                MWH
-              </Heading>
-              <Text className="text-indigoscale-500" size={"sm"}>
-                MWH Minimart
-              </Text>
-            </VStack>
-          </HStack>
+        <Pressable onPress={handleLogoPress} style={{ paddingVertical: 8 }}>
+          <BrandLogo width={isMobile ? 170 : 220} />
         </Pressable>
 
         {/* Desktop navigation */}

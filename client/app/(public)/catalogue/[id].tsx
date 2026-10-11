@@ -10,6 +10,7 @@ import { pickImage } from "@/utils/hooks";
 import { Category, Product } from "@/utils/types";
 import { useAuth } from "@/contexts/auth-context";
 
+import Checkbox from "@/components/custom-checkbox";
 import DiscardDialogue from "@/components/dialogue/custom-discard-dialogue";
 import ErrorDialogue from "@/components/dialogue/custom-error-dialogue";
 import Spinner from "@/components/custom-spinner";
@@ -25,6 +26,12 @@ import { Input, InputField } from "@/components/ui/input";
 import * as select from "@/components/ui/select";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
+
+// MWH_Type rows (Daily = 1, Showcase = 2)
+const PRODUCT_TYPES = [
+  { id: 1, name: "Daily" },
+  { id: 2, name: "Showcase" },
+];
 
 const ProductDetailPage: React.FC = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -66,6 +73,11 @@ const ProductDetailPage: React.FC = () => {
           imageUrl: "",
           available: true,
           points: 0,
+          typeId: 1,
+          productGroup: null,
+          tierLabel: null,
+          maxPerOrder: null,
+          isPreorder: false,
         };
         setProduct(emptyProduct);
         setTempProduct({ ...emptyProduct });
@@ -299,6 +311,82 @@ const ProductDetailPage: React.FC = () => {
             />
           </Input>
 
+          <Text>Type</Text>
+          <HStack space="sm">
+            {PRODUCT_TYPES.map((type) => {
+              const isSelected = (tempProduct?.typeId ?? 1) === type.id;
+              return (
+                <Button
+                  key={type.id}
+                  size="sm"
+                  action="secondary"
+                  className={isSelected ? "bg-indigoscale-700" : ""}
+                  onPress={() =>
+                    setTempProduct((p) => ({ ...p!, typeId: type.id }))
+                  }
+                >
+                  <ButtonText
+                    className={isSelected ? "text-white" : "text-indigoscale-700"}
+                  >
+                    {type.name}
+                  </ButtonText>
+                </Button>
+              );
+            })}
+          </HStack>
+
+          <Text>Product group (tiers with the same group show as one item)</Text>
+          <Input>
+            <InputField
+              type="text"
+              placeholder="e.g. Chocolates"
+              value={tempProduct?.productGroup || ""}
+              onChangeText={(text) =>
+                setTempProduct((p) => ({ ...p!, productGroup: text || null }))
+              }
+            />
+          </Input>
+
+          <Text>Tier label</Text>
+          <Input>
+            <InputField
+              type="text"
+              placeholder="e.g. Small, Standard, 64 GB"
+              value={tempProduct?.tierLabel || ""}
+              onChangeText={(text) =>
+                setTempProduct((p) => ({ ...p!, tierLabel: text || null }))
+              }
+            />
+          </Input>
+
+          <Text>Max per order (1-10, leave empty for no limit)</Text>
+          <Input>
+            <InputField
+              type="text"
+              keyboardType="numeric"
+              inputMode="numeric"
+              placeholder="No limit"
+              value={tempProduct?.maxPerOrder ? tempProduct.maxPerOrder.toString() : ""}
+              onChangeText={(text) => {
+                const parsed = parseInt(text);
+                setTempProduct((p) => ({
+                  ...p!,
+                  maxPerOrder: isNaN(parsed) ? null : Math.min(Math.max(parsed, 1), 10),
+                }));
+              }}
+            />
+          </Input>
+
+          <Checkbox
+            value="isPreorder"
+            isChecked={!!tempProduct?.isPreorder}
+            onChange={(checked) =>
+              setTempProduct((p) => ({ ...p!, isPreorder: checked }))
+            }
+          >
+            Pre-order item (points deducted now, delivered later)
+          </Checkbox>
+
           <HStack space="md">
             <Button
               action="negative"
@@ -351,6 +439,16 @@ const ProductDetailPage: React.FC = () => {
             <Badge size="lg">
               <BadgeText>{product.category.categoryName}</BadgeText>
             </Badge>
+            {!!product.tierLabel && (
+              <Badge size="lg" className="bg-indigoscale-300">
+                <BadgeText>{product.tierLabel}</BadgeText>
+              </Badge>
+            )}
+            {!!product.isPreorder && (
+              <Badge size="lg" className="bg-orangescale-300">
+                <BadgeText>Pre-order</BadgeText>
+              </Badge>
+            )}
           </HStack>
 
           <HStack>
@@ -362,6 +460,17 @@ const ProductDetailPage: React.FC = () => {
             </Text>
           </HStack>
           <Text className="text-gray-500">{product.productDescription}</Text>
+          {product.maxPerOrder ? (
+            <Text className="text-gray-500">
+              Limit: {product.maxPerOrder} per order
+            </Text>
+          ) : null}
+          {!!product.isPreorder && (
+            <Text className="text-orangescale-700">
+              Pre-order: points are deducted when you redeem, and staff will
+              deliver the item when it arrives.
+            </Text>
+          )}
 
           <HStack space="md">
             <Button

@@ -65,10 +65,16 @@ interface Product {
   points: number;
   redemptionCount?: number;
   Type_ID?: number | null;
+  typeId?: number | null;
   MWH_Type?: {
     Type_ID: number;
     Type_Name: string;
   } | null;
+  // Tiered products share a productGroup (e.g. "Chocolates") with a tierLabel (e.g. "Small")
+  productGroup?: string | null;
+  tierLabel?: string | null;
+  maxPerOrder?: number | null;
+  isPreorder?: boolean;
 }
 
 interface Voucher {
@@ -113,6 +119,46 @@ type Performer = {
   vouchersAwarded: number;
 };
 
+// Redemption ticket. Counter orders: pending -> collected.
+// Pre-orders: preordered -> ready -> collected. Expired/cancelled are refunded.
+type OrderStatus =
+  | "pending"
+  | "preordered"
+  | "ready"
+  | "collected"
+  | "expired"
+  | "cancelled";
+
+interface OrderItem {
+  productId: number;
+  productName: string;
+  tierLabel: string | null;
+  points: number | null;
+  quantity: number;
+}
+
+interface Order {
+  id: number;
+  ticketCode: string; // "O-042"
+  ticketLabel: string; // "O-042 · Marcus · 2 items"
+  orderType: "normal" | "preorder";
+  status: OrderStatus;
+  userId: number;
+  userName: string | null;
+  points: number;
+  itemCount: number;
+  items: OrderItem[];
+  createdAt: string;
+  readyAt: string | null;
+  collectedAt: string | null;
+  expiresAt: string | null;
+  refundedAt: string | null;
+}
+
+interface AppSettings {
+  ticketExpiryDays: number; // 0 = end of the same day
+}
+
 interface WheelParticipant {
   id: string;
   name: string;
@@ -120,9 +166,13 @@ interface WheelParticipant {
 }
 
 export type {
+  AppSettings,
   Category,
   Completion,
   Officer,
+  Order,
+  OrderItem,
+  OrderStatus,
   Product,
   Performer,
   Resident,

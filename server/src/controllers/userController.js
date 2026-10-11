@@ -4,7 +4,7 @@ import * as userModel from "../models/userModel.js";
 // Get all users with filtering
 export const getAllUsers = async (req, res) => {
   try {
-    const { role, batchNumber, limit, offset, search, sortBy, sortOrder } =
+    const { role, batchNumber, limit, offset, search, sortBy, sortOrder, includeProfilePicture } =
       req.query;
 
     const result = await userModel.findMany({
@@ -15,6 +15,8 @@ export const getAllUsers = async (req, res) => {
       search,
       sortBy,
       sortOrder,
+      // Lists like the login picker don't need the (large) profile pictures
+      includeProfilePicture: includeProfilePicture !== "false",
     });
 
     // Sanitize user data

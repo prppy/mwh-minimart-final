@@ -197,6 +197,14 @@ export const deleteTask = async (req, res) => {
         error: { message: error.message },
       });
     }
+    if (error.message.includes("existing completions")) {
+      return res.status(400).json({
+        error: {
+          message:
+            "This subtask has already been awarded to residents, so it can't be deleted (its history is kept).",
+        },
+      });
+    }
     res.status(500).json({
       error: { message: "Internal server error", details: error.message },
     });

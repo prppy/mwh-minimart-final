@@ -75,13 +75,17 @@ model TaskCategory {
 
 model Product {
   id                 Int               @id @default(autoincrement()) @map("Product_ID")
-  productName        String?           @map("Product_Name") @db.VarChar(31)
+  productName        String?           @map("Product_Name") @db.VarChar(100)
   imageUrl           String?           @map("Image_URL")
   productDescription String?           @map("Product_Description")
   points             Int?              @map("Points")
   available          Boolean?          @map("Available")
   categoryId         Int?              @map("Category_ID")
   Type_ID            BigInt?
+  productGroup       String?           @map("Product_Group") @db.VarChar(60)
+  tierLabel          String?           @map("Tier_Label") @db.VarChar(30)
+  maxPerOrder        Int?              @map("Max_Per_Order")
+  isPreorder         Boolean           @default(false) @map("Is_Preorder")
   category           Category?         @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   MWH_Type           MWH_Type?         @relation(fields: [Type_ID], references: [Type_ID], onDelete: NoAction, onUpdate: NoAction)
   productCategories  ProductCategory[]
@@ -111,12 +115,39 @@ model Transaction {
   pointsChange    Int?                   @map("Points_Change")
   transactionType transaction_type_enum? @map("Transaction_Type")
   userId          Int?                   @map("User_ID")
+  // Redemption ticket / order fields (null for completions, abscondences and legacy redemptions)
+  ticketCode      String?                @map("Ticket_Code") @db.VarChar(10)
+  orderType       String?                @map("Order_Type") @db.VarChar(10) // normal | preorder
+  orderStatus     String?                @map("Order_Status") @db.VarChar(20) // pending | preordered | ready | collected | expired | cancelled
+  createdAt       DateTime?              @default(now()) @map("Created_At") @db.Timestamptz(6)
+  readyAt         DateTime?              @map("Ready_At") @db.Timestamptz(6)
+  collectedAt     DateTime?              @map("Collected_At") @db.Timestamptz(6)
+  expiresAt       DateTime?              @map("Expires_At") @db.Timestamptz(6)
+  refundedAt      DateTime?              @map("Refunded_At") @db.Timestamptz(6)
   abscondence     Abscondence?
   completions     Completion[]
   redemptions     Redemption[]
   user            User?                  @relation("UserTransactions", fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  @@index([orderStatus, expiresAt], map: "MWH_Transaction_Order_Status_idx")
   @@map("MWH_Transaction")
+}
+
+model TicketCounter {
+  counterDate DateTime @map("Counter_Date") @db.Date
+  prefix      String   @map("Prefix") @db.VarChar(1)
+  lastNumber  Int      @default(0) @map("Last_Number")
+
+  @@id([counterDate, prefix], map: "MWH_Ticket_Counter_pkey")
+  @@map("MWH_Ticket_Counter")
+}
+
+model Setting {
+  key       String   @id(map: "MWH_Setting_pkey") @map("Setting_Key") @db.VarChar(50)
+  value     String   @map("Setting_Value") @db.VarChar(255)
+  updatedAt DateTime @default(now()) @updatedAt @map("Updated_At") @db.Timestamptz(6)
+
+  @@map("MWH_Setting")
 }
 
 model Redemption {

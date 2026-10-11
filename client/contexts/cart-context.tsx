@@ -7,7 +7,16 @@ export interface CartItem {
   points: number;
   quantity: number;
   imageUrl?: string;
+  tierLabel?: string | null;
+  maxPerOrder?: number | null;
+  isPreorder?: boolean;
 }
+
+const GLOBAL_MAX_QUANTITY = 10;
+
+/** Max quantity allowed for an item in one order */
+export const getMaxQuantity = (item: Pick<CartItem, "maxPerOrder">) =>
+  Math.min(GLOBAL_MAX_QUANTITY, item.maxPerOrder ?? GLOBAL_MAX_QUANTITY);
 
 interface CartContextType {
   cart: CartItem[];
@@ -72,12 +81,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         // Update quantity if item already in cart
         return prevCart.map((i) =>
           i.id === item.id
-            ? { ...i, quantity: Math.min(i.quantity + quantity, 10) }
+            ? { ...i, quantity: Math.min(i.quantity + quantity, getMaxQuantity(i)) }
             : i
         );
       } else {
         // Add new item to cart
-        return [...prevCart, { ...item, quantity }];
+        return [...prevCart, { ...item, quantity: Math.min(quantity, getMaxQuantity(item)) }];
       }
     });
   };
@@ -95,7 +104,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     setCart((prevCart) =>
       prevCart.map((item) =>
         item.id === productId
-          ? { ...item, quantity: Math.min(quantity, 10) }
+          ? { ...item, quantity: Math.min(quantity, getMaxQuantity(item)) }
           : item
       )
     );

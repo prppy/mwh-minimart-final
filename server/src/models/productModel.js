@@ -24,6 +24,30 @@ const mapProductBigInt = (product) => {
   return mapped;
 };
 
+const toIntOrNull = (value) => {
+  if (value === undefined || value === null || value === "") return null;
+  const parsed = parseInt(value);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
+/**
+ * Pick the tier / purchase-limit / pre-order / type fields present in `data`,
+ * normalised for Prisma. Only keys present in `data` are returned, so it is
+ * safe to spread into both create and update payloads.
+ */
+const pickTierFields = (data) => {
+  const fields = {};
+  if (data.productGroup !== undefined) fields.productGroup = data.productGroup || null;
+  if (data.tierLabel !== undefined) fields.tierLabel = data.tierLabel || null;
+  if (data.maxPerOrder !== undefined) fields.maxPerOrder = toIntOrNull(data.maxPerOrder);
+  if (data.isPreorder !== undefined) fields.isPreorder = Boolean(data.isPreorder);
+  if (data.typeId !== undefined) {
+    const typeId = toIntOrNull(data.typeId);
+    fields.Type_ID = typeId === null ? null : BigInt(typeId);
+  }
+  return fields;
+};
+
 /**
  * Get all products
  */
@@ -58,6 +82,10 @@ export const findAll = async () => {
           p."Available" as available,
           p."Category_ID" as "categoryId",
           p."Type_ID" as "TypeId",
+          p."Product_Group" as "productGroup",
+          p."Tier_Label" as "tierLabel",
+          p."Max_Per_Order" as "maxPerOrder",
+          p."Is_Preorder" as "isPreorder",
           c."Category_Name" as "category_name",
           t."Type_Name" as "type_name",
           COALESCE((SELECT COUNT(*)::int FROM "public"."MWH_Redemption" r WHERE r."Product_ID" = p."Product_ID"), 0) as "redemptionCount"
@@ -79,6 +107,10 @@ export const findAll = async () => {
         categoryId: product.categoryId,
         Type_ID: product.TypeId ? Number(product.TypeId) : null,
         typeId: product.TypeId ? Number(product.TypeId) : null,
+        productGroup: product.productGroup,
+        tierLabel: product.tierLabel,
+        maxPerOrder: product.maxPerOrder,
+        isPreorder: product.isPreorder ?? false,
         redemptionCount: product.redemptionCount || 0,
         category: product.category_name
           ? {
@@ -208,6 +240,10 @@ export const findByCategory = async (categoryId) => {
           p."Available" as available,
           p."Category_ID" as "categoryId",
           p."Type_ID" as "TypeId",
+          p."Product_Group" as "productGroup",
+          p."Tier_Label" as "tierLabel",
+          p."Max_Per_Order" as "maxPerOrder",
+          p."Is_Preorder" as "isPreorder",
           c."Category_Name" as "category_name",
           t."Type_Name" as "type_name",
           COALESCE((SELECT COUNT(*)::int FROM "public"."MWH_Redemption" r WHERE r."Product_ID" = p."Product_ID"), 0) as "redemptionCount"
@@ -234,6 +270,10 @@ export const findByCategory = async (categoryId) => {
         categoryId: product.categoryId,
         Type_ID: product.TypeId ? Number(product.TypeId) : null,
         typeId: product.TypeId ? Number(product.TypeId) : null,
+        productGroup: product.productGroup,
+        tierLabel: product.tierLabel,
+        maxPerOrder: product.maxPerOrder,
+        isPreorder: product.isPreorder ?? false,
         redemptionCount: product.redemptionCount || 0,
         category: product.category_name
           ? {
@@ -318,6 +358,10 @@ export const findById = async (id, includeAnalytics = false) => {
           p."Available" as available,
           p."Category_ID" as "categoryId",
           p."Type_ID" as "TypeId",
+          p."Product_Group" as "productGroup",
+          p."Tier_Label" as "tierLabel",
+          p."Max_Per_Order" as "maxPerOrder",
+          p."Is_Preorder" as "isPreorder",
           c."Category_Name" as "category_name",
           t."Type_Name" as "type_name"
         FROM "public"."MWH_Product" p
@@ -340,6 +384,10 @@ export const findById = async (id, includeAnalytics = false) => {
         categoryId: product.categoryId,
         Type_ID: product.TypeId ? Number(product.TypeId) : null,
         typeId: product.TypeId ? Number(product.TypeId) : null,
+        productGroup: product.productGroup,
+        tierLabel: product.tierLabel,
+        maxPerOrder: product.maxPerOrder,
+        isPreorder: product.isPreorder ?? false,
         category: product.category_name
           ? {
               id: product.categoryId,
@@ -389,16 +437,19 @@ export const create = async (productData) => {
     throw new Error("Category not found");
   }
 
+  const data = {
+    productName,
+    productDescription,
+    points: parseInt(points),
+    categoryId: parseInt(categoryId),
+    imageUrl,
+    available,
+    ...pickTierFields(productData),
+  };
+
   try {
     const product = await prisma.product.create({
-      data: {
-        productName,
-        productDescription,
-        points: parseInt(points),
-        categoryId: parseInt(categoryId),
-        imageUrl,
-        available,
-      },
+      data,
       include: {
         category: true,
         MWH_Type: true,
@@ -410,14 +461,7 @@ export const create = async (productData) => {
     console.warn("create standard query failed, falling back to direct create:", error.message || error);
     try {
       const product = await prisma.product.create({
-        data: {
-          productName,
-          productDescription,
-          points: parseInt(points),
-          categoryId: parseInt(categoryId),
-          imageUrl,
-          available,
-        },
+        data,
         include: {
           category: true,
         },
@@ -454,12 +498,14 @@ export const update = async (id, updates) => {
     }
   }
 
-  // Prepare update data
-  const updateData = { ...updates };
-  if (updateData.points !== undefined && updateData.points !== null) updateData.points = parseInt(updateData.points);
-  if (updateData.categoryId)
-    updateData.categoryId = parseInt(updateData.categoryId);
-  if (updateData.stock) updateData.stock = parseInt(updateData.stock);
+  // Prepare update data — whitelist editable fields so read-only fields the
+  // client echoes back (MWH_Type, typeId, redemptionCount, ...) are ignored
+  const updateData = pickTierFields(updates);
+  for (const key of ["productName", "productDescription", "imageUrl", "available"]) {
+    if (updates[key] !== undefined) updateData[key] = updates[key];
+  }
+  if (updates.points !== undefined && updates.points !== null) updateData.points = parseInt(updates.points);
+  if (updates.categoryId) updateData.categoryId = parseInt(updates.categoryId);
 
   try {
     const updatedProduct = await prisma.product.update({
@@ -778,6 +824,10 @@ export const search = async (query, options = {}) => {
           p."Available" as available,
           p."Category_ID" as "categoryId",
           p."Type_ID" as "TypeId",
+          p."Product_Group" as "productGroup",
+          p."Tier_Label" as "tierLabel",
+          p."Max_Per_Order" as "maxPerOrder",
+          p."Is_Preorder" as "isPreorder",
           c."Category_Name" as "category_name",
           t."Type_Name" as "type_name",
           COALESCE((SELECT COUNT(*)::int FROM "public"."MWH_Redemption" r WHERE r."Product_ID" = p."Product_ID"), 0) as "redemptionCount"
@@ -807,6 +857,10 @@ export const search = async (query, options = {}) => {
         categoryId: product.categoryId,
         Type_ID: product.TypeId ? Number(product.TypeId) : null,
         typeId: product.TypeId ? Number(product.TypeId) : null,
+        productGroup: product.productGroup,
+        tierLabel: product.tierLabel,
+        maxPerOrder: product.maxPerOrder,
+        isPreorder: product.isPreorder ?? false,
         redemptionCount: product.redemptionCount || 0,
         category: product.category_name
           ? {

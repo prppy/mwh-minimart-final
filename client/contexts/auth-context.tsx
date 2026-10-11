@@ -12,8 +12,9 @@ interface AuthContextType {
   isAdmin: boolean;
   isAuthenticated: boolean;
   loading: boolean;
-  loginResident: (userId: number, plainPassword: string) => Promise<void>;
-  loginOfficer: (officerEmail: string, password: string) => Promise<void>;
+  /** remember = false keeps the session in memory only (gone after a reload) */
+  loginResident: (userId: number, plainPassword: string, remember?: boolean) => Promise<void>;
+  loginOfficer: (officerEmail: string, password: string, remember?: boolean) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -70,15 +71,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
           // Start counting inactivity as soon as a session is restored.
           resetTimer();
-
-          console.log("🔐 Restored session:", {
-            token: storedToken,
-            user: parsed,
-            role: parsed.userRole,
-          });
-        } else {
-          // TODO: get session details here
-          console.log("No stored auth found");
         }
       } catch (err) {
         console.error("⚠️ Failed to load session:", err);
@@ -90,54 +82,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loginResident = async (userId: number, password: string) => {
-    console.log("🔐 AuthContext loginResident called with:", {
-      userId,
-      passwordLength: password.length,
-    });
-
-    try {
-      const res = await authAPI.loginResident({
-        userId,
-        password,
-      });
-
-      console.log("✅ AuthAPI response received:", {
-        hasAccessToken: !!res.accessToken,
-        hasRefreshToken: !!res.refreshToken,
-        user: res.user,
-      });
-
-      if (!res.accessToken || !res.refreshToken)
-        throw new Error("Invalid login response");
-
-      await AsyncStorage.setItem("token", res.accessToken);
-      await AsyncStorage.setItem("user", JSON.stringify(res.user));
-
-      api.setAuthToken(res.accessToken);
-      setUser(res.user);
-      setRole(res.user.userRole);
-
-      // Start inactivity timer immediately after login.
-      resetTimer();
-
-      console.log("✅ Login successful, stored in AsyncStorage");
-    } catch (error) {
-      console.error("❌ AuthContext loginResident error:", error);
-      throw error; // Re-throw to be caught by calling function
-    }
-  };
-
-  const loginOfficer = async (officerEmail: string, password: string) => {
-    const res = await authAPI.loginOfficer({
-      officerEmail,
-      password,
-    });
+  // Save (or deliberately don't save) the session, then activate it
+  const startSession = async (
+    res: { accessToken?: string; refreshToken?: string; user: User },
+    remember: boolean
+  ) => {
     if (!res.accessToken || !res.refreshToken)
       throw new Error("Invalid login response");
 
-    await AsyncStorage.setItem("token", res.accessToken);
-    await AsyncStorage.setItem("user", JSON.stringify(res.user));
+    if (remember) {
+      await AsyncStorage.setItem("token", res.accessToken);
+      await AsyncStorage.setItem("user", JSON.stringify(res.user));
+    } else {
+      await AsyncStorage.multiRemove(["token", "user"]);
+    }
 
     api.setAuthToken(res.accessToken);
     setUser(res.user);
@@ -145,6 +103,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     // Start inactivity timer immediately after login.
     resetTimer();
+  };
+
+  const loginResident = async (userId: number, password: string, remember = true) => {
+    const res = await authAPI.loginResident({ userId, password });
+    await startSession(res, remember);
+  };
+
+  const loginOfficer = async (officerEmail: string, password: string, remember = true) => {
+    const res = await authAPI.loginOfficer({ officerEmail, password });
+    await startSession(res, remember);
   };
 
   const isAdmin =

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet"><style>body{margin:0;background:#eef1f7;font-family:Nunito,sans-serif;color:#1c2340}a{color:#1f3a93;text-decoration:none}a:hover{color:#e8502a}input::placeholder{color:#9aa1b5}</style></helmet>
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px 16px;box-sizing:border-box;">
+  <div style="width:100%;max-width:1040px;background:#ffffff;border-radius:28px;box-shadow:0 24px 60px rgba(31,58,147,0.12);overflow:hidden;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));">
+    <div style="position:relative;min-height:560px;overflow:hidden;background-color:#f4f6fb;background-image:url(assets/redeem-scene.png);background-repeat:no-repeat;background-size:cover;background-position:62% 100%;color:#ffffff;">
+      <div style="position:absolute;left:0;right:0;top:0;height:30px;background:repeating-linear-gradient(90deg,#e8502a 0 44px,#ffffff 44px 88px);border-radius:0 0 22px 22px / 0 0 14px 14px;box-shadow:0 6px 0 rgba(0,0,0,0.1);"></div>
+      <div style="position:absolute;left:0;right:0;bottom:0;height:42%;background:linear-gradient(rgba(31,58,147,0) 0%,rgba(31,58,147,0.92) 42%,#1f3a93 100%);"></div>
+      <div style="position:absolute;left:0;right:0;bottom:0;padding:0 40px 36px;display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:34px;line-height:1.1;font-weight:900;letter-spacing:-0.02em;text-wrap:balance;">Every good deed counts.</div>
+        <div style="font-size:16px;font-weight:600;line-height:1.5;color:#dfe5f7;max-width:360px;text-wrap:pretty;">Earn points by helping out, then redeem them for treats at the minimart counter.</div>
+      </div>
+    </div>
+    <div style="padding:48px 52px;display:flex;flex-direction:column;justify-content:center;gap:28px;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:14px;">
+        <div style="width:100%;max-width:360px;aspect-ratio:470/120;overflow:hidden;">
+          <img src="assets/logo.png" alt="Muhammadiyah Welfare Home Minimart" style="display:block;width:108.9%;margin-left:-4.3%;margin-top:-14.9%;mix-blend-mode:multiply;filter:brightness(1.06) contrast(1.08);">
+        </div>
+        <div style="font-size:15px;font-weight:900;display:flex;gap:6px;flex-wrap:wrap;justify-content:center;">
+          <span style="color:#1f3a93;">Do Good.</span><span style="color:#e8502a;">Earn Points.</span><span style="color:#1f3a93;">Get Rewarded.</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div style="font-size:30px;font-weight:900;color:#1f3a93;letter-spacing:-0.01em;">Welcome back</div>
+        <div style="font-size:16px;font-weight:600;color:#5a6178;text-wrap:pretty;">Log in to shop, check your points and redeem rewards.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;background:#eef1f7;border-radius:14px;padding:5px;gap:4px;">
+        <sc-for list="{{ roles }}" as="r" hint-placeholder-count="2">
+          <button onClick="{{ r.pick }}" style="border:0;cursor:pointer;font-family:inherit;font-size:15px;font-weight:800;padding:11px 0;border-radius:10px;background:{{ r.bg }};color:{{ r.fg }};box-shadow:{{ r.shadow }};">{{ r.label }}</button>
+        </sc-for>
+      </div>
+      <form onSubmit="{{ submit }}" style="display:flex;flex-direction:column;gap:18px;">
+        <label style="display:flex;flex-direction:column;gap:8px;">
+          <span style="font-size:14px;font-weight:800;color:#1c2340;">{{ idLabel }}</span>
+          <sc-if value="{{ isResident }}" hint-placeholder-val="{{ true }}">
+            <span style="position:relative;display:flex;">
+              <select value="{{ userId }}" onChange="{{ setUserId }}" style="flex:1;min-width:0;appearance:none;-webkit-appearance:none;cursor:pointer;font-family:inherit;font-size:16px;font-weight:600;padding:14px 44px 14px 16px;border-radius:12px;border:1.5px solid {{ idBorder }};outline:none;background:#fbfcfe;color:{{ selectColor }};" style-focus="border-color:#1f3a93;background:#ffffff;">
+                <option value="">Select your name</option>
+                <sc-for list="{{ residents }}" as="n" hint-placeholder-count="6">
+                  <option value="{{ n }}" style="color:#1c2340;">{{ n }}</option>
+                </sc-for>
+              </select>
+              <span style="position:absolute;right:18px;top:50%;width:9px;height:9px;border-right:2.5px solid #1f3a93;border-bottom:2.5px solid #1f3a93;transform:translateY(-70%) rotate(45deg);pointer-events:none;"></span>
+            </span>
+          </sc-if>
+          <sc-if value="{{ isStaff }}" hint-placeholder-val="{{ false }}">
+            <input value="{{ userId }}" onChange="{{ setUserId }}" placeholder="name@mwh.org.sg" style="font-family:inherit;font-size:16px;font-weight:600;padding:14px 16px;border-radius:12px;border:1.5px solid {{ idBorder }};outline:none;background:#fbfcfe;color:#1c2340;" style-focus="border-color:#1f3a93;background:#ffffff;">
+          </sc-if>
+        </label>
+        <label style="display:flex;flex-direction:column;gap:8px;">
+          <span style="display:flex;justify-content:space-between;font-size:14px;font-weight:800;color:#1c2340;"><span>Password</span><a href="#" onClick="{{ forgot }}" style="font-weight:700;">Forgot password?</a></span>
+          <span style="position:relative;display:flex;">
+            <input type="{{ pwType }}" value="{{ password }}" onChange="{{ setPassword }}" placeholder="Enter your password" style="flex:1;min-width:0;font-family:inherit;font-size:16px;font-weight:600;padding:14px 72px 14px 16px;border-radius:12px;border:1.5px solid {{ pwBorder }};outline:none;background:#fbfcfe;color:#1c2340;" style-focus="border-color:#1f3a93;background:#ffffff;">
+            <button type="button" onClick="{{ togglePw }}" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0;background:transparent;cursor:pointer;font-family:inherit;font-size:13px;font-weight:800;color:#1f3a93;padding:8px 10px;">{{ pwToggleLabel }}</button>
+          </span>
+        </label>
+        <sc-if value="{{ error }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:14px;font-weight:700;color:#c43d1b;background:#fdeee9;border-radius:10px;padding:10px 14px;">{{ error }}</div>
+        </sc-if>
+        <label style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700;color:#5a6178;cursor:pointer;">
+          <input type="checkbox" checked="{{ remember }}" onChange="{{ toggleRemember }}" style="width:18px;height:18px;accent-color:#1f3a93;margin:0;">
+          Keep me logged in
+        </label>
+        <button type="submit" style="border:0;cursor:pointer;font-family:inherit;font-size:17px;font-weight:900;color:#ffffff;background:#1f3a93;padding:16px 0;border-radius:14px;box-shadow:0 8px 20px rgba(31,58,147,0.25);" style-hover="background:#e8502a;box-shadow:0 8px 20px rgba(232,80,42,0.3);">{{ submitLabel }}</button>
+      </form>
+      <div style="font-size:14px;font-weight:600;color:#5a6178;text-align:center;text-wrap:pretty;">{{ footnote }}</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { role: 'resident', userId: '', password: '', showPw: false, remember: true, error: '', loading: false, touched: false };
+  renderVals() {
+    const s = this.state;
+    const isRes = s.role === 'resident';
+    const roles = [['resident', 'Resident'], ['staff', 'Staff']].map(([k, label]) => {
+      const on = s.role === k;
+      return { label, bg: on ? '#ffffff' : 'transparent', fg: on ? '#1f3a93' : '#5a6178', shadow: on ? '0 2px 8px rgba(31,58,147,0.12)' : 'none',
+        pick: () => this.setState({ role: k, userId: '', error: '', touched: false }) };
+    });
+    const bad = (v) => s.touched && !v.trim() ? '#e8502a' : '#d9deeb';
+    return {
+      roles,
+      idLabel: isRes ? 'Resident' : 'Staff email',
+      isResident: isRes, isStaff: !isRes,
+      residents: ['Ahmad Faiz', 'Aisyah Rahman', 'Daniel Hakim', 'Farah Nabila', 'Haziq Iskandar', 'Muhammad Irfan', 'Nur Alya', 'Siti Khadijah', 'Syafiq Amri', 'Zara Aqilah'],
+      selectColor: s.userId ? '#1c2340' : '#9aa1b5',
+      footnote: isRes ? 'New here? Ask a staff member to set up your account.' : 'Need access? Contact the minimart administrator.',
+      userId: s.userId, password: s.password,
+      idBorder: bad(s.userId), pwBorder: bad(s.password),
+      pwType: s.showPw ? 'text' : 'password', pwToggleLabel: s.showPw ? 'Hide' : 'Show',
+      remember: s.remember, error: s.error,
+      submitLabel: s.loading ? 'Logging in…' : 'Log in',
+      setUserId: (e) => this.setState({ userId: e.target.value, error: '' }),
+      setPassword: (e) => this.setState({ password: e.target.value, error: '' }),
+      togglePw: () => this.setState({ showPw: !s.showPw }),
+      toggleRemember: () => this.setState({ remember: !s.remember }),
+      forgot: (e) => { e.preventDefault(); this.setState({ error: isRes ? 'Please ask a staff member to reset your password.' : 'A reset link will be sent to your staff email.' }); },
+      submit: (e) => {
+        e.preventDefault();
+        if (!s.userId.trim() || !s.password.trim()) return this.setState({ touched: true, error: isRes ? 'Please select your name and enter your password.' : 'Please fill in both fields.' });
+        this.setState({ loading: true, error: '' });
+        setTimeout(() => this.setState({ loading: false }), 1200);
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

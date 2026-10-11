@@ -3,6 +3,7 @@ import { Pressable, ScrollView, useWindowDimensions } from "react-native";
 import { Plus, ShoppingCart } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import DropdownSelect from "./dropdown-select";
 import EmptyAlert from "./custom-empty-alert";
 import SearchBar from "./custom-searchbar";
 
@@ -20,21 +21,28 @@ import { useCart } from "@/contexts/cart-context";
 
 type SortOption = "low-to-high" | "high-to-low" | "latest" | "sales" | "custom";
 
+export interface GridTier {
+  id: number;
+  label: string;
+  points: number;
+  maxPerOrder?: number | null;
+  isPreorder?: boolean;
+}
+
+export interface GridItemData {
+  id: number | string;
+  name: string;
+  points: number; // lowest tier's points when tiered
+  image: string;
+  redemptionCount?: number;
+  maxPerOrder?: number | null;
+  isPreorder?: boolean;
+  tiers?: GridTier[]; // sorted by points; present when the item has more than one tier
+}
+
 interface SearchableGridProps {
-  items: {
-    id: number | string;
-    name: string;
-    points: number;
-    image: string;
-    redemptionCount?: number;
-  }[];
-  onItemPress: (item: {
-    id: number | string;
-    name: string;
-    points: number;
-    image: string;
-    redemptionCount?: number;
-  }) => void;
+  items: GridItemData[];
+  onItemPress: (item: GridItemData) => void;
   onAddPress: () => void;
   noItemsAlert: string;
   enableCart?: boolean;
@@ -57,6 +65,8 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
   const { addToCart, isInCart } = useCart();
   const [sortOption, setSortOption] = useState<SortOption>("custom");
   const [search, setSearch] = useState("");
+  // Selected tier per tiered item (item id -> tier product id); defaults to the cheapest tier
+  const [selectedTiers, setSelectedTiers] = useState<Record<string, number>>({});
 
   // Reorder mode states
   const [isReorderMode, setIsReorderMode] = useState(false);
@@ -89,17 +99,34 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
     loadOrder();
   }, [storageKey]);
 
-  const handleAddToCart = (
-    e: any,
-    item: { id: number | string; name: string; points: number; image: string }
-  ) => {
-    e.stopPropagation(); // Prevent card click
-    addToCart({
+  /** The purchasable product for a card: the selected tier, or the item itself */
+  const getSelection = (item: GridItemData) => {
+    const tier =
+      item.tiers?.find((t) => t.id === selectedTiers[String(item.id)]) ??
+      item.tiers?.[0];
+    if (tier) {
+      return {
+        id: tier.id,
+        productName: `${item.name} – ${tier.label}`,
+        tierLabel: tier.label,
+        points: tier.points,
+        maxPerOrder: tier.maxPerOrder,
+        isPreorder: tier.isPreorder,
+      };
+    }
+    return {
       id: Number(item.id),
       productName: item.name,
+      tierLabel: null,
       points: item.points,
-      imageUrl: item.image,
-    });
+      maxPerOrder: item.maxPerOrder,
+      isPreorder: item.isPreorder,
+    };
+  };
+
+  const handleAddToCart = (e: any, item: GridItemData) => {
+    e.stopPropagation(); // Prevent card click
+    addToCart({ ...getSelection(item), imageUrl: item.image });
   };
 
   const handleSortPress = (val: SortOption) => {
@@ -256,7 +283,10 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
                   </Pressable>
                 </GridItem>
               )}
-              {displayItems.map((item, index) => (
+              {displayItems.map((item) => {
+                const selection = getSelection(item);
+                const inCart = isInCart(selection.id);
+                return (
                 <GridItem key={item.id} _extra={{ className: "col-span-1" }}>
                   <Card className="bg-white" size="md" variant="outline">
                     <Pressable onPress={() => !isReorderMode && onItemPress(item)}>
@@ -276,8 +306,39 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
                         {item.name}
                       </Text>
                       <Text bold className="text-gray-500">
-                        {item.points} pts
+                        {selection.points} pts
                       </Text>
+                      {item.tiers && item.tiers.length > 1 && (
+                        <DropdownSelect
+                          compact
+                          accessibilityLabel={`${item.name} size`}
+                          value={String(selection.id)}
+                          onChange={(value) =>
+                            setSelectedTiers((prev) => ({
+                              ...prev,
+                              [String(item.id)]: Number(value),
+                            }))
+                          }
+                          options={item.tiers.map((tier) => ({
+                            label: `${tier.label} · ${tier.points} pts`,
+                            value: String(tier.id),
+                          }))}
+                        />
+                      )}
+                      {(!!selection.isPreorder || !!selection.maxPerOrder) && (
+                        <HStack space="sm">
+                          {!!selection.isPreorder && (
+                            <Text size="sm" bold className="text-orangescale-700">
+                              Pre-order
+                            </Text>
+                          )}
+                          {!!selection.maxPerOrder && (
+                            <Text size="sm" className="text-gray-500">
+                              Max {selection.maxPerOrder} per order
+                            </Text>
+                          )}
+                        </HStack>
+                      )}
                       {sortOption === "sales" && !isReorderMode && (
                         <Text className="text-xs text-gray-400">
                           {item.redemptionCount || 0} sold
@@ -288,14 +349,14 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
                           size="sm"
                           onPress={(e) => handleAddToCart(e, item)}
                           className={
-                            isInCart(Number(item.id))
+                            inCart
                               ? "bg-green-600"
                               : "bg-indigoscale-700"
                           }
                         >
                           <ButtonIcon as={ShoppingCart} className="text-white" />
                           <ButtonText className="text-white">
-                            {isInCart(Number(item.id)) ? "In Cart" : "Add to Cart"}
+                            {inCart ? "In Cart" : "Add to Cart"}
                           </ButtonText>
                         </Button>
                       )}
@@ -304,7 +365,8 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
                     </VStack>
                   </Card>
                 </GridItem>
-              ))}
+                );
+              })}
               {/* filler if odd to prevent weird ui */}
               {(displayItems.length + (isAuthenticated && isAdmin && !isReorderMode ? 1 : 0)) %
                 2 !==

@@ -14,6 +14,7 @@ dotenv.config({ path: "../.env" });
 import { connectDB } from "./lib/db.js";
 import mainRoutes from "./routes/mainRoutes.js";
 import { scheduleArchiveJob } from "./jobs/archiveJob.js";
+import { scheduleOrderExpiryJob } from "./jobs/orderExpiryJob.js";
 
 const app = express();
 // Behind Koyeb's proxy: use the client IP from X-Forwarded-For (one hop) for rate limiting
@@ -27,13 +28,27 @@ const allowedOrigins = [
   "http://localhost:8082",
 ].filter(Boolean);
 
-// Rate limiting
+// Rate limiting. The minimart kiosk is one IP shared by every resident, and
+// order pages refresh every 30 s, so the general limit must be generous.
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 1000, // limit each IP to 1000 requests per windowMs
   message: {
     error: {
       message: "Too many requests from this IP, please try again later.",
+    },
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Stricter limit on login attempts to slow down password guessing
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: {
+    error: {
+      message: "Too many login attempts. Please wait a few minutes and try again.",
     },
   },
   standardHeaders: true,
@@ -48,6 +63,7 @@ app.use(helmet({
 app.use(compression());
 app.use(morgan("combined"));
 app.use(limiter);
+app.use("/api/authentication/login", loginLimiter);
 app.use(json({ limit: "10mb" }));
 app.use(urlencoded({ extended: true, limit: "10mb" }));
 
@@ -141,8 +157,9 @@ const startServer = async () => {
   try {
     await connectDB();
 
-    // Schedule archive job
+    // Schedule background jobs
     scheduleArchiveJob();
+    scheduleOrderExpiryJob();
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);

@@ -1,4 +1,13 @@
 import { prisma } from '../lib/db.js';
+import {
+  ORDER_PREFIX,
+  endOfSgDay,
+  formatTicketCode,
+  getSettings,
+  nextTicketNumber,
+  orderInclude,
+  serializeOrder
+} from './orderModel.js';
 
 /**
  * Find transactions by user ID
@@ -70,25 +79,35 @@ export const findByUserId = async (userId, options = {}) => {
 };
 
 /**
- * Create redemption transaction
+ * Create a redemption: one order (ticket) per order type. Counter items get
+ * an "O-" ticket that must be collected before it expires; pre-order items
+ * get a "P-" ticket that staff move to "ready" when the item arrives.
  */
 export const createRedemption = async ({ userId, officerId, products }) => {
   try {
     // Verify resident exists
     const resident = await prisma.resident.findUnique({
-      where: { userId }
+      where: { userId },
+      include: { user: { select: { userName: true } } }
     });
 
     if (!resident) {
       throw new Error('Resident not found');
     }
 
+    // Merge duplicate lines for the same product
+    const quantities = new Map();
+    for (const p of products) {
+      const id = parseInt(p.id);
+      quantities.set(id, (quantities.get(id) || 0) + parseInt(p.quantity));
+    }
+    const productIds = [...quantities.keys()];
+
     // Verify all products exist and are available
-    const productIds = products.map(p => parseInt(p.id));
     const foundProducts = await prisma.product.findMany({
-      where: { 
+      where: {
         id: { in: productIds },
-        available: true 
+        available: true
       }
     });
 
@@ -96,63 +115,83 @@ export const createRedemption = async ({ userId, officerId, products }) => {
       throw new Error('One or more products not found or unavailable');
     }
 
-    // Calculate total points needed
-    const productMap = foundProducts.reduce((map, product) => {
-      map[product.id] = product;
-      return map;
-    }, {});
-
-    const totalPoints = products.reduce((sum, p) => {
-      const product = productMap[parseInt(p.id)];
-      return sum + (product.points * parseInt(p.quantity));
-    }, 0);
-
-    // Check if resident has enough points
-    if (resident.currentPoints < totalPoints) {
-      throw new Error(`Insufficient points. Required: ${totalPoints}, Available: ${resident.currentPoints}`);
+    // Enforce per-product purchase limits (global cap is 10 per item)
+    for (const product of foundProducts) {
+      const quantity = quantities.get(product.id);
+      const limit = Math.min(10, product.maxPerOrder ?? 10);
+      if (quantity > limit) {
+        throw new Error(`Purchase limit exceeded for ${product.productName} (max ${limit} per order)`);
+      }
     }
 
-    // Create redemption transaction
+    // Split into counter items and pre-order items
+    const groups = { normal: [], preorder: [] };
+    for (const product of foundProducts) {
+      groups[product.isPreorder ? 'preorder' : 'normal'].push({
+        product,
+        quantity: quantities.get(product.id)
+      });
+    }
+
+    const groupTotal = (lines) =>
+      lines.reduce((sum, { product, quantity }) => sum + (product.points ?? 0) * quantity, 0);
+    const totalPoints = groupTotal(groups.normal) + groupTotal(groups.preorder);
+
+    if ((resident.currentPoints ?? 0) < totalPoints) {
+      throw new Error(`Insufficient points. Required: ${totalPoints}, Available: ${resident.currentPoints ?? 0}`);
+    }
+
+    const { ticketExpiryDays } = await getSettings();
+    const now = new Date();
+
     const result = await prisma.$transaction(async (tx) => {
-      // Create transaction
-      const transaction = await tx.transaction.create({
-        data: {
-          userId,
-          pointsChange: -totalPoints,
-          transactionType: 'redemption',
-          transactionDate: new Date()
-        }
+      // Deduct points only if the balance still covers it (no race to negative)
+      const deducted = await tx.resident.updateMany({
+        where: { userId, currentPoints: { gte: totalPoints } },
+        data: { currentPoints: { decrement: totalPoints } }
       });
+      if (deducted.count === 0) {
+        throw new Error(`Insufficient points. Required: ${totalPoints}`);
+      }
 
-      // Create redemption records
-      const redemptions = await Promise.all(
-        products.map(p => 
-          tx.redemption.create({
-            data: {
-              transactionId: transaction.id,
-              productId: parseInt(p.id),
-              productQuantity: parseInt(p.quantity)
+      const orders = [];
+      for (const orderType of ['normal', 'preorder']) {
+        const lines = groups[orderType];
+        if (lines.length === 0) continue;
+
+        const prefix = ORDER_PREFIX[orderType];
+        const ticketNumber = await nextTicketNumber(tx, prefix, now);
+
+        const transaction = await tx.transaction.create({
+          data: {
+            userId,
+            pointsChange: -groupTotal(lines),
+            transactionType: 'redemption',
+            transactionDate: now,
+            createdAt: now,
+            ticketCode: formatTicketCode(prefix, ticketNumber),
+            orderType,
+            orderStatus: orderType === 'preorder' ? 'preordered' : 'pending',
+            // Pre-orders start their collection window when marked ready
+            expiresAt: orderType === 'normal' ? endOfSgDay(now, ticketExpiryDays) : null,
+            redemptions: {
+              create: lines.map(({ product, quantity }) => ({
+                productId: product.id,
+                productQuantity: quantity
+              }))
             }
-          })
-        )
-      );
+          },
+          include: orderInclude
+        });
+        orders.push(serializeOrder(transaction));
+      }
 
-      // Update resident points
-      const updatedResident = await tx.resident.update({
-        where: { userId },
-        data: {
-          currentPoints: {
-            decrement: totalPoints
-          }
-        }
-      });
-
-      return { transaction, redemptions, updatedResident };
+      const updatedResident = await tx.resident.findUnique({ where: { userId } });
+      return { orders, updatedResident };
     });
 
     return {
-      transaction: result.transaction,
-      redemptions: result.redemptions,
+      orders: result.orders,
       pointsDeducted: totalPoints,
       remainingPoints: result.updatedResident.currentPoints
     };

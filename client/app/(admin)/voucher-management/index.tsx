@@ -1,170 +1,399 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { View, Text, ScrollView, Platform, useWindowDimensions } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Platform, ScrollView, Text, useWindowDimensions, View } from "react-native";
+import { Award, Check, Download, Pencil, Plus, Search, Trash, X } from "lucide-react-native";
+
+import api from "@/utils/api";
+import { getVoucherIcon, VOUCHER_ICON_OPTIONS } from "@/constants/voucher-icons";
+
+import DropdownSelect from "@/components/dropdown-select";
+import { Button, ButtonIcon, ButtonText } from "@/components/button";
+import * as alert from "@/components/ui/alert-dialog";
+import { FormControl, FormControlLabel, FormControlLabelText } from "@/components/ui/form-control";
+import { Heading } from "@/components/ui/heading";
+import { HStack } from "@/components/ui/hstack";
+import { Icon } from "@/components/ui/icon";
+import { Input, InputField } from "@/components/ui/input";
+import { Modal, ModalBackdrop, ModalBody, ModalCloseButton, ModalContent, ModalFooter, ModalHeader } from "@/components/ui/modal";
+import { Pressable } from "@/components/ui/pressable";
+import { VStack } from "@/components/ui/vstack";
 
 const MOBILE_BREAKPOINT = 768;
-import { DataTable } from "react-native-paper";
-import { Plus, X, Pencil, Download, Trash, Check, Tag, Gift, Star, Award, Heart, Zap, Shield, BookOpen, Coffee, Music, Smile, Sun, Moon, Cloud, Flame, Anchor, Bell, Camera, Compass, Feather, Key, Map } from "lucide-react-native";
-import api from "@/utils/api";
-import { VStack } from "@/components/ui/vstack";
-import { HStack } from "@/components/ui/hstack";
-import { Button, ButtonText, ButtonIcon } from "@/components/button";
-import { Input, InputField } from "@/components/ui/input";
-import { Heading } from "@/components/ui/heading";
-import { Icon } from "@/components/ui/icon";
-import { Pressable } from "@/components/ui/pressable";
-import { Modal, ModalBackdrop, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton } from "@/components/ui/modal";
-import { Select, SelectTrigger, SelectInput, SelectPortal, SelectBackdrop, SelectContent, SelectDragIndicatorWrapper, SelectDragIndicator, SelectItem } from "@/components/ui/select";
-import { FormControl, FormControlLabel, FormControlLabelText } from "@/components/ui/form-control";
+const BLUE = "#1f3a93";
 
-const ICON_MAP: Record<string, any> = { tag: Tag, gift: Gift, star: Star, award: Award, heart: Heart, zap: Zap, shield: Shield, book: BookOpen, coffee: Coffee, music: Music, smile: Smile, sun: Sun, moon: Moon, cloud: Cloud, flame: Flame, anchor: Anchor, bell: Bell, camera: Camera, compass: Compass, feather: Feather, key: Key, map: Map };
-const ICON_OPTIONS = Object.keys(ICON_MAP);
+type Category = {
+  id: number;
+  taskCategoryName: string;
+  taskCategoryDescription: string;
+  iconName?: string | null;
+  _count?: { tasks: number };
+};
+type Subtask = {
+  id: number;
+  taskName: string;
+  taskDescription: string;
+  points: number;
+  taskCategoryId: number;
+};
+type Resident = {
+  id: number;
+  userName: string;
+  resident?: { serialNumber?: string; isActive?: boolean; remarks?: string; currentPoints?: number };
+};
+type Confirm = { title: string; message: string; confirmLabel: string; onConfirm: () => Promise<void> };
+type CategoryForm = { taskCategoryName: string; taskCategoryDescription: string; iconName: string | null };
+type SubtaskForm = { taskName: string; taskDescription: string; points: number };
 
-type Category = { id: number; taskCategoryName: string; taskCategoryDescription: string; iconName?: string; _count?: { tasks: number } };
-type Task = { id: number; taskName: string; taskDescription: string; points: number; taskCategoryId: number; imageUrl?: string; taskCategory?: { taskCategoryName: string } };
-type Resident = { id: number; userName: string; resident?: { serialNumber?: string; isActive?: boolean; remarks?: string; currentPoints?: number } };
+/*
+ * Form modals. The Gluestack Modal drops keystrokes on web if it re-renders
+ * while you type, so the Modal shell below never re-renders: all field state
+ * lives in the *Fields components rendered inside it.
+ */
+const FormModalShell: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = ({
+  title,
+  onClose,
+  children,
+}) => (
+  <Modal isOpen onClose={onClose} size="lg">
+    <ModalBackdrop />
+    <ModalContent>
+      <ModalHeader>
+        <Heading size="lg" className="text-indigoscale-700">{title}</Heading>
+        <ModalCloseButton><Icon as={X} size="md" /></ModalCloseButton>
+      </ModalHeader>
+      {children}
+    </ModalContent>
+  </Modal>
+);
+
+const CategoryFormFields: React.FC<{
+  initial: Category | null;
+  onClose: () => void;
+  onSave: (data: CategoryForm) => Promise<boolean>;
+}> = ({ initial, onClose, onSave }) => {
+  const [name, setName] = useState(initial?.taskCategoryName || "");
+  const [description, setDescription] = useState(initial?.taskCategoryDescription || "");
+  const [icon, setIcon] = useState(initial?.iconName || "");
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    setSaving(true);
+    const ok = await onSave({
+      taskCategoryName: name.trim(),
+      taskCategoryDescription: description.trim(),
+      iconName: icon || null,
+    });
+    if (!ok) setSaving(false);
+  };
+
+  return (
+    <>
+      <ModalBody>
+        <VStack space="md">
+          <FormControl>
+            <FormControlLabel><FormControlLabelText className="font-semibold">Name *</FormControlLabelText></FormControlLabel>
+            <Input><InputField placeholder="e.g. Room Cleanliness" value={name} onChangeText={setName} /></Input>
+          </FormControl>
+          <FormControl>
+            <FormControlLabel><FormControlLabelText className="font-semibold">Description (shown to residents)</FormControlLabelText></FormControlLabel>
+            <Input><InputField placeholder="What this category rewards" value={description} onChangeText={setDescription} /></Input>
+          </FormControl>
+          <FormControl>
+            <FormControlLabel><FormControlLabelText className="font-semibold">Icon</FormControlLabelText></FormControlLabel>
+            <HStack style={{ flexWrap: "wrap", gap: 8 }}>
+              {VOUCHER_ICON_OPTIONS.map((option) => {
+                const on = icon === option;
+                return (
+                  <Pressable
+                    key={option}
+                    onPress={() => setIcon(option)}
+                    accessibilityLabel={option}
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 10,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderWidth: 2,
+                      borderColor: on ? BLUE : "#E5E7EB",
+                      backgroundColor: on ? "#E0E7FF" : "#ffffff",
+                    }}
+                  >
+                    <Icon as={getVoucherIcon(option)} size="md" style={{ color: BLUE }} />
+                  </Pressable>
+                );
+              })}
+            </HStack>
+          </FormControl>
+        </VStack>
+      </ModalBody>
+      <ModalFooter>
+        <Button variant="outline" action="secondary" onPress={onClose} className="mr-3"><ButtonText>Cancel</ButtonText></Button>
+        <Button className="bg-indigoscale-700" onPress={save} disabled={saving || !name.trim()}>
+          <ButtonText className="text-white">{saving ? "Saving..." : "Save"}</ButtonText>
+        </Button>
+      </ModalFooter>
+    </>
+  );
+};
+
+const SubtaskFormFields: React.FC<{
+  initial: Subtask | null;
+  onClose: () => void;
+  onSave: (data: SubtaskForm) => Promise<boolean>;
+}> = ({ initial, onClose, onSave }) => {
+  const [name, setName] = useState(initial?.taskName || "");
+  const [description, setDescription] = useState(initial?.taskDescription || "");
+  const [points, setPoints] = useState(initial ? String(initial.points) : "");
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    setSaving(true);
+    const ok = await onSave({
+      taskName: name.trim(),
+      taskDescription: description.trim(),
+      points: parseInt(points),
+    });
+    if (!ok) setSaving(false);
+  };
+
+  return (
+    <>
+      <ModalBody>
+        <VStack space="md">
+          <FormControl>
+            <FormControlLabel><FormControlLabelText className="font-semibold">Name *</FormControlLabelText></FormControlLabel>
+            <Input><InputField placeholder="e.g. Room passes weekly inspection" value={name} onChangeText={setName} /></Input>
+          </FormControl>
+          <FormControl>
+            <FormControlLabel><FormControlLabelText className="font-semibold">Description *</FormControlLabelText></FormControlLabel>
+            <Input><InputField placeholder="How residents earn it" value={description} onChangeText={setDescription} /></Input>
+          </FormControl>
+          <FormControl>
+            <FormControlLabel><FormControlLabelText className="font-semibold">Points *</FormControlLabelText></FormControlLabel>
+            <Input>
+              <InputField
+                placeholder="Points"
+                value={points}
+                onChangeText={(v) => setPoints(v.replace(/[^0-9]/g, ""))}
+                keyboardType="numeric"
+              />
+            </Input>
+          </FormControl>
+        </VStack>
+      </ModalBody>
+      <ModalFooter>
+        <Button variant="outline" action="secondary" onPress={onClose} className="mr-3"><ButtonText>Cancel</ButtonText></Button>
+        <Button
+          className="bg-indigoscale-700"
+          onPress={save}
+          disabled={saving || !name.trim() || !description.trim() || !points}
+        >
+          <ButtonText className="text-white">{saving ? "Saving..." : "Save"}</ButtonText>
+        </Button>
+      </ModalFooter>
+    </>
+  );
+};
 
 const VoucherAdminPage: React.FC = () => {
   const { width } = useWindowDimensions();
   const isMobile = width < MOBILE_BREAKPOINT;
 
-  const [activeTab, setActiveTab] = useState<"categories" | "vouchers" | "award">("categories");
+  const [activeTab, setActiveTab] = useState<"categories" | "award">("categories");
   const [categories, setCategories] = useState<Category[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [subtasks, setSubtasks] = useState<Subtask[]>([]);
   const [residents, setResidents] = useState<Resident[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  // Category modal
-  const [showCatModal, setShowCatModal] = useState(false);
-  const [editCatId, setEditCatId] = useState<number | null>(null);
-  const [catName, setCatName] = useState("");
-  const [catDesc, setCatDesc] = useState("");
-  const [catIcon, setCatIcon] = useState("");
-
-  // Voucher modal
-  const [showVoucherModal, setShowVoucherModal] = useState(false);
-  const [editVoucherId, setEditVoucherId] = useState<number | null>(null);
-  const [vName, setVName] = useState("");
-  const [vDesc, setVDesc] = useState("");
-  const [vPoints, setVPoints] = useState("");
-  const [vCatId, setVCatId] = useState("");
-
-  // Award state
-  const [selectedResidents, setSelectedResidents] = useState<number[]>([]);
-  const [selectedTasks, setSelectedTasks] = useState<number[]>([]);
-  const [awardResult, setAwardResult] = useState<any>(null);
-  const [showResultModal, setShowResultModal] = useState(false);
+  const [selectedCatId, setSelectedCatId] = useState<number | null>(null);
+  const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [confirm, setConfirm] = useState<Confirm | null>(null);
+
+  // Form modals: null = closed, { item: null } = add, { item } = edit
+  const [catModal, setCatModal] = useState<{ item: Category | null } | null>(null);
+  const [taskModal, setTaskModal] = useState<{ item: Subtask | null } | null>(null);
+  // Stable callbacks so the modal shells don't re-render while typing
+  const closeCatModal = useCallback(() => setCatModal(null), []);
+  const closeTaskModal = useCallback(() => setTaskModal(null), []);
+
+  // Award flow: category -> subtask -> residents
+  const [awardCatId, setAwardCatId] = useState("");
+  const [awardTaskId, setAwardTaskId] = useState("");
+  const [selectedResidents, setSelectedResidents] = useState<number[]>([]);
+  const [residentSearch, setResidentSearch] = useState("");
+  const [awardResult, setAwardResult] = useState<any>(null);
 
   const fetchCategories = useCallback(async () => {
     try {
-      const res = await api.get("/taskCategories?includeTaskCount=true");
-      setCategories(res.data.data || []);
-    } catch (e) { console.error(e); }
+      const res = await api.get("taskCategories", { params: { includeTaskCount: "true" } });
+      const list: Category[] = res.data.data || [];
+      setCategories(list);
+      setSelectedCatId((current) => (current && list.some((c) => c.id === current) ? current : list[0]?.id ?? null));
+    } catch (e) {
+      console.error(e);
+    }
   }, []);
 
-  const fetchTasks = useCallback(async () => {
+  const fetchSubtasks = useCallback(async () => {
     try {
-      const res = await api.get("/tasks?limit=200");
-      setTasks(res.data.data?.tasks || []);
-    } catch (e) { console.error(e); }
+      const res = await api.get("tasks", { params: { limit: 500 } });
+      setSubtasks(res.data.data?.tasks || []);
+    } catch (e) {
+      console.error(e);
+    }
   }, []);
 
   const fetchResidents = useCallback(async () => {
     try {
-      const res = await api.get("/users?role=resident&limit=200");
+      const res = await api.get("users", { params: { role: "resident", includeProfilePicture: "false", limit: 1000 } });
       setResidents(res.data.data?.users || []);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
   }, []);
 
-  useEffect(() => { fetchCategories(); fetchTasks(); fetchResidents(); }, []);
+  useEffect(() => {
+    fetchCategories();
+    fetchSubtasks();
+    fetchResidents();
+  }, [fetchCategories, fetchSubtasks, fetchResidents]);
 
-  // Category CRUD
-  const handleSaveCategory = async () => {
-    setSubmitting(true);
+  const subtasksFor = useCallback(
+    (catId: number | null) => subtasks.filter((t) => t.taskCategoryId === catId),
+    [subtasks]
+  );
+
+  const selectedCat = categories.find((c) => c.id === selectedCatId) || null;
+
+  /* ---------------- category CRUD ---------------- */
+  const openNewCategory = () => setCatModal({ item: null });
+  const openEditCategory = (cat: Category) => setCatModal({ item: cat });
+  const saveCategory = async (data: CategoryForm) => {
+    const editing = catModal?.item;
     try {
-      const data: any = { taskCategoryName: catName, taskCategoryDescription: catDesc, iconName: catIcon || null };
-      if (editCatId) {
-        await api.put(`/taskCategories/${editCatId}`, data);
+      if (editing) {
+        await api.put(`taskCategories/${editing.id}`, data, { retries: 0 });
       } else {
-        await api.post("/taskCategories", data);
+        const res = await api.post("taskCategories", data, { retries: 0 });
+        if (res.data.data?.id) setSelectedCatId(res.data.data.id);
       }
-      setShowCatModal(false); resetCatForm(); fetchCategories();
-    } catch (e: any) { alert(e.message || "Failed"); }
-    finally { setSubmitting(false); }
-  };
-
-  const handleDeleteCategory = async (id: number) => {
-    if (!confirm("Delete this category?")) return;
-    try { await api.delete(`/taskCategories/${id}`); fetchCategories(); }
-    catch (e: any) { alert(e.message || "Cannot delete"); }
-  };
-
-  const openEditCategory = (cat: Category) => {
-    setEditCatId(cat.id); setCatName(cat.taskCategoryName || ""); setCatDesc(cat.taskCategoryDescription || ""); setCatIcon(cat.iconName || ""); setShowCatModal(true);
-  };
-
-  const resetCatForm = () => { setEditCatId(null); setCatName(""); setCatDesc(""); setCatIcon(""); };
-
-  // Voucher (Task) CRUD
-  const handleSaveVoucher = async () => {
-    setSubmitting(true);
-    try {
-      const data: any = { taskName: vName, taskDescription: vDesc, points: parseInt(vPoints), taskCategoryId: parseInt(vCatId), taskDate: new Date().toISOString() };
-      if (editVoucherId) {
-        await api.put(`/tasks/${editVoucherId}`, data);
-      } else {
-        await api.post("/tasks", data);
-      }
-      setShowVoucherModal(false); resetVoucherForm(); fetchTasks();
-    } catch (e: any) { alert(e.message || "Failed"); }
-    finally { setSubmitting(false); }
-  };
-
-  const openEditVoucher = (t: Task) => {
-    setEditVoucherId(t.id); setVName(t.taskName); setVDesc(t.taskDescription || ""); setVPoints(String(t.points)); setVCatId(String(t.taskCategoryId)); setShowVoucherModal(true);
-  };
-
-  const resetVoucherForm = () => { setEditVoucherId(null); setVName(""); setVDesc(""); setVPoints(""); setVCatId(""); };
-
-  // Bulk Award
-  const toggleResident = (id: number) => {
-    setSelectedResidents(prev => prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]);
-  };
-
-  const toggleTask = (id: number) => {
-    setSelectedTasks(prev => prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]);
-  };
-
-  const selectAllResidents = () => {
-    if (selectedResidents.length === residents.length) { setSelectedResidents([]); }
-    else { setSelectedResidents(residents.map(r => r.id)); }
-  };
-
-  const handleBulkAward = async () => {
-    if (selectedResidents.length === 0 || selectedTasks.length === 0) {
-      alert("Please select at least one resident and one voucher"); return;
+      setCatModal(null);
+      setNotice({ ok: true, text: `Category "${data.taskCategoryName}" saved.` });
+      fetchCategories();
+      return true;
+    } catch (e: any) {
+      setNotice({ ok: false, text: e?.message || "Could not save the category." });
+      return false;
     }
+  };
+  const askDeleteCategory = (cat: Category) =>
+    setConfirm({
+      title: `Delete "${cat.taskCategoryName}"?`,
+      message: "Only categories without subtasks can be deleted.",
+      confirmLabel: "Delete category",
+      onConfirm: async () => {
+        try {
+          await api.delete(`taskCategories/${cat.id}`);
+          setNotice({ ok: true, text: `Category "${cat.taskCategoryName}" deleted.` });
+          fetchCategories();
+        } catch (e: any) {
+          setNotice({
+            ok: false,
+            text: /existing tasks/.test(e?.message || "")
+              ? "Remove this category's subtasks before deleting it."
+              : e?.message || "Could not delete the category.",
+          });
+        }
+      },
+    });
+
+  /* ---------------- subtask CRUD ---------------- */
+  const openNewSubtask = () => setTaskModal({ item: null });
+  const openEditSubtask = (t: Subtask) => setTaskModal({ item: t });
+  const saveSubtask = async (form: SubtaskForm) => {
+    if (!selectedCatId) return false;
+    const editing = taskModal?.item;
+    const data = { ...form, taskCategoryId: selectedCatId };
+    try {
+      if (editing) {
+        await api.put(`tasks/${editing.id}`, data, { retries: 0 });
+      } else {
+        // taskDate is required by the API; subtasks are reusable so use today
+        await api.post("tasks", { ...data, taskDate: new Date().toISOString() }, { retries: 0 });
+      }
+      setTaskModal(null);
+      setNotice({ ok: true, text: `Subtask "${data.taskName}" saved.` });
+      fetchSubtasks();
+      fetchCategories();
+      return true;
+    } catch (e: any) {
+      setNotice({ ok: false, text: e?.message || "Could not save the subtask." });
+      return false;
+    }
+  };
+  const askDeleteSubtask = (t: Subtask) =>
+    setConfirm({
+      title: `Delete "${t.taskName}"?`,
+      message: "Subtasks that have already been awarded can't be deleted.",
+      confirmLabel: "Delete subtask",
+      onConfirm: async () => {
+        try {
+          await api.delete(`tasks/${t.id}`);
+          setNotice({ ok: true, text: `Subtask "${t.taskName}" deleted.` });
+          fetchSubtasks();
+          fetchCategories();
+        } catch (e: any) {
+          setNotice({ ok: false, text: e?.message || "Could not delete the subtask." });
+        }
+      },
+    });
+
+  /* ---------------- award ---------------- */
+  const awardSubtasks = subtasksFor(awardCatId ? Number(awardCatId) : null);
+  const awardTask = subtasks.find((t) => String(t.id) === awardTaskId) || null;
+
+  const filteredResidents = useMemo(() => {
+    const q = residentSearch.trim().toLowerCase();
+    return residents.filter(
+      (r) => !q || r.userName.toLowerCase().includes(q) || (r.resident?.serialNumber || "").toLowerCase().includes(q)
+    );
+  }, [residents, residentSearch]);
+
+  const toggleResident = (id: number) =>
+    setSelectedResidents((prev) => (prev.includes(id) ? prev.filter((r) => r !== id) : [...prev, id]));
+
+  const allVisibleSelected =
+    filteredResidents.length > 0 && filteredResidents.every((r) => selectedResidents.includes(r.id));
+  const toggleAllVisible = () =>
+    setSelectedResidents((prev) =>
+      allVisibleSelected
+        ? prev.filter((id) => !filteredResidents.some((r) => r.id === id))
+        : [...new Set([...prev, ...filteredResidents.map((r) => r.id)])]
+    );
+
+  const award = async () => {
+    if (!awardTask || selectedResidents.length === 0) return;
     setSubmitting(true);
     try {
-      const res = await api.post("/transactions/completion/bulk", {
-        userIds: selectedResidents, tasks: selectedTasks.map(id => ({ id }))
-      });
+      const res = await api.post(
+        "transactions/completion/bulk",
+        { userIds: selectedResidents, tasks: [{ id: awardTask.id }] },
+        { retries: 0 }
+      );
       setAwardResult(res.data.data);
-      setShowResultModal(true);
       setSelectedResidents([]);
-      setSelectedTasks([]);
       fetchResidents();
-    } catch (e: any) { alert(e.message || "Bulk award failed"); }
-    finally { setSubmitting(false); }
+    } catch (e: any) {
+      setNotice({ ok: false, text: e?.message || "Could not award points." });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  // Excel Download (Platform Agnostic)
-  const downloadExcel = async (url: string, fallbackName: string) => {
+  /* ---------------- excel ---------------- */
+  const downloadExcel = async (url: string, filename: string) => {
     try {
-      const filename = fallbackName.replace(".csv", ".xlsx");
-      
+      const res = await api.get(url, { responseType: "arrayBuffer" });
       if (Platform.OS === "web") {
-        const res = await api.get(url, { responseType: "arrayBuffer" });
         const blob = new Blob([res.data as any], {
           type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         });
@@ -174,281 +403,381 @@ const VoucherAdminPage: React.FC = () => {
         link.click();
         URL.revokeObjectURL(link.href);
       } else {
-        const res = await api.get(url, { responseType: "arrayBuffer" });
-        
-        // Convert arrayBuffer to base64
         const bytes = new Uint8Array(res.data as any);
         let binary = "";
-        for (let i = 0; i < bytes.byteLength; i++) {
-          binary += String.fromCharCode(bytes[i]);
-        }
-        const base64 = btoa(binary);
-
+        for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
         const { File, Paths } = await import("expo-file-system/next");
         const Sharing = await import("expo-sharing");
-        
         const file = new File(Paths.cache, filename);
-        await file.write(base64, { encoding: "base64" });
-
+        await file.write(btoa(binary), { encoding: "base64" });
         await Sharing.shareAsync(file.uri, {
           mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
           dialogTitle: "Export Records",
           UTI: "com.microsoft.excel.xlsx",
         });
       }
-    } catch (e: any) { alert("Download failed: " + (e.message || "")); }
+    } catch (e: any) {
+      setNotice({ ok: false, text: "Download failed: " + (e?.message || "") });
+    }
   };
 
-  const getIconComponent = (name?: string) => ICON_MAP[name || ""] || Tag;
-
-  // Tab button style helper
-  const tabBtn = (tab: string, current: string) => current === tab ? "bg-indigoscale-700" : "";
-  const tabTxt = (tab: string, current: string) => current === tab ? "text-white" : "text-indigoscale-700";
+  const tabClass = (on: boolean) => (on ? "bg-indigoscale-700 border-indigoscale-700" : "bg-white border-indigoscale-300");
+  const tabText = (on: boolean) => (on ? "text-white" : "text-indigoscale-700");
 
   return (
-    <VStack className="flex-1 p-5 bg-indigoscale-500">
-      {/* TABS */}
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-        {(["categories", "vouchers", "award"] as const).map(tab => (
-          <Button key={tab} action="secondary" className={tabBtn(tab, activeTab)} onPress={() => setActiveTab(tab)}>
-            <ButtonText className={tabTxt(tab, activeTab)}>{tab === "categories" ? "Categories" : tab === "vouchers" ? "Vouchers" : "Award Points"}</ButtonText>
-          </Button>
-        ))}
+    <VStack className="flex-1 bg-indigoscale-100" style={{ padding: isMobile ? 12 : 20 }}>
+      {/* Tabs */}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12, alignItems: "center" }}>
+        <Button variant="outline" className={tabClass(activeTab === "categories")} onPress={() => setActiveTab("categories")}>
+          <ButtonText className={tabText(activeTab === "categories")}>Categories & Subtasks</ButtonText>
+        </Button>
+        <Button variant="outline" className={tabClass(activeTab === "award")} onPress={() => setActiveTab("award")}>
+          <ButtonText className={tabText(activeTab === "award")}>Award Points</ButtonText>
+        </Button>
         <View style={{ flex: 1 }} />
-        <Button action="primary" className="bg-greenscale-700" onPress={() => downloadExcel("/export/all", "all_records.csv")}>
+        <Button className="bg-greenscale-700" onPress={() => downloadExcel("export/all", "all_records.xlsx")}>
           <ButtonIcon as={Download} className="text-white" />
           <ButtonText className="text-white">Export Excel</ButtonText>
         </Button>
       </View>
 
-      {/* CATEGORIES TAB */}
+      {notice && (
+        <HStack
+          className="items-center justify-between rounded-lg px-3 py-2 mb-3"
+          style={{ backgroundColor: notice.ok ? "#DCFCE7" : "#FEE2E2" }}
+        >
+          <Text style={{ color: notice.ok ? "#166534" : "#991B1B", flex: 1 }}>{notice.text}</Text>
+          <Pressable onPress={() => setNotice(null)}>
+            <Icon as={X} size="sm" style={{ color: notice.ok ? "#166534" : "#991B1B" }} />
+          </Pressable>
+        </HStack>
+      )}
+
+      {/* ---------------- CATEGORIES & SUBTASKS ---------------- */}
       {activeTab === "categories" && (
-        <VStack className="flex-1">
-          <HStack className="justify-between mb-3">
-            <Heading size="lg" className="text-white">Voucher Categories</Heading>
-            <Button className="bg-indigoscale-700" onPress={() => { resetCatForm(); setShowCatModal(true); }}>
-              <ButtonIcon as={Plus} className="text-white" /><ButtonText className="text-white">Add Category</ButtonText>
-            </Button>
-          </HStack>
-          <ScrollView horizontal showsHorizontalScrollIndicator={true} style={{ borderRadius: 12 }}>
-            <View style={{ minWidth: 600 }}>
-            <DataTable>
-              <DataTable.Header style={{ backgroundColor: "#E6E6FA" }}>
-                <DataTable.Title textStyle={{ fontWeight: "bold" }}>Icon</DataTable.Title>
-                <DataTable.Title textStyle={{ fontWeight: "bold" }}>Name</DataTable.Title>
-                <DataTable.Title textStyle={{ fontWeight: "bold" }}>Description</DataTable.Title>
-                <DataTable.Title textStyle={{ fontWeight: "bold" }}>Vouchers</DataTable.Title>
-                <DataTable.Title textStyle={{ fontWeight: "bold" }}>Actions</DataTable.Title>
-              </DataTable.Header>
-              <ScrollView>{categories.map((cat, i) => (
-                <DataTable.Row key={i} style={{ backgroundColor: "#fff" }}>
-                  <DataTable.Cell><Icon as={getIconComponent(cat.iconName)} size="md" className="text-indigoscale-700" /></DataTable.Cell>
-                  <DataTable.Cell>{cat.taskCategoryName}</DataTable.Cell>
-                  <DataTable.Cell>{cat.taskCategoryDescription || "—"}</DataTable.Cell>
-                  <DataTable.Cell>{cat._count?.tasks ?? 0}</DataTable.Cell>
-                  <DataTable.Cell>
-                    <HStack space="md">
-                      <Pressable onPress={() => openEditCategory(cat)}><Icon as={Pencil} size="sm" className="text-indigoscale-700" /></Pressable>
-                      <Pressable onPress={() => handleDeleteCategory(cat.id)}><Icon as={Trash} size="sm" className="text-redscale-700" /></Pressable>
-                      <Pressable onPress={() => downloadExcel(`/export/category/${cat.id}`, `${cat.taskCategoryName}.csv`)}><Icon as={Download} size="sm" className="text-greenscale-700" /></Pressable>
-                    </HStack>
-                  </DataTable.Cell>
-                </DataTable.Row>
-              ))}</ScrollView>
-            </DataTable>
-            </View>
-          </ScrollView>
-        </VStack>
-      )}
-
-      {/* VOUCHERS TAB */}
-      {activeTab === "vouchers" && (
-        <VStack className="flex-1">
-          <HStack className="justify-between mb-3">
-            <Heading size="lg" className="text-white">Vouchers</Heading>
-            <Button className="bg-indigoscale-700" onPress={() => { resetVoucherForm(); setShowVoucherModal(true); }}>
-              <ButtonIcon as={Plus} className="text-white" /><ButtonText className="text-white">Add Voucher</ButtonText>
-            </Button>
-          </HStack>
-          <ScrollView horizontal showsHorizontalScrollIndicator={true} style={{ borderRadius: 12 }}>
-          <View style={{ minWidth: 600 }}>
-            <DataTable>
-              <DataTable.Header style={{ backgroundColor: "#E6E6FA" }}>
-                <DataTable.Title textStyle={{ fontWeight: "bold" }}>Name</DataTable.Title>
-                <DataTable.Title textStyle={{ fontWeight: "bold" }}>Description</DataTable.Title>
-                <DataTable.Title textStyle={{ fontWeight: "bold" }}>Category</DataTable.Title>
-                <DataTable.Title textStyle={{ fontWeight: "bold" }}>Points</DataTable.Title>
-                <DataTable.Title textStyle={{ fontWeight: "bold" }}>Actions</DataTable.Title>
-              </DataTable.Header>
-              <ScrollView>{tasks.map((t, i) => (
-                <DataTable.Row key={i} style={{ backgroundColor: "#fff" }}>
-                  <DataTable.Cell>{t.taskName}</DataTable.Cell>
-                  <DataTable.Cell>{t.taskDescription || "—"}</DataTable.Cell>
-                  <DataTable.Cell>{t.taskCategory?.taskCategoryName || "—"}</DataTable.Cell>
-                  <DataTable.Cell>{t.points} pts</DataTable.Cell>
-                  <DataTable.Cell>
-                    <Pressable onPress={() => openEditVoucher(t)}><Icon as={Pencil} size="sm" className="text-indigoscale-700" /></Pressable>
-                  </DataTable.Cell>
-                </DataTable.Row>
-              ))}</ScrollView>
-            </DataTable>
-          </View>
-          </ScrollView>
-        </VStack>
-      )}
-
-      {/* AWARD TAB */}
-      {activeTab === "award" && (
-        <View style={{ flexDirection: isMobile ? 'column' : 'row', flex: 1, gap: 16 }}>
-          {/* Residents list */}
-          <VStack className="flex-1 bg-white rounded-xl p-4" style={{ maxHeight: 600 }}>
-            <HStack className="justify-between mb-2">
-              <Heading size="md">Select Residents</Heading>
-              <Button size="sm" variant="outline" onPress={selectAllResidents}>
-                <ButtonText>{selectedResidents.length === residents.length ? "Deselect All" : "Select All"}</ButtonText>
+        <View style={{ flex: 1, flexDirection: isMobile ? "column" : "row", gap: 16 }}>
+          {/* Category list */}
+          <VStack className="bg-white rounded-2xl p-4" style={{ width: isMobile ? "100%" : 320, maxHeight: isMobile ? 320 : undefined }}>
+            <HStack className="justify-between items-center mb-3">
+              <Heading size="md" style={{ color: BLUE }}>Categories</Heading>
+              <Button size="sm" className="bg-indigoscale-700" onPress={openNewCategory}>
+                <ButtonIcon as={Plus} className="text-white" />
+                <ButtonText className="text-white">Add</ButtonText>
               </Button>
             </HStack>
-            <ScrollView>{residents.map((r) => {
-              const isSelected = selectedResidents.includes(r.id);
-              const remarks = r.resident?.remarks;
-              const isIneligible = remarks === "abscondence" || remarks === "ftr";
-              return (
-                <Pressable key={r.id} onPress={() => toggleResident(r.id)} style={{ flexDirection: "row", alignItems: "center", padding: 10, borderBottomWidth: 1, borderColor: "#eee", backgroundColor: isSelected ? "#e0e7ff" : "transparent" }}>
-                  <View style={{ width: 24, height: 24, borderRadius: 4, borderWidth: 2, borderColor: isSelected ? "#4338ca" : "#ccc", backgroundColor: isSelected ? "#4338ca" : "transparent", marginRight: 12, justifyContent: "center", alignItems: "center" }}>
-                    {isSelected && <Icon as={Check} size="xs" className="text-white" />}
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontWeight: "600" }}>{r.userName}</Text>
-                    <Text style={{ fontSize: 12, color: "#666" }}>{r.resident?.serialNumber || ""} · {r.resident?.currentPoints ?? 0} pts</Text>
-                  </View>
-                  {isIneligible && (
-                    <View style={{ backgroundColor: "#fef2f2", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 }}>
-                      <Text style={{ color: "#dc2626", fontSize: 11, fontWeight: "600" }}>{remarks === "ftr" ? "FTR" : "ABS"}</Text>
-                    </View>
-                  )}
-                </Pressable>
-              );
-            })}</ScrollView>
-          </VStack>
-
-          {/* Vouchers + Award button */}
-          <VStack className="flex-1 gap-4">
-            <VStack className="bg-white rounded-xl p-4" style={{ maxHeight: 400 }}>
-              <Heading size="md" className="mb-2">Select Vouchers</Heading>
-              <ScrollView>{tasks.map((t) => {
-                const isSelected = selectedTasks.includes(t.id);
+            <ScrollView>
+              {categories.map((cat) => {
+                const on = cat.id === selectedCatId;
                 return (
-                  <Pressable key={t.id} onPress={() => toggleTask(t.id)} style={{ flexDirection: "row", alignItems: "center", padding: 10, borderBottomWidth: 1, borderColor: "#eee", backgroundColor: isSelected ? "#e0e7ff" : "transparent" }}>
-                    <View style={{ width: 24, height: 24, borderRadius: 4, borderWidth: 2, borderColor: isSelected ? "#4338ca" : "#ccc", backgroundColor: isSelected ? "#4338ca" : "transparent", marginRight: 12, justifyContent: "center", alignItems: "center" }}>
-                      {isSelected && <Icon as={Check} size="xs" className="text-white" />}
+                  <Pressable
+                    key={cat.id}
+                    onPress={() => setSelectedCatId(cat.id)}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 10,
+                      padding: 10,
+                      borderRadius: 10,
+                      marginBottom: 4,
+                      backgroundColor: on ? "#E0E7FF" : "transparent",
+                    }}
+                  >
+                    <Icon as={getVoucherIcon(cat.iconName)} size="md" style={{ color: BLUE }} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontWeight: "700", color: "#1c2340" }}>{cat.taskCategoryName}</Text>
+                      <Text style={{ fontSize: 12, color: "#6B7280" }}>
+                        {subtasksFor(cat.id).length} subtask{subtasksFor(cat.id).length === 1 ? "" : "s"}
+                      </Text>
                     </View>
-                    <Text style={{ flex: 1, fontWeight: "500" }}>{t.taskName}</Text>
-                    <Text style={{ color: "#4338ca", fontWeight: "600" }}>{t.points} pts</Text>
                   </Pressable>
                 );
-              })}</ScrollView>
-            </VStack>
+              })}
+              {categories.length === 0 && <Text style={{ color: "#6B7280" }}>No categories yet.</Text>}
+            </ScrollView>
+          </VStack>
 
-            <VStack className="bg-white rounded-xl p-4 gap-2">
-              <Text style={{ fontSize: 14, color: "#666" }}>Selected: {selectedResidents.length} residents, {selectedTasks.length} vouchers</Text>
-              <Text style={{ fontSize: 14, color: "#666" }}>Total points per resident: {tasks.filter(t => selectedTasks.includes(t.id)).reduce((s, t) => s + t.points, 0)} pts</Text>
-              <Text style={{ fontSize: 12, color: "#dc2626" }}>⚠ Residents with Abscondence/FTR will be automatically skipped</Text>
-              <Button className="bg-indigoscale-700 mt-2" onPress={handleBulkAward} isDisabled={submitting || selectedResidents.length === 0 || selectedTasks.length === 0}>
-                <ButtonIcon as={Award} className="text-white" />
-                <ButtonText className="text-white">{submitting ? "Awarding..." : "Award Points"}</ButtonText>
-              </Button>
-            </VStack>
+          {/* Selected category + its subtasks */}
+          <VStack className="flex-1 bg-white rounded-2xl p-4" space="md">
+            {selectedCat ? (
+              <>
+                <HStack className="justify-between items-start" style={{ flexWrap: "wrap", gap: 8 }}>
+                  <HStack space="sm" className="items-center flex-1">
+                    <Icon as={getVoucherIcon(selectedCat.iconName)} size="xl" style={{ color: BLUE }} />
+                    <VStack className="flex-1">
+                      <Heading size="lg" style={{ color: BLUE }}>{selectedCat.taskCategoryName}</Heading>
+                      <Text style={{ color: "#6B7280" }}>{selectedCat.taskCategoryDescription || "No description"}</Text>
+                    </VStack>
+                  </HStack>
+                  <HStack space="md" className="items-center">
+                    <Pressable onPress={() => openEditCategory(selectedCat)} accessibilityLabel="Edit category">
+                      <Icon as={Pencil} size="md" className="text-indigoscale-700" />
+                    </Pressable>
+                    <Pressable
+                      onPress={() => downloadExcel(`export/category/${selectedCat.id}`, `${selectedCat.taskCategoryName}.xlsx`)}
+                      accessibilityLabel="Export category"
+                    >
+                      <Icon as={Download} size="md" className="text-greenscale-700" />
+                    </Pressable>
+                    <Pressable onPress={() => askDeleteCategory(selectedCat)} accessibilityLabel="Delete category">
+                      <Icon as={Trash} size="md" className="text-redscale-700" />
+                    </Pressable>
+                  </HStack>
+                </HStack>
 
-            {/* Per-resident download */}
-            <VStack className="bg-white rounded-xl p-4">
-              <Heading size="sm" className="mb-2">Download Individual Records</Heading>
-              <ScrollView style={{ maxHeight: 150 }}>{residents.slice(0, 20).map(r => (
-                <Pressable key={r.id} onPress={() => downloadExcel(`/export/resident/${r.id}`, `${r.userName}.csv`)} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 6, borderBottomWidth: 1, borderColor: "#f3f4f6" }}>
-                  <Text style={{ fontSize: 13 }}>{r.userName}</Text>
-                  <Icon as={Download} size="xs" className="text-greenscale-700" />
-                </Pressable>
-              ))}</ScrollView>
-            </VStack>
+                <HStack className="justify-between items-center">
+                  <Heading size="md" className="text-indigoscale-900">Subtasks</Heading>
+                  <Button size="sm" className="bg-indigoscale-700" onPress={openNewSubtask}>
+                    <ButtonIcon as={Plus} className="text-white" />
+                    <ButtonText className="text-white">Add subtask</ButtonText>
+                  </Button>
+                </HStack>
+
+                <ScrollView>
+                  {subtasksFor(selectedCat.id).length === 0 ? (
+                    <Text style={{ color: "#6B7280" }}>No subtasks yet. Add one to start awarding points.</Text>
+                  ) : (
+                    subtasksFor(selectedCat.id).map((t) => (
+                      <HStack
+                        key={t.id}
+                        className="items-center py-3"
+                        style={{ borderBottomWidth: 1, borderColor: "#F3F4F6", gap: 12 }}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontWeight: "700", color: "#1c2340" }}>{t.taskName}</Text>
+                          {!!t.taskDescription && (
+                            <Text style={{ fontSize: 13, color: "#6B7280" }}>{t.taskDescription}</Text>
+                          )}
+                        </View>
+                        <Text style={{ fontWeight: "800", color: BLUE }}>{t.points} pts</Text>
+                        <Pressable onPress={() => openEditSubtask(t)} accessibilityLabel="Edit subtask">
+                          <Icon as={Pencil} size="sm" className="text-indigoscale-700" />
+                        </Pressable>
+                        <Pressable onPress={() => askDeleteSubtask(t)} accessibilityLabel="Delete subtask">
+                          <Icon as={Trash} size="sm" className="text-redscale-700" />
+                        </Pressable>
+                      </HStack>
+                    ))
+                  )}
+                </ScrollView>
+              </>
+            ) : (
+              <Text style={{ color: "#6B7280" }}>Add a category to get started.</Text>
+            )}
           </VStack>
         </View>
       )}
 
-      {/* CATEGORY MODAL */}
-      <Modal isOpen={showCatModal} onClose={() => setShowCatModal(false)} size="lg">
-        <ModalBackdrop /><ModalContent>
-          <ModalHeader><Heading size="lg" className="text-indigoscale-700">{editCatId ? "Edit" : "Add"} Category</Heading><ModalCloseButton><Icon as={X} size="md" /></ModalCloseButton></ModalHeader>
-          <ModalBody>
-            <VStack space="md">
-              <FormControl><FormControlLabel><FormControlLabelText className="font-semibold">Name *</FormControlLabelText></FormControlLabel><Input className="bg-background-50"><InputField placeholder="Category name" value={catName} onChangeText={setCatName} /></Input></FormControl>
-              <FormControl><FormControlLabel><FormControlLabelText className="font-semibold">Description</FormControlLabelText></FormControlLabel><Input className="bg-background-50"><InputField placeholder="Description" value={catDesc} onChangeText={setCatDesc} /></Input></FormControl>
-              <FormControl><FormControlLabel><FormControlLabelText className="font-semibold">Icon</FormControlLabelText></FormControlLabel>
-                <Select selectedValue={catIcon} onValueChange={setCatIcon}><SelectTrigger className="bg-background-50"><SelectInput placeholder="Select icon" /></SelectTrigger><SelectPortal><SelectBackdrop /><SelectContent><SelectDragIndicatorWrapper><SelectDragIndicator /></SelectDragIndicatorWrapper>{ICON_OPTIONS.map(ic => <SelectItem key={ic} label={ic.charAt(0).toUpperCase() + ic.slice(1)} value={ic} />)}</SelectContent></SelectPortal></Select>
-              </FormControl>
+      {/* ---------------- AWARD POINTS ---------------- */}
+      {activeTab === "award" && (
+        <View style={{ flex: 1, flexDirection: isMobile ? "column" : "row", gap: 16 }}>
+          {/* Step 1 + 2: category and subtask */}
+          <VStack className="bg-white rounded-2xl p-4" space="md" style={{ width: isMobile ? "100%" : 360 }}>
+            <Heading size="md" style={{ color: BLUE }}>1. Choose the voucher</Heading>
+            <VStack space="xs">
+              <Text style={{ fontWeight: "700", color: "#1c2340" }}>Category</Text>
+              <DropdownSelect
+                value={awardCatId}
+                onChange={(v) => {
+                  setAwardCatId(v);
+                  setAwardTaskId("");
+                }}
+                placeholder="Select a category"
+                options={categories.map((c) => ({ label: c.taskCategoryName, value: String(c.id) }))}
+              />
             </VStack>
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="outline" action="secondary" onPress={() => setShowCatModal(false)} className="mr-3"><ButtonText>Cancel</ButtonText></Button>
-            <Button className="bg-indigoscale-700" onPress={handleSaveCategory} isDisabled={submitting || !catName}><ButtonText className="text-white">{submitting ? "Saving..." : "Save"}</ButtonText></Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-
-      {/* VOUCHER MODAL */}
-      <Modal isOpen={showVoucherModal} onClose={() => setShowVoucherModal(false)} size="lg">
-        <ModalBackdrop /><ModalContent>
-          <ModalHeader><Heading size="lg" className="text-indigoscale-700">{editVoucherId ? "Edit" : "Add"} Voucher</Heading><ModalCloseButton><Icon as={X} size="md" /></ModalCloseButton></ModalHeader>
-          <ModalBody>
-            <VStack space="md">
-              <FormControl><FormControlLabel><FormControlLabelText className="font-semibold">Name *</FormControlLabelText></FormControlLabel><Input className="bg-background-50"><InputField placeholder="Voucher name" value={vName} onChangeText={setVName} /></Input></FormControl>
-              <FormControl><FormControlLabel><FormControlLabelText className="font-semibold">Description *</FormControlLabelText></FormControlLabel><Input className="bg-background-50"><InputField placeholder="Description" value={vDesc} onChangeText={setVDesc} /></Input></FormControl>
-              <FormControl><FormControlLabel><FormControlLabelText className="font-semibold">Points *</FormControlLabelText></FormControlLabel><Input className="bg-background-50"><InputField placeholder="Points" value={vPoints} onChangeText={setVPoints} keyboardType="numeric" /></Input></FormControl>
-              <FormControl><FormControlLabel><FormControlLabelText className="font-semibold">Category *</FormControlLabelText></FormControlLabel>
-                <Select selectedValue={vCatId} onValueChange={setVCatId}><SelectTrigger className="bg-background-50"><SelectInput placeholder="Select category" /></SelectTrigger><SelectPortal><SelectBackdrop /><SelectContent><SelectDragIndicatorWrapper><SelectDragIndicator /></SelectDragIndicatorWrapper>{categories.map(c => <SelectItem key={c.id} label={c.taskCategoryName || ""} value={String(c.id)} />)}</SelectContent></SelectPortal></Select>
-              </FormControl>
+            <VStack space="xs">
+              <Text style={{ fontWeight: "700", color: "#1c2340" }}>Subtask</Text>
+              {awardCatId && awardSubtasks.length === 0 ? (
+                <Text style={{ color: "#6B7280" }}>This category has no subtasks yet.</Text>
+              ) : (
+                <DropdownSelect
+                  value={awardTaskId}
+                  onChange={setAwardTaskId}
+                  placeholder={awardCatId ? "Select a subtask" : "Choose a category first"}
+                  options={awardSubtasks.map((t) => ({ label: `${t.taskName} · ${t.points} pts`, value: String(t.id) }))}
+                />
+              )}
             </VStack>
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="outline" action="secondary" onPress={() => setShowVoucherModal(false)} className="mr-3"><ButtonText>Cancel</ButtonText></Button>
-            <Button className="bg-indigoscale-700" onPress={handleSaveVoucher} isDisabled={submitting || !vName || !vDesc || !vPoints || !vCatId}><ButtonText className="text-white">{submitting ? "Saving..." : "Save"}</ButtonText></Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
 
-      {/* BULK AWARD RESULT MODAL */}
-      <Modal isOpen={showResultModal} onClose={() => setShowResultModal(false)} size="lg">
-        <ModalBackdrop /><ModalContent>
-          <ModalHeader><Heading size="lg" className="text-indigoscale-700">Award Results</Heading><ModalCloseButton><Icon as={X} size="md" /></ModalCloseButton></ModalHeader>
+            <VStack className="rounded-xl p-3" style={{ backgroundColor: "#EEF1F7" }} space="xs">
+              <Text style={{ color: "#1c2340" }}>
+                Residents selected: <Text style={{ fontWeight: "800" }}>{selectedResidents.length}</Text>
+              </Text>
+              <Text style={{ color: "#1c2340" }}>
+                Points each: <Text style={{ fontWeight: "800" }}>{awardTask ? awardTask.points : "—"}</Text>
+              </Text>
+              <Text style={{ fontSize: 12, color: "#dc2626" }}>
+                Residents marked Abscondence or FTR are skipped automatically.
+              </Text>
+            </VStack>
+
+            <Button
+              className="bg-indigoscale-700"
+              onPress={award}
+              disabled={submitting || !awardTask || selectedResidents.length === 0}
+            >
+              <ButtonIcon as={Award} className="text-white" />
+              <ButtonText className="text-white">{submitting ? "Awarding..." : "Award points"}</ButtonText>
+            </Button>
+          </VStack>
+
+          {/* Step 3: residents */}
+          <VStack className="flex-1 bg-white rounded-2xl p-4" space="sm" style={{ minHeight: 360 }}>
+            <HStack className="justify-between items-center" style={{ flexWrap: "wrap", gap: 8 }}>
+              <Heading size="md" style={{ color: BLUE }}>2. Choose residents</Heading>
+              <Button size="sm" variant="outline" onPress={toggleAllVisible}>
+                <ButtonText>{allVisibleSelected ? "Deselect all" : "Select all"}</ButtonText>
+              </Button>
+            </HStack>
+            <HStack className="items-center rounded-lg px-3 border border-gray-300">
+              <Icon as={Search} size="sm" className="text-gray-400" />
+              <Input className="flex-1 border-0">
+                <InputField placeholder="Search name or serial number" value={residentSearch} onChangeText={setResidentSearch} />
+              </Input>
+            </HStack>
+            <ScrollView>
+              {filteredResidents.map((r) => {
+                const on = selectedResidents.includes(r.id);
+                const remarks = r.resident?.remarks;
+                const ineligible = remarks === "abscondence" || remarks === "ftr";
+                return (
+                  <Pressable
+                    key={r.id}
+                    onPress={() => toggleResident(r.id)}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      padding: 10,
+                      borderBottomWidth: 1,
+                      borderColor: "#F3F4F6",
+                      backgroundColor: on ? "#E0E7FF" : "transparent",
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: 4,
+                        borderWidth: 2,
+                        borderColor: on ? BLUE : "#CBD5E1",
+                        backgroundColor: on ? BLUE : "transparent",
+                        marginRight: 12,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {on && <Icon as={Check} size="xs" className="text-white" />}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontWeight: "600", color: "#1c2340" }}>{r.userName}</Text>
+                      <Text style={{ fontSize: 12, color: "#6B7280" }}>
+                        {r.resident?.serialNumber ? `${r.resident.serialNumber} · ` : ""}
+                        {r.resident?.currentPoints ?? 0} pts
+                      </Text>
+                    </View>
+                    {ineligible && (
+                      <View style={{ backgroundColor: "#FEF2F2", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12, marginRight: 8 }}>
+                        <Text style={{ color: "#DC2626", fontSize: 11, fontWeight: "700" }}>{remarks === "ftr" ? "FTR" : "ABS"}</Text>
+                      </View>
+                    )}
+                    <Pressable
+                      onPress={() => downloadExcel(`export/resident/${r.id}`, `${r.userName}.xlsx`)}
+                      accessibilityLabel={`Download ${r.userName}'s records`}
+                      hitSlop={8}
+                    >
+                      <Icon as={Download} size="xs" className="text-greenscale-700" />
+                    </Pressable>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </VStack>
+        </View>
+      )}
+
+      {/* CATEGORY MODAL (keyed so it starts fresh each time it opens) */}
+      {catModal && (
+        <FormModalShell
+          key={catModal.item?.id ?? "new"}
+          title={`${catModal.item ? "Edit" : "Add"} category`}
+          onClose={closeCatModal}
+        >
+          <CategoryFormFields initial={catModal.item} onClose={closeCatModal} onSave={saveCategory} />
+        </FormModalShell>
+      )}
+
+      {/* SUBTASK MODAL */}
+      {taskModal && selectedCat && (
+        <FormModalShell
+          key={taskModal.item?.id ?? "new"}
+          title={`${taskModal.item ? "Edit" : "Add"} subtask · ${selectedCat.taskCategoryName}`}
+          onClose={closeTaskModal}
+        >
+          <SubtaskFormFields initial={taskModal.item} onClose={closeTaskModal} onSave={saveSubtask} />
+        </FormModalShell>
+      )}
+
+      {/* AWARD RESULT */}
+      <Modal isOpen={!!awardResult} onClose={() => setAwardResult(null)} size="lg">
+        <ModalBackdrop />
+        <ModalContent>
+          <ModalHeader>
+            <Heading size="lg" className="text-indigoscale-700">Award results</Heading>
+            <ModalCloseButton><Icon as={X} size="md" /></ModalCloseButton>
+          </ModalHeader>
           <ModalBody>
             {awardResult && (
               <VStack space="md">
-                <HStack space="lg">
-                  <View style={{ backgroundColor: "#dcfce7", padding: 12, borderRadius: 8, flex: 1 }}>
-                    <Text style={{ fontSize: 24, fontWeight: "bold", color: "#166534" }}>{awardResult.successCount}</Text>
-                    <Text style={{ color: "#166534", fontSize: 12 }}>Awarded</Text>
-                  </View>
-                  <View style={{ backgroundColor: "#fef3c7", padding: 12, borderRadius: 8, flex: 1 }}>
-                    <Text style={{ fontSize: 24, fontWeight: "bold", color: "#92400e" }}>{awardResult.skippedCount}</Text>
-                    <Text style={{ color: "#92400e", fontSize: 12 }}>Skipped</Text>
-                  </View>
-                  <View style={{ backgroundColor: "#fee2e2", padding: 12, borderRadius: 8, flex: 1 }}>
-                    <Text style={{ fontSize: 24, fontWeight: "bold", color: "#991b1b" }}>{awardResult.failedCount}</Text>
-                    <Text style={{ color: "#991b1b", fontSize: 12 }}>Failed</Text>
-                  </View>
+                <HStack space="md">
+                  {[
+                    ["Awarded", awardResult.successCount, "#DCFCE7", "#166534"],
+                    ["Skipped", awardResult.skippedCount, "#FEF3C7", "#92400E"],
+                    ["Failed", awardResult.failedCount, "#FEE2E2", "#991B1B"],
+                  ].map(([label, count, bg, fg]) => (
+                    <View key={label} style={{ backgroundColor: bg, padding: 12, borderRadius: 8, flex: 1 }}>
+                      <Text style={{ fontSize: 24, fontWeight: "bold", color: fg }}>{count ?? 0}</Text>
+                      <Text style={{ color: fg, fontSize: 12 }}>{label}</Text>
+                    </View>
+                  ))}
                 </HStack>
                 {awardResult.results?.skipped?.length > 0 && (
                   <VStack>
-                    <Text style={{ fontWeight: "bold", color: "#92400e", marginBottom: 4 }}>Skipped (Not Entitled):</Text>
+                    <Text style={{ fontWeight: "bold", color: "#92400E", marginBottom: 4 }}>Skipped (not entitled):</Text>
                     {awardResult.results.skipped.map((s: any, i: number) => (
-                      <Text key={i} style={{ fontSize: 13, color: "#92400e" }}>• {s.userName}: {s.reason}</Text>
+                      <Text key={i} style={{ fontSize: 13, color: "#92400E" }}>• {s.userName}: {s.reason}</Text>
                     ))}
                   </VStack>
                 )}
               </VStack>
             )}
           </ModalBody>
-          <ModalFooter><Button className="bg-indigoscale-700" onPress={() => setShowResultModal(false)}><ButtonText className="text-white">Close</ButtonText></Button></ModalFooter>
+          <ModalFooter>
+            <Button className="bg-indigoscale-700" onPress={() => setAwardResult(null)}><ButtonText className="text-white">Close</ButtonText></Button>
+          </ModalFooter>
         </ModalContent>
       </Modal>
+
+      {/* CONFIRM */}
+      <alert.AlertDialog isOpen={!!confirm} onClose={() => setConfirm(null)}>
+        <alert.AlertDialogBackdrop />
+        <alert.AlertDialogContent>
+          <alert.AlertDialogHeader><Heading size="md">{confirm?.title}</Heading></alert.AlertDialogHeader>
+          <alert.AlertDialogBody><Text>{confirm?.message}</Text></alert.AlertDialogBody>
+          <alert.AlertDialogFooter>
+            <Button variant="outline" action="secondary" className="mr-3" onPress={() => setConfirm(null)}><ButtonText>Cancel</ButtonText></Button>
+            <Button
+              action="negative"
+              onPress={async () => {
+                const action = confirm;
+                setConfirm(null);
+                if (action) await action.onConfirm();
+              }}
+            >
+              <ButtonText>{confirm?.confirmLabel}</ButtonText>
+            </Button>
+          </alert.AlertDialogFooter>
+        </alert.AlertDialogContent>
+      </alert.AlertDialog>
     </VStack>
   );
 };

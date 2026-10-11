@@ -100,15 +100,16 @@ export const createRedemption = async (req, res) => {
   } catch (error) {
     console.error('Create redemption error:', error);
     
-    if (error.message.includes('not found') || 
+    if (error.message.includes('not found') ||
         error.message.includes('unavailable') ||
-        error.message.includes('Insufficient')) {
-      return res.status(400).json({ 
+        error.message.includes('Insufficient') ||
+        error.message.includes('Purchase limit')) {
+      return res.status(400).json({
         error: { message: error.message }
       });
     }
 
-    res.status(500).json({ 
+    res.status(500).json({
       error: { message: 'Internal server error' }
     });
   }

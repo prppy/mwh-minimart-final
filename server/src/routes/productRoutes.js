@@ -5,6 +5,33 @@ import * as ProductController from '../controllers/productController.js';
 
 const productRouter = Router();
 
+// Tier / purchase-limit / pre-order / type fields (shared by create and update).
+// Nullable so the admin form can clear them.
+const tierFieldValidation = [
+  body('productGroup')
+    .optional({ values: 'null' })
+    .isString()
+    .isLength({ max: 60 })
+    .withMessage('Product group must be at most 60 characters'),
+  body('tierLabel')
+    .optional({ values: 'null' })
+    .isString()
+    .isLength({ max: 30 })
+    .withMessage('Tier label must be at most 30 characters'),
+  body('maxPerOrder')
+    .optional({ values: 'falsy' })
+    .isInt({ min: 1, max: 10 })
+    .withMessage('Max per order must be between 1 and 10'),
+  body('isPreorder')
+    .optional({ values: 'null' })
+    .isBoolean()
+    .withMessage('Pre-order must be a boolean'),
+  body('typeId')
+    .optional({ values: 'null' })
+    .isInt({ min: 1 })
+    .withMessage('Type ID must be a positive integer'),
+];
+
 // Validation middleware
 const productValidation = [
   body('productName')
@@ -26,9 +53,10 @@ const productValidation = [
     .isBoolean()
     .withMessage('Available must be a boolean'),
   body('imageUrl')
-    .optional()
+    .optional({ values: 'null' })
     .isString()
-    .withMessage('Image URL must be a string')
+    .withMessage('Image URL must be a string'),
+  ...tierFieldValidation
 ];
 
 const productUpdateValidation = [
@@ -52,14 +80,11 @@ const productUpdateValidation = [
     .optional()
     .isBoolean()
     .withMessage('Available must be a boolean'),
-  body('stock')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Stock must be a positive integer'),
   body('imageUrl')
-    .optional()
+    .optional({ values: 'null' })
     .isString()
-    .withMessage('Image URL must be a string')
+    .withMessage('Image URL must be a string'),
+  ...tierFieldValidation
 ];
 
 const productIdValidation = [

@@ -10,7 +10,8 @@ import { useAuth } from "@/contexts/auth-context";
 import { supabase } from "@/utils/supabase";
 
 import Checkbox from "@/components/custom-checkbox";
-import SearchableGrid from "@/components/custom-searchable-grid";
+import SearchableGrid, { GridItemData } from "@/components/custom-searchable-grid";
+import CatalogueRules from "@/components/catalogue-rules";
 import Spinner from "@/components/custom-spinner";
 import CartModal from "@/components/cart-modal";
 
@@ -28,7 +29,7 @@ const CataloguePage: React.FC = () => {
   const router = useRouter();
   const navigation = useNavigation();
   const { cart, cartCount, totalPoints, removeFromCart, updateQuantity } = useCart();
-  const { role } = useAuth();
+  const { role, isAdmin } = useAuth();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -57,7 +58,7 @@ const CataloguePage: React.FC = () => {
       return Number(product.Type_ID) === 2;
     }
     const catName = product.category?.categoryName || "";
-    return ["Apparels", "Accessories", "Electronics"].includes(catName);
+    return ["Apparels", "Sports Wear", "Accessories", "Electronics"].includes(catName);
   };
 
   const isDaily = (product: Product) => {
@@ -179,12 +180,15 @@ const CataloguePage: React.FC = () => {
     }
   }, [showRestockedBanner]);
 
-  // Sidebar category order Drinks → Food → Personal Care → Apparels → Accessories → Electronics → Weekly Deals
+  // Sidebar category order (hackathon deck): Beverages → Food → Desserts → Personal Care →
+  // Apparels → Sports Wear → Accessories → Electronics → Weekly Deals
   const categoryOrder = [
-    "Drinks",
+    "Beverages",
     "Food",
+    "Desserts",
     "Personal Care",
     "Apparels",
+    "Sports Wear",
     "Accessories",
     "Electronics",
     "Weekly Deals"
@@ -207,6 +211,9 @@ const CataloguePage: React.FC = () => {
   // Robust client-side filtering
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
+      // 0. Unavailable items are only visible to staff
+      if (!isAdmin && product.available === false) return false;
+
       // 1. Points filter
       if (product.points !== undefined && product.points !== null) {
         if (product.points > points) return false;
@@ -229,7 +236,59 @@ const CataloguePage: React.FC = () => {
 
       return true;
     });
-  }, [products, points, selectedCategories, selectedTypes]);
+  }, [products, points, selectedCategories, selectedTypes, isAdmin]);
+
+  // Collapse tiers of the same product group (e.g. Chocolates Small/Medium/Large) into one card
+  const gridItems = useMemo<GridItemData[]>(() => {
+    const items: GridItemData[] = [];
+    const groups = new Map<string, Product[]>();
+
+    for (const product of filteredProducts) {
+      if (!product.productGroup) {
+        items.push({
+          id: product.id,
+          name: product.productName,
+          points: product.points,
+          image: product.imageUrl,
+          redemptionCount: product.redemptionCount || 0,
+          maxPerOrder: product.maxPerOrder,
+          isPreorder: product.isPreorder,
+        });
+        continue;
+      }
+      const key = `${product.categoryId}|${product.productGroup}`;
+      if (!groups.has(key)) {
+        groups.set(key, []);
+        // Placeholder keeps the group at the position of its first tier
+        items.push({ id: key, name: product.productGroup, points: 0, image: "" });
+      }
+      groups.get(key)!.push(product);
+    }
+
+    return items.map((item) => {
+      const tierProducts = groups.get(String(item.id));
+      if (!tierProducts) return item;
+
+      const tiers = [...tierProducts].sort((a, b) => a.points - b.points);
+      const cheapest = tiers[0];
+      return {
+        id: cheapest.id,
+        name: item.name,
+        points: cheapest.points,
+        image: tiers.find((t) => t.imageUrl)?.imageUrl || "",
+        redemptionCount: tiers.reduce((sum, t) => sum + (t.redemptionCount || 0), 0),
+        maxPerOrder: cheapest.maxPerOrder,
+        isPreorder: cheapest.isPreorder,
+        tiers: tiers.map((t) => ({
+          id: t.id,
+          label: t.tierLabel || t.productName,
+          points: t.points,
+          maxPerOrder: t.maxPerOrder,
+          isPreorder: t.isPreorder,
+        })),
+      };
+    });
+  }, [filteredProducts]);
 
   // Announcement Banner calculations
   const newItems = useMemo(() => {
@@ -304,6 +363,8 @@ const CataloguePage: React.FC = () => {
           })}
         </VStack>
       </VStack>
+
+      <CatalogueRules />
 
       {/* type filter */}
       <VStack space="xs">
@@ -539,13 +600,7 @@ const CataloguePage: React.FC = () => {
           <Spinner text="Loading products..." />
         ) : (
           <SearchableGrid
-            items={filteredProducts.map((product) => ({
-              id: product.id,
-              name: product.productName,
-              points: product.points,
-              image: product.imageUrl,
-              redemptionCount: product.redemptionCount || 0,
-            }))}
+            items={gridItems}
             onItemPress={(item) => router.push(`/catalogue/${item.id}`)}
             onAddPress={() => router.push(`/catalogue/0`)}
             noItemsAlert="No products found!"

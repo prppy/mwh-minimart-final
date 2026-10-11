@@ -14,6 +14,8 @@ import archiveRoutes from './archiveRoutes.js';
 import screensaverRoutes from './screensaverRoutes.js';
 import exportRoutes from './exportRoutes.js';
 import adminRoutes from './adminRoutes.js';
+import orderRoutes from './orderRoutes.js';
+import settingsRoutes from './settingsRoutes.js';
 
 router.use('/users', userRoutes);
 router.use('/authentication', authenticationRoute);
@@ -28,5 +30,7 @@ router.use('/archive', archiveRoutes);
 router.use('/screensaver-images', screensaverRoutes);
 router.use('/export', exportRoutes);
 router.use('/admin', adminRoutes);
+router.use('/orders', orderRoutes);
+router.use('/settings', settingsRoutes);
 
 export default router;
