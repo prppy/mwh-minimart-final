@@ -5,7 +5,6 @@ import { Award, Check, Download, Pencil, Plus, Search, Trash, X } from "lucide-r
 import api from "@/utils/api";
 import { getVoucherIcon, VOUCHER_ICON_OPTIONS } from "@/constants/voucher-icons";
 
-import DropdownSelect from "@/components/dropdown-select";
 import { Button, ButtonIcon, ButtonText } from "@/components/button";
 import * as alert from "@/components/ui/alert-dialog";
 import { FormControl, FormControlLabel, FormControlLabelText } from "@/components/ui/form-control";
@@ -19,6 +18,26 @@ import { VStack } from "@/components/ui/vstack";
 
 const MOBILE_BREAKPOINT = 768;
 const BLUE = "#1f3a93";
+const ORANGE = "#e8502a";
+const TILE_GAP = 10;
+
+const StepTitle: React.FC<{ step: number; title: string }> = ({ step, title }) => (
+  <HStack space="sm" className="items-center">
+    <View
+      style={{
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: BLUE,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Text style={{ color: "#ffffff", fontWeight: "800" }}>{step}</Text>
+    </View>
+    <Heading size="md" style={{ color: BLUE }}>{title}</Heading>
+  </HStack>
+);
 
 type Category = {
   id: number;
@@ -221,6 +240,8 @@ const VoucherAdminPage: React.FC = () => {
   const [selectedResidents, setSelectedResidents] = useState<number[]>([]);
   const [residentSearch, setResidentSearch] = useState("");
   const [awardResult, setAwardResult] = useState<any>(null);
+  // Width of the award tab, measured, to size the subtask and resident grids
+  const [awardWidth, setAwardWidth] = useState(0);
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -358,6 +379,12 @@ const VoucherAdminPage: React.FC = () => {
     );
   }, [residents, residentSearch]);
 
+  // Tiles fill their card (16px padding on each side)
+  const gridWidth = (awardWidth || width - (isMobile ? 24 : 40)) - 32;
+  const tileWidth = (columns: number) => Math.floor((gridWidth - TILE_GAP * (columns - 1)) / columns);
+  const subtaskTileWidth = tileWidth(isMobile ? 1 : gridWidth > 1100 ? 3 : 2);
+  const residentTileWidth = tileWidth(isMobile ? 1 : gridWidth > 1300 ? 4 : gridWidth > 900 ? 3 : 2);
+
   const toggleResident = (id: number) =>
     setSelectedResidents((prev) => (prev.includes(id) ? prev.filter((r) => r !== id) : [...prev, id]));
 
@@ -434,11 +461,6 @@ const VoucherAdminPage: React.FC = () => {
         <Button variant="outline" className={tabClass(activeTab === "award")} onPress={() => setActiveTab("award")}>
           <ButtonText className={tabText(activeTab === "award")}>Award Points</ButtonText>
         </Button>
-        <View style={{ flex: 1 }} />
-        <Button className="bg-greenscale-700" onPress={() => downloadExcel("export/all", "all_records.xlsx")}>
-          <ButtonIcon as={Download} className="text-white" />
-          <ButtonText className="text-white">Export Excel</ButtonText>
-        </Button>
       </View>
 
       {notice && (
@@ -512,12 +534,6 @@ const VoucherAdminPage: React.FC = () => {
                     <Pressable onPress={() => openEditCategory(selectedCat)} accessibilityLabel="Edit category">
                       <Icon as={Pencil} size="md" className="text-indigoscale-700" />
                     </Pressable>
-                    <Pressable
-                      onPress={() => downloadExcel(`export/category/${selectedCat.id}`, `${selectedCat.taskCategoryName}.xlsx`)}
-                      accessibilityLabel="Export category"
-                    >
-                      <Icon as={Download} size="md" className="text-greenscale-700" />
-                    </Pressable>
                     <Pressable onPress={() => askDeleteCategory(selectedCat)} accessibilityLabel="Delete category">
                       <Icon as={Trash} size="md" className="text-redscale-700" />
                     </Pressable>
@@ -569,48 +585,198 @@ const VoucherAdminPage: React.FC = () => {
 
       {/* ---------------- AWARD POINTS ---------------- */}
       {activeTab === "award" && (
-        <View style={{ flex: 1, flexDirection: isMobile ? "column" : "row", gap: 16 }}>
-          {/* Step 1 + 2: category and subtask */}
-          <VStack className="bg-white rounded-2xl p-4" space="md" style={{ width: isMobile ? "100%" : 360 }}>
-            <Heading size="md" style={{ color: BLUE }}>1. Choose the voucher</Heading>
-            <VStack space="xs">
-              <Text style={{ fontWeight: "700", color: "#1c2340" }}>Category</Text>
-              <DropdownSelect
-                value={awardCatId}
-                onChange={(v) => {
-                  setAwardCatId(v);
-                  setAwardTaskId("");
-                }}
-                placeholder="Select a category"
-                options={categories.map((c) => ({ label: c.taskCategoryName, value: String(c.id) }))}
-              />
+        <View style={{ flex: 1, gap: 12 }}>
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ gap: 16, paddingBottom: 4 }}
+            onLayout={(e) => setAwardWidth(e.nativeEvent.layout.width)}
+          >
+            {/* Step 1: category */}
+            <VStack className="bg-white rounded-2xl p-4" space="md">
+              <StepTitle step={1} title="Choose a category" />
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {categories.map((c) => {
+                  const on = awardCatId === String(c.id);
+                  return (
+                    <Pressable
+                      key={c.id}
+                      onPress={() => {
+                        setAwardCatId(String(c.id));
+                        setAwardTaskId("");
+                      }}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 8,
+                        paddingHorizontal: 14,
+                        paddingVertical: 10,
+                        borderRadius: 999,
+                        borderWidth: 1,
+                        borderColor: on ? BLUE : "#D1D5DB",
+                        backgroundColor: on ? BLUE : "#ffffff",
+                      }}
+                    >
+                      <Icon as={getVoucherIcon(c.iconName)} size="sm" style={{ color: on ? "#ffffff" : BLUE }} />
+                      <Text style={{ fontWeight: "700", color: on ? "#ffffff" : BLUE }}>{c.taskCategoryName}</Text>
+                    </Pressable>
+                  );
+                })}
+                {categories.length === 0 && <Text style={{ color: "#6B7280" }}>No categories yet.</Text>}
+              </View>
             </VStack>
-            <VStack space="xs">
-              <Text style={{ fontWeight: "700", color: "#1c2340" }}>Subtask</Text>
-              {awardCatId && awardSubtasks.length === 0 ? (
-                <Text style={{ color: "#6B7280" }}>This category has no subtasks yet.</Text>
+
+            {/* Step 2: subtask */}
+            <VStack className="bg-white rounded-2xl p-4" space="md">
+              <StepTitle step={2} title="Choose the subtask" />
+              {!awardCatId ? (
+                <Text style={{ color: "#6B7280" }}>Choose a category first.</Text>
+              ) : awardSubtasks.length === 0 ? (
+                <Text style={{ color: "#6B7280" }}>
+                  This category has no subtasks yet. Add them in Categories & Subtasks.
+                </Text>
               ) : (
-                <DropdownSelect
-                  value={awardTaskId}
-                  onChange={setAwardTaskId}
-                  placeholder={awardCatId ? "Select a subtask" : "Choose a category first"}
-                  options={awardSubtasks.map((t) => ({ label: `${t.taskName} · ${t.points} pts`, value: String(t.id) }))}
-                />
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: TILE_GAP }}>
+                  {awardSubtasks.map((t) => {
+                    const on = awardTaskId === String(t.id);
+                    return (
+                      <Pressable
+                        key={t.id}
+                        onPress={() => setAwardTaskId(String(t.id))}
+                        style={{
+                          width: subtaskTileWidth,
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 12,
+                          padding: 12,
+                          borderRadius: 12,
+                          borderWidth: 2,
+                          borderColor: on ? BLUE : "#E5E7EB",
+                          backgroundColor: on ? "#E0E7FF" : "#ffffff",
+                        }}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontWeight: "700", color: "#1c2340" }}>{t.taskName}</Text>
+                          {!!t.taskDescription && (
+                            <Text style={{ fontSize: 12, color: "#6B7280" }} numberOfLines={2}>
+                              {t.taskDescription}
+                            </Text>
+                          )}
+                        </View>
+                        <Text style={{ fontSize: 18, fontWeight: "900", color: ORANGE }}>+{t.points}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
               )}
             </VStack>
 
-            <VStack className="rounded-xl p-3" style={{ backgroundColor: "#EEF1F7" }} space="xs">
-              <Text style={{ color: "#1c2340" }}>
-                Residents selected: <Text style={{ fontWeight: "800" }}>{selectedResidents.length}</Text>
+            {/* Step 3: residents */}
+            <VStack className="bg-white rounded-2xl p-4" space="sm">
+              <HStack className="justify-between items-center" style={{ flexWrap: "wrap", gap: 8 }}>
+                <StepTitle step={3} title="Choose residents" />
+                <HStack space="sm" className="items-center">
+                  <Text style={{ color: "#6B7280" }}>{selectedResidents.length} selected</Text>
+                  <Button size="sm" variant="outline" onPress={toggleAllVisible}>
+                    <ButtonText>{allVisibleSelected ? "Deselect all" : "Select all"}</ButtonText>
+                  </Button>
+                </HStack>
+              </HStack>
+              <HStack className="items-center rounded-lg px-3 border border-gray-300">
+                <Icon as={Search} size="sm" className="text-gray-400" />
+                <Input className="flex-1 border-0">
+                  <InputField placeholder="Search name or serial number" value={residentSearch} onChangeText={setResidentSearch} />
+                </Input>
+              </HStack>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: TILE_GAP }}>
+                {filteredResidents.map((r) => {
+                  const on = selectedResidents.includes(r.id);
+                  const remarks = r.resident?.remarks;
+                  const ineligible = remarks === "abscondence" || remarks === "ftr";
+                  return (
+                    <Pressable
+                      key={r.id}
+                      onPress={() => toggleResident(r.id)}
+                      style={{
+                        width: residentTileWidth,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        padding: 10,
+                        borderRadius: 10,
+                        borderWidth: 1,
+                        borderColor: on ? BLUE : "#E5E7EB",
+                        backgroundColor: on ? "#E0E7FF" : "#ffffff",
+                      }}
+                    >
+                      <View
+                        style={{
+                          width: 22,
+                          height: 22,
+                          borderRadius: 4,
+                          borderWidth: 2,
+                          borderColor: on ? BLUE : "#CBD5E1",
+                          backgroundColor: on ? BLUE : "transparent",
+                          marginRight: 10,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        {on && <Icon as={Check} size="xs" className="text-white" />}
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontWeight: "600", color: "#1c2340" }} numberOfLines={1}>
+                          {r.userName}
+                        </Text>
+                        <Text style={{ fontSize: 12, color: "#6B7280" }}>
+                          {r.resident?.serialNumber ? `${r.resident.serialNumber} · ` : ""}
+                          {r.resident?.currentPoints ?? 0} pts
+                        </Text>
+                      </View>
+                      {ineligible && (
+                        <View style={{ backgroundColor: "#FEF2F2", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12, marginRight: 6 }}>
+                          <Text style={{ color: "#DC2626", fontSize: 11, fontWeight: "700" }}>{remarks === "ftr" ? "FTR" : "ABS"}</Text>
+                        </View>
+                      )}
+                      <Pressable
+                        onPress={() => downloadExcel(`export/resident/${r.id}`, `${r.userName}.xlsx`)}
+                        accessibilityLabel={`Download ${r.userName}'s records`}
+                        hitSlop={8}
+                      >
+                        <Icon as={Download} size="xs" className="text-greenscale-700" />
+                      </Pressable>
+                    </Pressable>
+                  );
+                })}
+                {filteredResidents.length === 0 && <Text style={{ color: "#6B7280" }}>No residents found.</Text>}
+              </View>
+            </VStack>
+          </ScrollView>
+
+          {/* Summary + award, always visible */}
+          <View
+            className="bg-white rounded-2xl"
+            style={{
+              flexDirection: isMobile ? "column" : "row",
+              alignItems: isMobile ? "stretch" : "center",
+              gap: 12,
+              padding: 16,
+              borderWidth: 1,
+              borderColor: "#D9E0F2",
+            }}
+          >
+            <VStack className="flex-1" space="xs">
+              <Text style={{ fontWeight: "800", color: "#1c2340" }}>
+                {awardTask ? `${awardTask.taskName} · +${awardTask.points} pts each` : "No subtask chosen yet"}
               </Text>
-              <Text style={{ color: "#1c2340" }}>
-                Points each: <Text style={{ fontWeight: "800" }}>{awardTask ? awardTask.points : "—"}</Text>
-              </Text>
-              <Text style={{ fontSize: 12, color: "#dc2626" }}>
-                Residents marked Abscondence or FTR are skipped automatically.
+              <Text style={{ color: "#6B7280", fontSize: 13 }}>
+                {selectedResidents.length} resident{selectedResidents.length === 1 ? "" : "s"} selected
+                {awardTask ? ` · ${awardTask.points * selectedResidents.length} pts in total` : ""}. Residents
+                marked ABS or FTR are skipped automatically.
               </Text>
             </VStack>
-
+            <Button variant="outline" className="border-greenscale-700" onPress={() => downloadExcel("export/all", "all_records.xlsx")}>
+              <ButtonIcon as={Download} className="text-greenscale-700" />
+              <ButtonText className="text-greenscale-700">Export Excel</ButtonText>
+            </Button>
             <Button
               className="bg-indigoscale-700"
               onPress={award}
@@ -619,79 +785,7 @@ const VoucherAdminPage: React.FC = () => {
               <ButtonIcon as={Award} className="text-white" />
               <ButtonText className="text-white">{submitting ? "Awarding..." : "Award points"}</ButtonText>
             </Button>
-          </VStack>
-
-          {/* Step 3: residents */}
-          <VStack className="flex-1 bg-white rounded-2xl p-4" space="sm" style={{ minHeight: 360 }}>
-            <HStack className="justify-between items-center" style={{ flexWrap: "wrap", gap: 8 }}>
-              <Heading size="md" style={{ color: BLUE }}>2. Choose residents</Heading>
-              <Button size="sm" variant="outline" onPress={toggleAllVisible}>
-                <ButtonText>{allVisibleSelected ? "Deselect all" : "Select all"}</ButtonText>
-              </Button>
-            </HStack>
-            <HStack className="items-center rounded-lg px-3 border border-gray-300">
-              <Icon as={Search} size="sm" className="text-gray-400" />
-              <Input className="flex-1 border-0">
-                <InputField placeholder="Search name or serial number" value={residentSearch} onChangeText={setResidentSearch} />
-              </Input>
-            </HStack>
-            <ScrollView>
-              {filteredResidents.map((r) => {
-                const on = selectedResidents.includes(r.id);
-                const remarks = r.resident?.remarks;
-                const ineligible = remarks === "abscondence" || remarks === "ftr";
-                return (
-                  <Pressable
-                    key={r.id}
-                    onPress={() => toggleResident(r.id)}
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      padding: 10,
-                      borderBottomWidth: 1,
-                      borderColor: "#F3F4F6",
-                      backgroundColor: on ? "#E0E7FF" : "transparent",
-                    }}
-                  >
-                    <View
-                      style={{
-                        width: 22,
-                        height: 22,
-                        borderRadius: 4,
-                        borderWidth: 2,
-                        borderColor: on ? BLUE : "#CBD5E1",
-                        backgroundColor: on ? BLUE : "transparent",
-                        marginRight: 12,
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      {on && <Icon as={Check} size="xs" className="text-white" />}
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontWeight: "600", color: "#1c2340" }}>{r.userName}</Text>
-                      <Text style={{ fontSize: 12, color: "#6B7280" }}>
-                        {r.resident?.serialNumber ? `${r.resident.serialNumber} · ` : ""}
-                        {r.resident?.currentPoints ?? 0} pts
-                      </Text>
-                    </View>
-                    {ineligible && (
-                      <View style={{ backgroundColor: "#FEF2F2", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12, marginRight: 8 }}>
-                        <Text style={{ color: "#DC2626", fontSize: 11, fontWeight: "700" }}>{remarks === "ftr" ? "FTR" : "ABS"}</Text>
-                      </View>
-                    )}
-                    <Pressable
-                      onPress={() => downloadExcel(`export/resident/${r.id}`, `${r.userName}.xlsx`)}
-                      accessibilityLabel={`Download ${r.userName}'s records`}
-                      hitSlop={8}
-                    >
-                      <Icon as={Download} size="xs" className="text-greenscale-700" />
-                    </Pressable>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </VStack>
+          </View>
         </View>
       )}
 

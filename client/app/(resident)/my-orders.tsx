@@ -27,16 +27,15 @@ const MyOrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const fetchOrders = useCallback(async () => {
     try {
       const res = await api.get("orders/my");
       setOrders(res.data.data || []);
-      setError(null);
     } catch (err: any) {
+      // Keep whatever was loaded last; with nothing loaded the page shows
+      // the "no orders" message rather than an error
       console.error("Failed to load orders:", err);
-      setError(err?.message || "Could not load your orders.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -94,11 +93,9 @@ const MyOrdersPage: React.FC = () => {
 
         {loading ? (
           <Spinner text="Loading your orders..." />
-        ) : error ? (
-          <Text className="text-redscale-700">{error}</Text>
         ) : orders.length === 0 ? (
           <VStack space="md" className="bg-white rounded-2xl p-8 items-center">
-            <Text className="text-gray-600">You haven&apos;t redeemed anything yet.</Text>
+            <Text className="text-gray-600">You have no orders at the moment.</Text>
             <Button className="bg-indigoscale-700" onPress={() => router.push("/(public)/catalogue")}>
               <ButtonIcon as={ShoppingBag} className="text-white" />
               <ButtonText className="text-white">Browse the catalogue</ButtonText>

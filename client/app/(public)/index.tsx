@@ -1,17 +1,17 @@
-import React from "react";
-import { Image, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
-import { useRouter } from "expo-router";
+import React, { useState } from "react";
+import { Image, LayoutChangeEvent, ScrollView, Text, useWindowDimensions, View } from "react-native";
 
-import { useAuth } from "@/contexts/auth-context";
 import BrandLogo from "@/components/brand-logo";
 import Footer from "@/components/layout/Footer";
 
 // Layout from "Minimart Landing.dc.html": the hero illustration has its own
 // title text, which is covered by soft panels with the MWH logo and tagline
-// on top. All positions are fractions of the hero box (1150 × 762).
+// on top. All positions are fractions of the hero image (1150 × 762).
 const HERO = require("@/assets/hero.png");
-const HERO_MAX_WIDTH = 1150;
 const HERO_ASPECT = 1150 / 762;
+// Cover the screen only while the sides lose at most ~10% each; narrower
+// (portrait) screens show the whole image instead, so the logo is never cut
+const MIN_COVER_ASPECT = 1.2;
 
 const BLUE = "#1f3a93";
 const ORANGE = "#e8502a";
@@ -25,33 +25,46 @@ const PANELS = [
 ];
 
 const PublicLandingPage: React.FC = () => {
-  const router = useRouter();
-  const { isAuthenticated, role } = useAuth();
-  const { width } = useWindowDimensions();
+  const window = useWindowDimensions();
+  // The area below the header, measured on layout
+  const [viewport, setViewport] = useState({ width: window.width, height: window.height });
 
-  const heroWidth = Math.min(width, HERO_MAX_WIDTH);
-  const heroHeight = heroWidth / HERO_ASPECT;
-  const cq = heroWidth / 100; // 1 "cqw" from the design
+  const onLayout = (e: LayoutChangeEvent) => {
+    const { width, height } = e.nativeEvent.layout;
+    if (width !== viewport.width || height !== viewport.height) setViewport({ width, height });
+  };
 
-  const cta = isAuthenticated
-    ? { label: "Browse the catalogue", onPress: () => router.push("/(public)/catalogue") }
-    : { label: "Log in to redeem your points now", onPress: () => router.push("/login") };
+  // Fill the whole viewport: full width, and at least the full height
+  const boxWidth = viewport.width;
+  const fitHeight = boxWidth / HERO_ASPECT;
+  const cover = fitHeight < viewport.height && boxWidth / viewport.height >= MIN_COVER_ASPECT;
+  const boxHeight = Math.max(fitHeight, viewport.height);
+
+  // Image size and offset inside the box (centred, cropping the sides when covering)
+  const imageHeight = cover ? boxHeight : fitHeight;
+  const imageWidth = imageHeight * HERO_ASPECT;
+  const imageLeft = (boxWidth - imageWidth) / 2;
+  const imageTop = (boxHeight - imageHeight) / 2;
+  const cq = imageWidth / 100; // 1 "cqw" from the design
+
+  const logoWidth = 0.47 * imageWidth * 0.92;
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: "#eef1f7" }} contentContainerStyle={{ flexGrow: 1 }}>
-      <View style={{ width: heroWidth, alignSelf: "center" }}>
+    <ScrollView style={{ flex: 1, backgroundColor: PANEL }} onLayout={onLayout}>
+      <View style={{ width: boxWidth, height: boxHeight, overflow: "hidden", backgroundColor: PANEL }}>
         <View
           style={{
-            width: heroWidth,
-            height: heroHeight,
-            overflow: "hidden",
-            backgroundColor: PANEL,
+            position: "absolute",
+            left: imageLeft,
+            top: imageTop,
+            width: imageWidth,
+            height: imageHeight,
           }}
         >
           <Image
             source={HERO}
             accessibilityLabel="Minimart illustration"
-            style={{ position: "absolute", left: 0, top: 0, width: heroWidth, height: heroHeight }}
+            style={{ position: "absolute", left: 0, top: 0, width: imageWidth, height: imageHeight }}
             resizeMode="stretch"
           />
 
@@ -60,10 +73,10 @@ const PublicLandingPage: React.FC = () => {
               key={i}
               style={{
                 position: "absolute",
-                left: p.left * heroWidth,
-                top: p.top * heroHeight,
-                width: p.width * heroWidth,
-                height: p.height * heroHeight,
+                left: p.left * imageWidth,
+                top: p.top * imageHeight,
+                width: p.width * imageWidth,
+                height: p.height * imageHeight,
                 backgroundColor: PANEL,
                 borderRadius: 2 * cq,
                 // Soft edge so the patch blends into the illustration
@@ -79,22 +92,22 @@ const PublicLandingPage: React.FC = () => {
           <View
             style={{
               position: "absolute",
-              left: 0.31 * heroWidth,
-              top: 0.075 * heroHeight,
-              width: 0.47 * heroWidth,
+              left: 0.31 * imageWidth,
+              top: 0.075 * imageHeight,
+              width: 0.47 * imageWidth,
               alignItems: "center",
             }}
           >
-            <BrandLogo width={0.47 * heroWidth * 0.92} style={{ marginTop: 2 * cq }} />
+            <BrandLogo width={logoWidth} style={{ marginTop: 2 * cq }} />
           </View>
 
           {/* Tagline: one line, centred under the logo (white-space: nowrap in the design) */}
           <View
             style={{
               position: "absolute",
-              left: 0.245 * heroWidth,
-              width: 0.6 * heroWidth,
-              top: 0.075 * heroHeight + 2 * cq + (0.47 * heroWidth * 0.92) / (470 / 120) + 1.4 * cq,
+              left: 0.245 * imageWidth,
+              width: 0.6 * imageWidth,
+              top: 0.075 * imageHeight + 2 * cq + logoWidth / (470 / 120) + 1.4 * cq,
               alignItems: "center",
             }}
           >
@@ -105,32 +118,8 @@ const PublicLandingPage: React.FC = () => {
             </Text>
           </View>
         </View>
-
-        <View style={{ alignItems: "center", paddingVertical: 24, paddingHorizontal: 16 }}>
-          <Pressable
-            onPress={cta.onPress}
-            style={({ hovered, pressed }: any) => ({
-              backgroundColor: hovered || pressed ? ORANGE : BLUE,
-              paddingVertical: 14,
-              paddingHorizontal: 28,
-              borderRadius: 14,
-              shadowColor: hovered || pressed ? ORANGE : BLUE,
-              shadowOpacity: 0.25,
-              shadowRadius: 20,
-              shadowOffset: { width: 0, height: 8 },
-            })}
-          >
-            <Text style={{ color: "#ffffff", fontWeight: "900", fontSize: 17 }}>{cta.label}</Text>
-          </Pressable>
-          {isAuthenticated && role === "resident" && (
-            <Pressable onPress={() => router.push("/(resident)/my-orders")} style={{ marginTop: 12 }}>
-              <Text style={{ color: BLUE, fontWeight: "800", fontSize: 15 }}>View my orders</Text>
-            </Pressable>
-          )}
-        </View>
       </View>
 
-      <View style={{ flex: 1 }} />
       <Footer />
     </ScrollView>
   );

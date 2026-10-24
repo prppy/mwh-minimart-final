@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { TouchableOpacity, TextInput, FlatList, ActivityIndicator, ScrollView } from "react-native";
+import { TouchableOpacity, TextInput, FlatList, ActivityIndicator } from "react-native";
 import { Search, X } from "lucide-react-native";
 
 import { Heading } from "@/components/ui/heading";
@@ -10,7 +10,7 @@ import { VStack } from "@/components/ui/vstack";
 
 import { FeedbackCard } from "@/components/feedback/feedbackCard";
 import { ProductRequestCard } from "@/components/feedback/productRequestCard";
-import { FilterChip } from "@/components/feedback/filterChip";
+import DropdownSelect from "@/components/dropdown-select";
 import { Pagination } from "@/components/feedback/pagination";
 import { StatCard } from "@/components/feedback/statCard";
 import { ExportExcel } from "@/components/feedback/exportExcel";
@@ -38,38 +38,34 @@ import { fetchProductRequests } from "@/utils/api/productRequests";
 
 const PAGE_SIZE_PR = 5;
 
-// ── Scrollable chip row ────────────────────────────────────────────────────
-function ChipRow({
+// ── Filter dropdown ────────────────────────────────────────────────────────
+// Option values can be numbers (sentiment), so map them to strings and back
+function FilterDropdown({
   label,
   options,
   value,
   onChange,
-  danger,
 }: {
   label:    string;
   options:  { value: string | number; label: string }[];
   value:    string | number;
   onChange: (v: any) => void;
-  danger?:  (v: any) => boolean;
 }) {
   return (
-    <VStack className="gap-1">
+    <VStack className="gap-1" style={{ flexGrow: 1, flexBasis: 170, minWidth: 150 }}>
       <Text className="text-xs font-medium text-typography-400" style={{ letterSpacing: 0.6 }}>
         {label}
       </Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <HStack className="gap-2">
-          {options.map((opt) => (
-            <FilterChip
-              key={String(opt.value)}
-              label={opt.label}
-              active={value === opt.value}
-              onPress={() => onChange(opt.value)}
-              danger={danger ? danger(opt.value) : false}
-            />
-          ))}
-        </HStack>
-      </ScrollView>
+      <DropdownSelect
+        compact
+        accessibilityLabel={label}
+        value={String(value)}
+        onChange={(v) => {
+          const option = options.find((opt) => String(opt.value) === v);
+          if (option) onChange(option.value);
+        }}
+        options={options.map((opt) => ({ label: opt.label, value: String(opt.value) }))}
+      />
     </VStack>
   );
 }
@@ -271,27 +267,26 @@ const FeedbackPage: React.FC = () => {
 
           {/* ── Feedback filters ── */}
           {isFeedback && (
-            <VStack className="gap-2">
-              <ChipRow
+            <HStack className="gap-3 items-end" style={{ flexWrap: "wrap" }}>
+              <FilterDropdown
                 label="SORT"
                 options={SORT_OPTIONS}
                 value={fbSortBy}
                 onChange={(v) => { setFbSortBy(v); setFbPage(1); }}
               />
-              <ChipRow
+              <FilterDropdown
                 label="STATUS"
                 options={STATUS_OPTIONS}
                 value={fbStatus}
                 onChange={(v) => applyFbFilter(() => setFbStatus(v))}
               />
-              <ChipRow
+              <FilterDropdown
                 label="CATEGORY"
                 options={CATEGORY_OPTIONS}
                 value={fbCategory}
                 onChange={(v) => applyFbFilter(() => setFbCategory(v))}
-                danger={(v) => v === "complaint"}
               />
-              <ChipRow
+              <FilterDropdown
                 label="SENTIMENT"
                 options={[
                   { value: 0, label: "Any"   },
@@ -301,33 +296,32 @@ const FeedbackPage: React.FC = () => {
                 ]}
                 value={fbRating}
                 onChange={(v) => applyFbFilter(() => setFbRating(v))}
-                danger={(v) => v === 1}
               />
               {fbActiveFilterCount > 0 && (
                 <TouchableOpacity onPress={clearFbFilters}>
-                  <Text className="text-xs font-medium" style={{ color: "#534AB7" }}>Clear all</Text>
+                  <Text className="text-xs font-medium" style={{ color: "#534AB7", paddingBottom: 10 }}>Clear all</Text>
                 </TouchableOpacity>
               )}
-            </VStack>
+            </HStack>
           )}
 
           {/* ── Product request filters ── */}
           {!isFeedback && (
-            <VStack className="gap-2">
-              <ChipRow
+            <HStack className="gap-3 items-end" style={{ flexWrap: "wrap" }}>
+              <FilterDropdown
                 label="SORT"
                 options={REQUEST_SORT_OPTIONS}
                 value={prSortBy}
                 onChange={(v) => { setPrSortBy(v); setPrPage(1); }}
               />
-              <ChipRow
+              <FilterDropdown
                 label="STATUS"
                 options={REQUEST_STATUS_OPTIONS}
                 value={prStatus}
                 onChange={(v) => applyPrFilter(() => setPrStatus(v))}
               />
               {/* this one like not implemented LOL */}
-              {/* <ChipRow
+              {/* <FilterDropdown
                 label="CATEGORY"
                 options={REQUEST_CATEGORY_OPTIONS}
                 value={prCategory}
@@ -335,10 +329,10 @@ const FeedbackPage: React.FC = () => {
               /> */}
               {prActiveFilterCount > 0 && (
                 <TouchableOpacity onPress={clearPrFilters}>
-                  <Text className="text-xs font-medium" style={{ color: "#534AB7" }}>Clear all</Text>
+                  <Text className="text-xs font-medium" style={{ color: "#534AB7", paddingBottom: 10 }}>Clear all</Text>
                 </TouchableOpacity>
               )}
-            </VStack>
+            </HStack>
           )}
 
           {/* Result count */}

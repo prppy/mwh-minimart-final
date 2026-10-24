@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, useWindowDimensions } from "react-native";
-import { Plus, ShoppingCart } from "lucide-react-native";
+import { CalendarClock, Plus, ShoppingCart } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import DropdownSelect from "./dropdown-select";
@@ -305,9 +305,16 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
                       <Text size="xl" className="text-indigoscale-700" bold>
                         {item.name}
                       </Text>
-                      <Text bold className="text-gray-500">
-                        {selection.points} pts
-                      </Text>
+                      <HStack className="justify-between items-center">
+                        <Text bold className="text-gray-500">
+                          {selection.points} pts
+                        </Text>
+                        {!isReorderMode && (
+                          <Text size="sm" className="text-gray-400">
+                            {item.redemptionCount || 0} sold
+                          </Text>
+                        )}
+                      </HStack>
                       {item.tiers && item.tiers.length > 1 && (
                         <DropdownSelect
                           compact
@@ -329,7 +336,7 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
                         <HStack space="sm">
                           {!!selection.isPreorder && (
                             <Text size="sm" bold className="text-orangescale-700">
-                              Pre-order
+                              Out of stock
                             </Text>
                           )}
                           {!!selection.maxPerOrder && (
@@ -339,24 +346,25 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
                           )}
                         </HStack>
                       )}
-                      {sortOption === "sales" && !isReorderMode && (
-                        <Text className="text-xs text-gray-400">
-                          {item.redemptionCount || 0} sold
-                        </Text>
-                      )}
                       {showCart && !isReorderMode && (
+                        // Out-of-stock items can only be pre-ordered
                         <Button
                           size="sm"
                           onPress={(e) => handleAddToCart(e, item)}
                           className={
                             inCart
                               ? "bg-green-600"
-                              : "bg-indigoscale-700"
+                              : selection.isPreorder
+                                ? "bg-orangescale-700"
+                                : "bg-indigoscale-700"
                           }
                         >
-                          <ButtonIcon as={ShoppingCart} className="text-white" />
+                          <ButtonIcon
+                            as={selection.isPreorder ? CalendarClock : ShoppingCart}
+                            className="text-white"
+                          />
                           <ButtonText className="text-white">
-                            {inCart ? "In Cart" : "Add to Cart"}
+                            {inCart ? "In Cart" : selection.isPreorder ? "Pre-order" : "Add to Cart"}
                           </ButtonText>
                         </Button>
                       )}

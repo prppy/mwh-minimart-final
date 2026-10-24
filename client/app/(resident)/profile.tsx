@@ -21,6 +21,27 @@ import { useWindowDimensions, View } from "react-native";
 
 const MOBILE_BREAKPOINT = 768;
 
+const colorOptions = ["red", "orange", "yellow", "green", "blue", "purple"];
+
+// TODO: update more themes?
+const styleOptions = ["sports", "arts", "education", "nature", "games"];
+
+const backgroundImages: Record<string, any> = {
+  sports: require("@/assets/background/neat/sports.webp"),
+  arts: require("@/assets/background/neat/art.webp"),
+  education: require("@/assets/background/neat/education.webp"),
+  nature: require("@/assets/background/neat/nature.webp"),
+  games: require("@/assets/background/neat/games.webp"),
+};
+
+const icons: Record<string, lucide.LucideIcon> = {
+  sports: lucide.Volleyball,
+  arts: lucide.Palette,
+  education: lucide.BookText,
+  nature: lucide.TreeDeciduous,
+  games: lucide.Gamepad2,
+};
+
 const ProfilePage: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
   const router = useRouter();
@@ -52,10 +73,18 @@ const ProfilePage: React.FC = () => {
     };
   };
 
-  const updateResident = async (payload: object) => {
-    if (!user) return;
-    const res = await api.put(`users/${user.id}`, { resident: payload });
-    setResident(mapResident(res.data.data));
+  // Switch the colour/theme straight away and save in the background, so
+  // the page doesn't wait for the server; undo the switch if saving fails
+  const updateResident = async (payload: Partial<Resident>) => {
+    if (!user || !resident) return;
+    const previous = resident;
+    setResident({ ...resident, ...payload });
+    try {
+      await api.put(`users/${user.id}`, { resident: payload });
+    } catch (err) {
+      console.log("Failed to save profile style", err);
+      setResident(previous);
+    }
   };
 
   useEffect(() => {
@@ -98,35 +127,20 @@ const ProfilePage: React.FC = () => {
   const dark = `${wallpaperType}scale-700`;
   const darkText = `text-${dark}`;
 
-  const colorOptions = ["red", "orange", "yellow", "green", "blue", "purple"];
-
-  // TODO: update more themes?
-  const styleOptions = ["sports", "arts", "education", "nature", "games"];
-
-  const backgroundImages: Record<string, any> = {
-    sports: require("@/assets/background/neat/sports.png"),
-    arts: require("@/assets/background/neat/art.png"),
-    education: require("@/assets/background/neat/education.png"),
-    nature: require("@/assets/background/neat/nature.png"),
-    games: require("@/assets/background/neat/games.png"),
-  };
-
-  const icons: Record<string, lucide.LucideIcon> = {
-    sports: lucide.Volleyball,
-    arts: lucide.Palette,
-    education: lucide.BookText,
-    nature: lucide.TreeDeciduous,
-    games: lucide.Gamepad2,
-  };
-
   return (
     <Box className={`flex-1 bg-${wallpaperType}scale-300 relative`}>
-      <Image
-        source={backgroundImages[backgroundType]}
-        className="w-full h-full opacity-100 absolute"
-        resizeMode="cover"
-        alt="profile-background"
-      />
+      {/* All themes stay mounted (only the chosen one is visible), so
+          switching theme doesn't have to load an image first */}
+      {styleOptions.map((t) => (
+        <Image
+          key={t}
+          source={backgroundImages[t]}
+          className="w-full h-full absolute"
+          style={{ opacity: t === backgroundType ? 1 : 0 }}
+          resizeMode="cover"
+          alt="profile-background"
+        />
+      ))}
       <View style={{
         flex: 1,
         flexDirection: isMobile ? 'column' : 'row',

@@ -115,6 +115,7 @@ const Header: React.FC = () => {
   };
 
   const tabs = getTabs();
+  const isLanding = normalizePath(pathname) === "";
   // Show icon-only tabs when the labels wouldn't fit next to the logo
   const isCompact = width < (tabs.length > 7 ? 1400 : 1100);
   const activeTab = tabs.find((tab) => isActiveTab(tab.route));
@@ -285,9 +286,14 @@ const Header: React.FC = () => {
   return (
     <VStack style={{ zIndex: 50 }}>
       <HStack className="w-full justify-between items-center px-4 bg-white">
-        <Pressable onPress={handleLogoPress} style={{ paddingVertical: 8 }}>
-          <BrandLogo width={isMobile ? 170 : 220} />
-        </Pressable>
+        {isLanding ? (
+          // Keeps the header height; the landing page shows the big logo itself
+          <View style={{ height: (isMobile ? 170 : 220) / (470 / 120) + 16 }} />
+        ) : (
+          <Pressable onPress={handleLogoPress} style={{ paddingVertical: 8 }}>
+            <BrandLogo width={isMobile ? 170 : 220} />
+          </Pressable>
+        )}
 
         {/* Desktop navigation */}
         {!isMobile && (

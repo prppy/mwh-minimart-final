@@ -507,8 +507,10 @@ const UserManagementPage: React.FC = () => {
   return (
     <VStack className="flex-1 p-5 bg-indigoscale-500">
       {/* TOP BAR */}
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', width: '100%', justifyContent: 'space-between', gap: isMobile ? 8 : 20, alignItems: 'center' }}>
-        <SearchBar search={search} setSearch={setSearch} />
+      <View style={{ width: '100%', gap: isMobile ? 8 : 12 }}>
+        <View style={{ flexDirection: 'row', width: '100%' }}>
+          <SearchBar search={search} setSearch={setSearch} />
+        </View>
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
           <Button
@@ -568,9 +570,14 @@ const UserManagementPage: React.FC = () => {
       </View>
 
       {/* TABLE */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={true} style={{ borderRadius: 12, marginTop: 20 }}>
-      <View style={{ minWidth: selectedRole === 'residents' ? 800 : 500 }}>
-        <DataTable>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={true}
+        style={{ flex: 1, borderRadius: 12, marginTop: isMobile ? 12 : 16 }}
+        contentContainerStyle={{ flexGrow: 1 }}
+      >
+      <View style={{ flex: 1, minWidth: selectedRole === 'residents' ? 800 : 500 }}>
+        <DataTable style={{ flex: 1, backgroundColor: "#fff" }}>
           {/* TABLE HEADER */}
           <DataTable.Header style={{ backgroundColor: "#E6E6FA" }}>
             {columns.map((col, idx) => (
@@ -585,11 +592,13 @@ const UserManagementPage: React.FC = () => {
 
           {/* ROWS */}
           {loading ? (
-            <DataTable.Row>
-              <DataTable.Cell>Loading...</DataTable.Cell>
-            </DataTable.Row>
+            <View style={{ flex: 1 }}>
+              <DataTable.Row>
+                <DataTable.Cell>Loading...</DataTable.Cell>
+              </DataTable.Row>
+            </View>
           ) : (
-            <ScrollView>{users.map((u, idx) => renderRow(u, idx))}</ScrollView>
+            <ScrollView style={{ flex: 1 }}>{users.map((u, idx) => renderRow(u, idx))}</ScrollView>
           )}
 
           {/* FOOTER */}

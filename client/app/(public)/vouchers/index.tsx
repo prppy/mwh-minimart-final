@@ -26,6 +26,8 @@ const VouchersPage: React.FC = () => {
   const [subtasks, setSubtasks] = useState<Voucher[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  // Measured, because the window width includes the scrollbar on web
+  const [contentWidth, setContentWidth] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -60,6 +62,13 @@ const VouchersPage: React.FC = () => {
 
   if (loading) return <Spinner text="Loading vouchers..." />;
 
+  // Cards fill the page width: 1 column on phones, 2 on tablets, 3 on wide screens
+  const padding = isMobile ? 12 : 24;
+  const gap = 16;
+  const columns = isMobile || selectedCategoryId !== null ? 1 : width >= 1400 ? 3 : 2;
+  const available = contentWidth || width - padding * 2;
+  const cardWidth = (available - gap * (columns - 1)) / columns;
+
   const chip = (label: string, on: boolean, onPress: () => void, icon: any, key: string) => (
     <Pressable
       key={key}
@@ -84,9 +93,12 @@ const VouchersPage: React.FC = () => {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: "#eef1f7" }}
-      contentContainerStyle={{ padding: isMobile ? 12 : 24, alignItems: "center" }}
+      contentContainerStyle={{ padding }}
     >
-      <View style={{ width: "100%", maxWidth: 1000, gap: 16 }}>
+      <View
+        style={{ width: "100%", gap: 16 }}
+        onLayout={(e) => setContentWidth(e.nativeEvent.layout.width)}
+      >
         <View style={{ gap: 6 }}>
           <Text style={{ fontSize: 28, fontWeight: "900", color: BLUE }}>Vouchers</Text>
           <Text style={{ fontSize: 15, color: "#5a6178", fontWeight: "600" }}>
@@ -113,14 +125,14 @@ const VouchersPage: React.FC = () => {
         {categories.length === 0 ? (
           <EmptyAlert text="No vouchers yet!" />
         ) : (
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 16 }}>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap }}>
             {visibleCategories.map((cat) => {
               const tasks = subtasksByCategory.get(cat.id) || [];
               return (
                 <View
                   key={cat.id}
                   style={{
-                    width: isMobile || selectedCategoryId !== null ? "100%" : "48.8%",
+                    width: Math.floor(cardWidth),
                     backgroundColor: "#ffffff",
                     borderRadius: 20,
                     padding: 18,

@@ -33,6 +33,27 @@ const PRODUCT_TYPES = [
   { id: 2, name: "Showcase" },
 ];
 
+// One size (tier) in the edit form. `id` is the product row, unset for a new size.
+interface SizeRow {
+  key: string;
+  id?: number;
+  label: string;
+  points: string;
+  outOfStock: boolean;
+}
+
+const sizeRowsFrom = (products: Product[]): SizeRow[] =>
+  products.map((p) => ({
+    key: String(p.id),
+    id: p.id,
+    label: p.tierLabel || "",
+    points: String(p.points),
+    outOfStock: !!p.isPreorder,
+  }));
+
+let newRowCount = 0;
+const newRowKey = () => `new-${++newRowCount}`;
+
 const ProductDetailPage: React.FC = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -42,6 +63,10 @@ const ProductDetailPage: React.FC = () => {
 
   const [product, setProduct] = useState<Product | null>(null);
   const [tempProduct, setTempProduct] = useState<Product | null>(null);
+  // Every size of this product (e.g. Small / Medium / Large); empty when it has no sizes
+  const [groupProducts, setGroupProducts] = useState<Product[]>([]);
+  const [sizes, setSizes] = useState<SizeRow[]>([]);
+  const [saving, setSaving] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [editing, setEditing] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -55,14 +80,43 @@ const ProductDetailPage: React.FC = () => {
 
   const isNew = id === "0";
 
+  /** The edit form names a sized product by its group ("Chocolates"), not "Chocolates – Small" */
+  const editableCopy = (data: Product): Product => ({
+    ...data,
+    productName: data.productGroup || data.productName,
+  });
+
+  const loadProduct = async (productId: string | number) => {
+    const res = await api.get(`products/${productId}`);
+    const data: Product = res.data.data;
+
+    let siblings: Product[] = [];
+    if (data.productGroup) {
+      const all = await api.get("products");
+      const list: Product[] = Array.isArray(all.data.data)
+        ? all.data.data
+        : all.data.data?.products || [];
+      siblings = list
+        .filter(
+          (p) =>
+            p.productGroup === data.productGroup &&
+            p.categoryId === data.categoryId &&
+            // Deleted sizes that were already redeemed stay as unavailable rows
+            (p.available !== false || p.id === data.id),
+        )
+        .sort((a, b) => a.points - b.points);
+    }
+
+    setProduct(data);
+    setTempProduct(editableCopy(data));
+    setGroupProducts(siblings);
+    setSizes(sizeRowsFrom(siblings));
+  };
+
   useEffect(() => {
     const fetchProduct = async () => {
       if (!isNew) {
-        api.get(`products/${id}`).then((res) => {
-          const data = res.data.data;
-          setProduct(data);
-          setTempProduct({ ...data });
-        });
+        loadProduct(id).catch((err) => console.error("Error fetching product:", err));
       } else {
         const emptyProduct: Product = {
           id: 0,
@@ -98,34 +152,111 @@ const ProductDetailPage: React.FC = () => {
     fetchCategories();
   }, [id, isNew]);
 
+  const showError = (heading: string, message: string) => {
+    setErrorDialogHeading(heading);
+    setErrorDialogMessage(message);
+    setErrorDialogOpen(true);
+  };
+
+  const startEditing = () => {
+    if (!product) return;
+    setTempProduct(editableCopy(product));
+    setSizes(sizeRowsFrom(groupProducts));
+    setEditing(true);
+  };
+
+  const updateSize = (key: string, changes: Partial<SizeRow>) =>
+    setSizes((rows) => rows.map((row) => (row.key === key ? { ...row, ...changes } : row)));
+
+  // Turn a single-price product into one with sizes: its price becomes the first size
+  const addSizes = () =>
+    setSizes([
+      {
+        key: newRowKey(),
+        id: isNew ? undefined : product?.id,
+        label: "",
+        points: String(tempProduct?.points ?? 0),
+        outOfStock: !!tempProduct?.isPreorder,
+      },
+      { key: newRowKey(), label: "", points: "", outOfStock: false },
+    ]);
+
   const handleSave = async () => {
+    if (!tempProduct || !product || saving) return;
+
+    const name = tempProduct.productName.trim();
+    const rows = sizes.map((row) => ({ ...row, label: row.label.trim() }));
+    if (!name) return showError("Missing name", "Please enter a name.");
+    if (rows.length > 1) {
+      if (rows.some((row) => !row.label)) {
+        return showError("Missing size name", "Give every size a name, e.g. Small.");
+      }
+      if (new Set(rows.map((row) => row.label.toLowerCase())).size !== rows.length) {
+        return showError("Duplicate size", "Each size needs a different name.");
+      }
+    }
+    if (rows.some((row) => row.points === "")) {
+      return showError("Missing points", "Enter the points for every size.");
+    }
+
+    const { id: _id, category: _category, ...rest } = tempProduct;
+    const shared = {
+      productDescription: rest.productDescription,
+      categoryId: rest.categoryId,
+      typeId: rest.typeId,
+      maxPerOrder: rest.maxPerOrder,
+      imageUrl: rest.imageUrl || undefined,
+    };
+
+    // One product row per size, or a single row (sizes removed or never added)
+    const saves =
+      rows.length > 1
+        ? rows.map((row) => ({
+            id: row.id,
+            body: {
+              ...shared,
+              productName: `${name} – ${row.label}`,
+              productGroup: name,
+              tierLabel: row.label,
+              points: Number(row.points),
+              isPreorder: row.outOfStock,
+            },
+          }))
+        : [
+            {
+              id: rows.length === 1 ? rows[0].id : isNew ? undefined : product.id,
+              body: {
+                ...shared,
+                productName: name,
+                productGroup: null,
+                tierLabel: null,
+                points: rows.length === 1 ? Number(rows[0].points) : tempProduct.points,
+                isPreorder: rows.length === 1 ? rows[0].outOfStock : !!tempProduct.isPreorder,
+              },
+            },
+          ];
+    const keptIds = new Set(saves.map((s) => s.id));
+    const removed = groupProducts.filter((p) => !keptIds.has(p.id));
+
+    setSaving(true);
     try {
-      if (!tempProduct) return;
-
-      let res;
-
-      if (isNew) {
-        res = await api.post("products", {
-          ...tempProduct,
-          imageUrl: tempProduct.imageUrl || undefined,
-        });
-      } else {
-        const { id: _ignored, category: _ignored2, ...body } = tempProduct;
-
-        res = await api.put(`products/${id}`, {
-          ...body,
-          imageUrl: tempProduct.imageUrl || undefined,
-        });
+      const saved: Product[] = [];
+      for (const { id: rowId, body } of saves) {
+        const res = rowId
+          ? await api.put(`products/${rowId}`, body)
+          : await api.post("products", body);
+        saved.push(res.data.data);
+      }
+      for (const p of removed) {
+        await api.delete(`products/${p.id}`);
       }
 
-      const savedProduct: Product = res.data.data;
-
-      setProduct(savedProduct);
-      setTempProduct(savedProduct);
+      // Show the cheapest size, like the catalogue card does
+      const first = [...saved].sort((a, b) => a.points - b.points)[0];
+      await loadProduct(first.id);
       setEditing(false);
-
       setShowSaveDialog(true);
-      router.setParams({ id: savedProduct.id.toString() });
+      router.setParams({ id: first.id.toString() });
     } catch (err) {
       if (err instanceof ApiError) {
         setErrorDialogHeading(
@@ -148,13 +279,19 @@ const ProductDetailPage: React.FC = () => {
         setErrorDialogMessage("Unknown error occurred");
         setErrorDialogOpen(true);
       }
+    } finally {
+      setSaving(false);
     }
   };
 
+  // Deletes the product, or every size of it
   const handleDelete = async () => {
     try {
       setShowDeleteDialog(false);
-      await api.delete(`products/${id}`);
+      const ids = groupProducts.length > 1 ? groupProducts.map((p) => p.id) : [Number(id)];
+      for (const productId of ids) {
+        await api.delete(`products/${productId}`);
+      }
       router.push("/(public)/catalogue");
     } catch (err) {
       console.error("Delete failed", err);
@@ -179,6 +316,8 @@ const ProductDetailPage: React.FC = () => {
   const handleDiscardClose = () => setShowDiscardDialog(false);
 
   if (!product) return <Spinner text="Loading product..." />;
+
+  const hasSizes = groupProducts.length > 1;
 
   const content = (
     <View style={{ flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 20, padding: isMobile ? 12 : 20, width: "100%", flex: isMobile ? undefined : 1 }} className="bg-indigoscale-100 items-start">
@@ -281,23 +420,109 @@ const ProductDetailPage: React.FC = () => {
             </select.SelectTrigger>
           </select.Select>
 
-          <Text>Points</Text>
-          <Input>
-            <InputField
-              type="text"
-              keyboardType="numeric"
-              inputMode="numeric"
-              placeholder="Points"
-              value={tempProduct?.points !== undefined ? tempProduct.points.toString() : ""}
-              onChangeText={(text) => {
-                const parsed = parseInt(text);
-                setTempProduct((p) => ({
-                  ...p!,
-                  points: isNaN(parsed) ? 0 : parsed,
-                }));
-              }}
-            />
-          </Input>
+          {sizes.length === 0 ? (
+            <>
+              <Text>Points</Text>
+              <Input>
+                <InputField
+                  type="text"
+                  keyboardType="numeric"
+                  inputMode="numeric"
+                  placeholder="Points"
+                  value={tempProduct?.points !== undefined ? tempProduct.points.toString() : ""}
+                  onChangeText={(text) => {
+                    const parsed = parseInt(text);
+                    setTempProduct((p) => ({
+                      ...p!,
+                      points: isNaN(parsed) ? 0 : parsed,
+                    }));
+                  }}
+                />
+              </Input>
+              <Checkbox
+                value="isPreorder"
+                isChecked={!!tempProduct?.isPreorder}
+                onChange={(checked) =>
+                  setTempProduct((p) => ({ ...p!, isPreorder: checked }))
+                }
+              >
+                Out of stock (residents can pre-order it)
+              </Checkbox>
+              <Button
+                variant="outline"
+                action="secondary"
+                size="sm"
+                className="self-start"
+                onPress={addSizes}
+              >
+                <ButtonIcon as={lucideReactNative.Plus} />
+                <ButtonText>Add sizes (e.g. Small / Medium / Large)</ButtonText>
+              </Button>
+            </>
+          ) : (
+            <VStack space="sm">
+              <Text>Sizes (shown as one item with a size dropdown)</Text>
+              {sizes.map((row) => (
+                <HStack key={row.key} space="sm" className="items-center">
+                  <Input className="flex-1">
+                    <InputField
+                      type="text"
+                      placeholder="Size, e.g. Small"
+                      value={row.label}
+                      onChangeText={(text) => updateSize(row.key, { label: text })}
+                    />
+                  </Input>
+                  <Input className="w-24">
+                    <InputField
+                      type="text"
+                      keyboardType="numeric"
+                      inputMode="numeric"
+                      placeholder="Points"
+                      value={row.points}
+                      onChangeText={(text) =>
+                        updateSize(row.key, { points: text.replace(/[^0-9]/g, "") })
+                      }
+                    />
+                  </Input>
+                  <Checkbox
+                    value={`stock-${row.key}`}
+                    isChecked={row.outOfStock}
+                    onChange={(checked) => updateSize(row.key, { outOfStock: checked })}
+                  >
+                    Out of stock
+                  </Checkbox>
+                  <Button
+                    variant="link"
+                    action="negative"
+                    size="sm"
+                    accessibilityLabel={`Remove size ${row.label}`}
+                    onPress={() => setSizes((rows) => rows.filter((r) => r.key !== row.key))}
+                  >
+                    <ButtonIcon as={lucideReactNative.X} />
+                  </Button>
+                </HStack>
+              ))}
+              <Button
+                variant="outline"
+                action="secondary"
+                size="sm"
+                className="self-start"
+                onPress={() =>
+                  setSizes((rows) => [
+                    ...rows,
+                    { key: newRowKey(), label: "", points: "", outOfStock: false },
+                  ])
+                }
+              >
+                <ButtonIcon as={lucideReactNative.Plus} />
+                <ButtonText>Add size</ButtonText>
+              </Button>
+              <Text size="sm" className="text-gray-500">
+                Out-of-stock sizes show a Pre-order button. Removing every size but one
+                turns this back into a single item.
+              </Text>
+            </VStack>
+          )}
 
           <Text>Description</Text>
           <Input>
@@ -335,30 +560,6 @@ const ProductDetailPage: React.FC = () => {
             })}
           </HStack>
 
-          <Text>Product group (tiers with the same group show as one item)</Text>
-          <Input>
-            <InputField
-              type="text"
-              placeholder="e.g. Chocolates"
-              value={tempProduct?.productGroup || ""}
-              onChangeText={(text) =>
-                setTempProduct((p) => ({ ...p!, productGroup: text || null }))
-              }
-            />
-          </Input>
-
-          <Text>Tier label</Text>
-          <Input>
-            <InputField
-              type="text"
-              placeholder="e.g. Small, Standard, 64 GB"
-              value={tempProduct?.tierLabel || ""}
-              onChangeText={(text) =>
-                setTempProduct((p) => ({ ...p!, tierLabel: text || null }))
-              }
-            />
-          </Input>
-
           <Text>Max per order (1-10, leave empty for no limit)</Text>
           <Input>
             <InputField
@@ -376,16 +577,6 @@ const ProductDetailPage: React.FC = () => {
               }}
             />
           </Input>
-
-          <Checkbox
-            value="isPreorder"
-            isChecked={!!tempProduct?.isPreorder}
-            onChange={(checked) =>
-              setTempProduct((p) => ({ ...p!, isPreorder: checked }))
-            }
-          >
-            Pre-order item (points deducted now, delivered later)
-          </Checkbox>
 
           <HStack space="md">
             <Button
@@ -405,9 +596,9 @@ const ProductDetailPage: React.FC = () => {
                 </>
               )}
             </Button>
-            <Button action="positive" size="sm" onPress={handleSave}>
+            <Button action="positive" size="sm" onPress={handleSave} disabled={saving}>
               <ButtonIcon as={lucideReactNative.Save} />
-              <ButtonText>Save</ButtonText>
+              <ButtonText>{saving ? "Saving..." : "Save"}</ButtonText>
             </Button>
           </HStack>
 
@@ -423,7 +614,7 @@ const ProductDetailPage: React.FC = () => {
       ) : (
         <VStack className="flex-1 p-5 bg-white rounded-lg" space="md">
           <Heading className="text-2xl text-indigoscale-700">
-            {product.productName}
+            {hasSizes ? product.productGroup : product.productName}
           </Heading>
 
           <HStack space="lg">
@@ -439,36 +630,56 @@ const ProductDetailPage: React.FC = () => {
             <Badge size="lg">
               <BadgeText>{product.category.categoryName}</BadgeText>
             </Badge>
-            {!!product.tierLabel && (
-              <Badge size="lg" className="bg-indigoscale-300">
-                <BadgeText>{product.tierLabel}</BadgeText>
-              </Badge>
-            )}
-            {!!product.isPreorder && (
+            {!hasSizes && !!product.isPreorder && (
               <Badge size="lg" className="bg-orangescale-300">
-                <BadgeText>Pre-order</BadgeText>
+                <BadgeText>Out of stock</BadgeText>
               </Badge>
             )}
           </HStack>
 
-          <HStack>
-            <Heading className="text-3xl text-indigoscale-700">
-              {product.points}
-            </Heading>
-            <Text className="text-indigoscale-700" bold>
-              pts
-            </Text>
-          </HStack>
+          {hasSizes ? (
+            <VStack space="xs">
+              {groupProducts.map((p) => (
+                <HStack
+                  key={p.id}
+                  className="justify-between items-center px-3 py-2 rounded-md bg-indigoscale-100"
+                >
+                  <Text bold className="text-indigoscale-700">
+                    {p.tierLabel || p.productName}
+                  </Text>
+                  <HStack space="md" className="items-center">
+                    {!!p.isPreorder && (
+                      <Text size="sm" bold className="text-orangescale-700">
+                        Out of stock
+                      </Text>
+                    )}
+                    <Text bold className="text-indigoscale-700">
+                      {p.points} pts
+                    </Text>
+                  </HStack>
+                </HStack>
+              ))}
+            </VStack>
+          ) : (
+            <HStack>
+              <Heading className="text-3xl text-indigoscale-700">
+                {product.points}
+              </Heading>
+              <Text className="text-indigoscale-700" bold>
+                pts
+              </Text>
+            </HStack>
+          )}
           <Text className="text-gray-500">{product.productDescription}</Text>
           {product.maxPerOrder ? (
             <Text className="text-gray-500">
               Limit: {product.maxPerOrder} per order
             </Text>
           ) : null}
-          {!!product.isPreorder && (
+          {(hasSizes ? groupProducts.some((p) => p.isPreorder) : !!product.isPreorder) && (
             <Text className="text-orangescale-700">
-              Pre-order: points are deducted when you redeem, and staff will
-              deliver the item when it arrives.
+              Out of stock items can be pre-ordered: points are deducted when you
+              redeem, and staff will tell you when it is ready to collect.
             </Text>
           )}
 
@@ -486,7 +697,7 @@ const ProductDetailPage: React.FC = () => {
                 <Button
                   action="positive"
                   size="sm"
-                  onPress={() => setEditing(true)}
+                  onPress={startEditing}
                 >
                   <ButtonIcon as={lucideReactNative.Edit} />
                   <ButtonText>Edit</ButtonText>
@@ -498,7 +709,7 @@ const ProductDetailPage: React.FC = () => {
                   onPress={() => setShowDeleteDialog(true)}
                 >
                   <ButtonIcon as={lucideReactNative.Trash} />
-                  <ButtonText>Delete</ButtonText>
+                  <ButtonText>{hasSizes ? "Delete all sizes" : "Delete"}</ButtonText>
                 </Button>
 
                 {/* save alert dialogue */}
@@ -562,13 +773,16 @@ const ProductDetailPage: React.FC = () => {
                         className="text-typography-950 font-semibold"
                         size="md"
                       >
-                        Are you sure you want to delete this product?
+                        {hasSizes
+                          ? `Delete ${product.productGroup} and all ${groupProducts.length} sizes?`
+                          : "Are you sure you want to delete this product?"}
                       </Heading>
                     </alert.AlertDialogHeader>
                     <alert.AlertDialogBody className="mt-3 mb-4">
                       <Text size="sm">
                         Deleting the product will remove it permanently and
                         cannot be undone. Please confirm if you want to proceed.
+                        {hasSizes ? " To remove only one size, use Edit instead." : ""}
                       </Text>
                     </alert.AlertDialogBody>
                     <alert.AlertDialogFooter>
