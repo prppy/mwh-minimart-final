@@ -135,8 +135,8 @@ const ProfilePage: React.FC = () => {
         <Image
           key={t}
           source={backgroundImages[t]}
-          className="w-full h-full absolute"
-          style={{ opacity: t === backgroundType ? 1 : 0 }}
+          // Opacity via className: the Image wrapper replaces any style prop
+          className={`w-full h-full absolute ${t === backgroundType ? "opacity-100" : "opacity-0"}`}
           resizeMode="cover"
           alt="profile-background"
         />

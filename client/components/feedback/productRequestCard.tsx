@@ -54,16 +54,16 @@ export const ProductRequestCard: React.FC<ProductRequestCardProps> = ({ item, on
       <HStack className="items-center justify-between">
         <HStack className="items-center gap-2">
           <VStack
-            className="w-7 h-7 rounded-full items-center justify-center"
+            className="w-10 h-10 rounded-full items-center justify-center"
             style={{ backgroundColor: avatarStyle.bg }}
           >
-            <Text style={{ fontSize: 10, fontWeight: 700, color: avatarStyle.text }}>
+            <Text style={{ fontSize: 13, fontWeight: 700, color: avatarStyle.text }}>
               {initials}
             </Text>
           </VStack>
           <VStack>
-            <Text className="text-xs font-medium text-typography-800">{name}</Text>
-            <Text style={{ fontSize: 10, color: "#B4B2A9" }}>{item.submittedAt}</Text>
+            <Text className="text-sm font-medium text-typography-800">{name}</Text>
+            <Text style={{ fontSize: 13, color: "#B4B2A9" }}>{item.submittedAt}</Text>
           </VStack>
         </HStack>
 
@@ -79,7 +79,7 @@ export const ProductRequestCard: React.FC<ProductRequestCardProps> = ({ item, on
               border:          "none",
               borderRadius:    6,
               padding:         "2px 6px",
-              fontSize:        10,
+              fontSize:        13,
               fontWeight:      600,
               cursor:          "pointer",
               opacity:         loading ? 0.6 : 1,
@@ -97,7 +97,7 @@ export const ProductRequestCard: React.FC<ProductRequestCardProps> = ({ item, on
             className="px-2 py-0.5 rounded-md flex-row items-center gap-1"
             style={{ backgroundColor: statusStyle.bg }}
           >
-            <Text style={{ fontSize: 10, fontWeight: 600, color: statusStyle.text }}>
+            <Text style={{ fontSize: 13, fontWeight: 600, color: statusStyle.text }}>
               {REQUEST_STATUS_OPTIONS.find((o) => o.value === item.requestStatus)?.label ?? item.requestStatus}
             </Text>
             <Icon as={ChevronDown} size="2xs" style={{ color: statusStyle.text }} />
@@ -106,13 +106,13 @@ export const ProductRequestCard: React.FC<ProductRequestCardProps> = ({ item, on
       </HStack>
 
       {/* Product name */}
-      <Text className="text-xs font-semibold text-typography-800">
+      <Text className="text-sm font-semibold text-typography-800">
         {item.productName}
       </Text>
 
       {/* Description */}
       {item.description && (
-        <Text className="text-xs text-typography-600" style={{ lineHeight: 18 }}>
+        <Text className="text-sm text-typography-600" style={{ lineHeight: 21 }}>
           {item.description}
         </Text>
       )}
@@ -124,7 +124,7 @@ export const ProductRequestCard: React.FC<ProductRequestCardProps> = ({ item, on
             className="px-2 py-0.5 rounded-md"
             style={{ backgroundColor: "#F1EFE8" }}
           >
-            <Text style={{ fontSize: 10, fontWeight: 600, color: "#5F5E5A" }}>
+            <Text style={{ fontSize: 13, fontWeight: 600, color: "#5F5E5A" }}>
               {item.requestCategory.charAt(0).toUpperCase() + item.requestCategory.slice(1)}
             </Text>
           </VStack>

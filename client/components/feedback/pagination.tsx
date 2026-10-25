@@ -36,9 +36,9 @@ export function Pagination({ page, totalPages, onPrev, onNext, onPage }: Paginat
             className="w-8 h-8 rounded-lg items-center justify-center"
             style={{ backgroundColor: "#F1EFE8" }}
           >
-            <Text className="text-xs text-typography-600">1</Text>
+            <Text className="text-sm text-typography-600">1</Text>
           </TouchableOpacity>
-          {start > 2 && <Text className="text-xs text-typography-400 px-1">…</Text>}
+          {start > 2 && <Text className="text-sm text-typography-400 px-1">…</Text>}
         </>
       )}
 
@@ -50,7 +50,7 @@ export function Pagination({ page, totalPages, onPrev, onNext, onPage }: Paginat
           style={{ backgroundColor: p === page ? "#3C3489" : "#F1EFE8" }}
         >
           <Text
-            className="text-xs font-medium"
+            className="text-sm font-medium"
             style={{ color: p === page ? "#FFFFFF" : "#5F5E5A" }}
           >
             {p}
@@ -60,13 +60,13 @@ export function Pagination({ page, totalPages, onPrev, onNext, onPage }: Paginat
 
       {end < totalPages && (
         <>
-          {end < totalPages - 1 && <Text className="text-xs text-typography-400 px-1">…</Text>}
+          {end < totalPages - 1 && <Text className="text-sm text-typography-400 px-1">…</Text>}
           <TouchableOpacity
             onPress={() => onPage(totalPages)}
             className="w-8 h-8 rounded-lg items-center justify-center"
             style={{ backgroundColor: "#F1EFE8" }}
           >
-            <Text className="text-xs text-typography-600">{totalPages}</Text>
+            <Text className="text-sm text-typography-600">{totalPages}</Text>
           </TouchableOpacity>
         </>
       )}

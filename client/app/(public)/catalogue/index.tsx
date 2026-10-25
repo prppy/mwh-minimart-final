@@ -29,7 +29,7 @@ const CataloguePage: React.FC = () => {
   const router = useRouter();
   const navigation = useNavigation();
   const { cart, cartCount, totalPoints, removeFromCart, updateQuantity } = useCart();
-  const { role, isAdmin } = useAuth();
+  const { user, role, isAdmin } = useAuth();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -48,6 +48,25 @@ const CataloguePage: React.FC = () => {
   const [newestItemName, setNewestItemName] = useState<string>("");
 
   const isResident = role === "resident";
+
+  // Resident's live balance, shown above the filters. The login response has no
+  // points, so fetch it; refresh when the page regains focus and when the cart
+  // opens or closes (a checkout changes it).
+  const [myPoints, setMyPoints] = useState<number | null>(null);
+  useEffect(() => {
+    if (!isResident || !user) return;
+    const fetchMyPoints = async () => {
+      try {
+        const res = await api.get(`users/${user.id}`);
+        setMyPoints(res.data.data?.resident?.currentPoints ?? 0);
+      } catch (error) {
+        console.error("Failed to load points:", error);
+      }
+    };
+    fetchMyPoints();
+    return navigation.addListener("focus", fetchMyPoints);
+  }, [isResident, user, showCart, navigation]);
+  const myPointsLabel = myPoints === null ? "…" : `${myPoints.toLocaleString()} pts`;
 
   // Helper classification functions for client-side Type filtering
   const isShowcase = (product: Product) => {
@@ -334,9 +353,11 @@ const CataloguePage: React.FC = () => {
   // Shared filter controls component
   const renderFilterControls = () => (
     <>
+      <CatalogueRules />
+
       {/* category filter */}
       <VStack space="xs">
-        <Text className="text-indigoscale-700 font-semibold" size="lg">
+        <Text className="text-indigoscale-700 font-semibold" size="xl">
           Category
         </Text>
         <VStack space="sm">
@@ -364,11 +385,9 @@ const CataloguePage: React.FC = () => {
         </VStack>
       </VStack>
 
-      <CatalogueRules />
-
       {/* type filter */}
       <VStack space="xs">
-        <Text className="text-indigoscale-700 font-semibold" size="lg">
+        <Text className="text-indigoscale-700 font-semibold" size="xl">
           Type
         </Text>
         <VStack space="sm">
@@ -403,7 +422,7 @@ const CataloguePage: React.FC = () => {
 
       {/* points filter */}
       <VStack space="xs">
-        <Text className="text-indigoscale-700 font-semibold" size="lg">
+        <Text className="text-indigoscale-700 font-semibold" size="xl">
           Points (0 - {points.toLocaleString()})
         </Text>
         <slider.Slider
@@ -439,11 +458,22 @@ const CataloguePage: React.FC = () => {
   );
 
   return (
-    <View style={{ flex: 1, flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 12 : 20, padding: isMobile ? 12 : 20, paddingBottom: isMobile ? 12 : 20, backgroundColor: undefined }} className="bg-indigoscale-100 items-stretch">
+    <View style={{ flex: 1, flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 12 : 20, padding: isMobile ? 12 : 20, paddingBottom: isMobile ? 12 : 20, backgroundColor: undefined }} className="bg-[#f2f4f9] items-stretch">
       {!isMobile && <VStack
-        className="w-1/4 self-start p-5 bg-white border border-gray-300 rounded-lg"
+        className="w-1/4 self-start p-5 bg-white border border-[#e1e5ef] rounded-2xl"
         space="xl"
       >
+        {isResident && (
+          <HStack className="items-center justify-between p-4 rounded-xl bg-[#FDEEE9]">
+            <Text size="lg" className="text-[#1c2340] font-semibold">
+              Your points
+            </Text>
+            <Text size="2xl" className="text-[#e8502a] font-bold">
+              {myPointsLabel}
+            </Text>
+          </HStack>
+        )}
+
         {/* View Cart Button - Only for residents */}
         {isResident && cartCount > 0 && (
           <Button
@@ -468,7 +498,7 @@ const CataloguePage: React.FC = () => {
             {/* Per-item breakdown */}
             {cart.map((item) => (
               <HStack key={item.id} className="items-center" space="xs">
-                <Text className="text-sm font-semibold text-indigoscale-700 flex-1" numberOfLines={1}>
+                <Text className="text-base font-semibold text-indigoscale-700 flex-1" numberOfLines={1}>
                   {item.productName}
                 </Text>
                 <Button
@@ -479,7 +509,7 @@ const CataloguePage: React.FC = () => {
                 >
                   <ButtonIcon as={Minus} className="text-indigoscale-700" size="xs" />
                 </Button>
-                <Text className="text-sm font-semibold w-4 text-center">
+                <Text className="text-base font-semibold w-4 text-center">
                   {item.quantity}
                 </Text>
                 <Button
@@ -490,7 +520,7 @@ const CataloguePage: React.FC = () => {
                 >
                   <ButtonIcon as={Plus} className="text-indigoscale-700" size="xs" />
                 </Button>
-                <Text className="text-xs text-gray-500 w-16 text-right">
+                <Text className="text-sm text-gray-500 w-16 text-right">
                   {item.points * item.quantity} pts
                 </Text>
               </HStack>
@@ -498,8 +528,8 @@ const CataloguePage: React.FC = () => {
 
             {/* Total */}
             <HStack className="justify-between border-t border-indigoscale-200 pt-2 mt-1">
-              <Text className="text-sm font-semibold">Total:</Text>
-              <Text className="text-sm font-semibold text-indigoscale-700">
+              <Text className="text-base font-semibold">Total:</Text>
+              <Text className="text-base font-semibold text-indigoscale-700">
                 {totalPoints} pts
               </Text>
             </HStack>
@@ -557,6 +587,21 @@ const CataloguePage: React.FC = () => {
                   Cart ({cartCount})
                 </Text>
               </Pressable>
+            )}
+            {isResident && (
+              <View
+                style={{
+                  marginLeft: 'auto',
+                  justifyContent: 'center',
+                  backgroundColor: '#FDEEE9',
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                  borderRadius: 12,
+                }}
+                accessibilityLabel={`Your points: ${myPointsLabel}`}
+              >
+                <Text style={{ color: '#e8502a', fontWeight: '700', fontSize: 15 }}>{myPointsLabel}</Text>
+              </View>
             )}
           </HStack>
         )}

@@ -54,7 +54,9 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({
             fontFamily: "inherit",
             fontSize: compact ? 14 : 16,
             fontWeight: 600,
-            padding: compact ? "8px 36px 8px 12px" : "14px 44px 14px 16px",
+            padding: compact ? "8px 36px 8px 12px" : "0 44px 0 16px",
+            // Fixed height so it lines up with the 52px text fields on the login page
+            height: compact ? undefined : 52,
             borderRadius: compact ? 10 : 12,
             border: `1.5px solid ${borderColor}`,
             outline: "none",

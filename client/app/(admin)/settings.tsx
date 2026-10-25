@@ -69,7 +69,7 @@ const SettingsPage: React.FC = () => {
 
   return (
     <ScrollView
-      className="flex-1 bg-indigoscale-100"
+      className="flex-1 bg-[#f2f4f9]"
       contentContainerStyle={{ padding: isMobile ? 12 : 24, alignItems: "center" }}
     >
       <VStack space="lg" style={{ width: "100%", maxWidth: 720 }}>

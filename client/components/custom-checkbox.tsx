@@ -22,12 +22,12 @@ const Checkbox = ({
       onChange={onChange}
       className={`w-full ${className}`}
     >
-      <checkbox.CheckboxIndicator className="border-indigoscale-700 data-[checked=true]:bg-indigoscale-700">
+      <checkbox.CheckboxIndicator className="w-5 h-5 border-indigoscale-700 data-[checked=true]:bg-indigoscale-700">
         <checkbox.CheckboxIcon as={Check} />
       </checkbox.CheckboxIndicator>
       <checkbox.CheckboxLabel
         className="
-          flex-1 w-full
+          flex-1 w-full text-base
           text-indigoscale-700
           data-[checked=true]:text-indigoscale-700
           data-[hover=true]:text-indigoscale-900

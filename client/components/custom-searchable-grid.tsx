@@ -50,6 +50,9 @@ interface SearchableGridProps {
 }
 
 const MOBILE_BREAKPOINT = 768;
+// Product card: a white photo tile with the name, points and actions below it
+const CARD = "bg-white border border-[#e1e5ef] rounded-2xl p-3 gap-3 h-full";
+const IMAGE_TILE = "aspect-square rounded-xl overflow-hidden border border-[#eef1f7]";
 
 const SearchableGrid: React.FC<SearchableGridProps> = ({
   items,
@@ -61,6 +64,9 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
 }) => {
   const { width } = useWindowDimensions();
   const isMobile = width < MOBILE_BREAKPOINT;
+  // Literal class names so Tailwind keeps them
+  const columns = isMobile ? 2 : width < 1200 ? 3 : 4;
+  const gridCols = columns === 2 ? "grid-cols-2" : columns === 3 ? "grid-cols-3" : "grid-cols-4";
   const { isAdmin, isAuthenticated, role } = useAuth();
   const { addToCart, isInCart } = useCart();
   const [sortOption, setSortOption] = useState<SortOption>("custom");
@@ -264,19 +270,19 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
       ) : (
         <VStack className="flex-1 overflow-hidden">
           <ScrollView>
-            <Grid className="gap-5" _extra={{ className: isMobile ? "grid-cols-1" : "grid-cols-2" }}>
+            <Grid className={isMobile ? "gap-3" : "gap-5"} _extra={{ className: gridCols }}>
               {isAuthenticated && isAdmin && !isReorderMode && (
                 <GridItem _extra={{ className: "col-span-1" }}>
                   <Pressable onPress={onAddPress}>
-                    <Card className="bg-white" size="md" variant="outline">
-                      <Center className={`w-full ${isMobile ? 'h-40' : 'h-64'} bg-indigoscale-300 rounded-md mb-5`}>
+                    <Card className={`${CARD} border-dashed`}>
+                      <Center className={`w-full ${IMAGE_TILE} bg-indigoscale-100`}>
                         <Icon
                           as={Plus}
-                          size={64}
+                          size={48}
                           className="text-indigoscale-700"
                         />
                       </Center>
-                      <Text size="xl" className="text-indigoscale-700">
+                      <Text className="text-indigoscale-700 font-semibold">
                         Add New Item
                       </Text>
                     </Card>
@@ -288,9 +294,9 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
                 const inCart = isInCart(selection.id);
                 return (
                 <GridItem key={item.id} _extra={{ className: "col-span-1" }}>
-                  <Card className="bg-white" size="md" variant="outline">
+                  <Card className={CARD}>
                     <Pressable onPress={() => !isReorderMode && onItemPress(item)}>
-                      <Center className={`w-full ${isMobile ? 'h-40' : 'h-64'} bg-indigoscale-300 rounded-md mb-5`}>
+                      <Center className={`w-full ${IMAGE_TILE} bg-white`}>
                         {item.image ? (
                           <Image
                             source={{ uri: item.image }}
@@ -301,12 +307,12 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
                         ) : null}
                       </Center>
                     </Pressable>
-                    <VStack space="xs">
-                      <Text size="xl" className="text-indigoscale-700" bold>
+                    <VStack space="xs" className="flex-1">
+                      <Text className="text-[#1c2340] font-semibold" size={isMobile ? "sm" : "md"} numberOfLines={2}>
                         {item.name}
                       </Text>
                       <HStack className="justify-between items-center">
-                        <Text bold className="text-gray-500">
+                        <Text bold className="text-[#e8502a]" size={isMobile ? "md" : "lg"}>
                           {selection.points} pts
                         </Text>
                         {!isReorderMode && (
@@ -351,12 +357,12 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
                         <Button
                           size="sm"
                           onPress={(e) => handleAddToCart(e, item)}
-                          className={
+                          className={"mt-auto rounded-full " + (
                             inCart
                               ? "bg-green-600"
                               : selection.isPreorder
                                 ? "bg-orangescale-700"
-                                : "bg-indigoscale-700"
+                                : "bg-indigoscale-700")
                           }
                         >
                           <ButtonIcon
@@ -375,10 +381,16 @@ const SearchableGrid: React.FC<SearchableGridProps> = ({
                 </GridItem>
                 );
               })}
-              {/* filler if odd to prevent weird ui */}
-              {(displayItems.length + (isAuthenticated && isAdmin && !isReorderMode ? 1 : 0)) %
-                2 !==
-                0 && <GridItem _extra={{ className: "col-span-1" }}></GridItem>}
+              {/* fillers so the last row's cards keep the same width */}
+              {Array.from(
+                {
+                  length:
+                    (columns -
+                      ((displayItems.length + (isAuthenticated && isAdmin && !isReorderMode ? 1 : 0)) % columns)) %
+                    columns,
+                },
+                (_, i) => <GridItem key={`filler-${i}`} _extra={{ className: "col-span-1" }}></GridItem>
+              )}
             </Grid>
           </ScrollView>
         </VStack>

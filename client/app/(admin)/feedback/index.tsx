@@ -53,7 +53,7 @@ function FilterDropdown({
 }) {
   return (
     <VStack className="gap-1" style={{ flexGrow: 1, flexBasis: 170, minWidth: 150 }}>
-      <Text className="text-xs font-medium text-typography-400" style={{ letterSpacing: 0.6 }}>
+      <Text className="text-sm font-medium text-typography-400" style={{ letterSpacing: 0.6 }}>
         {label}
       </Text>
       <DropdownSelect
@@ -227,7 +227,7 @@ const FeedbackPage: React.FC = () => {
                 style={{ backgroundColor: activeTab === tab ? "#3C3489" : "transparent" }}
               >
                 <Text
-                  className="text-xs font-medium"
+                  className="text-sm font-medium"
                   style={{ color: activeTab === tab ? "#fff" : "#5F5E5A" }}
                 >
                   {tab === "feedback" ? "Feedback" : "Product Requests"}
@@ -253,7 +253,7 @@ const FeedbackPage: React.FC = () => {
                 : "Search resident or product..."
               }
               placeholderTextColor="#B4B2A9"
-              style={{ flex: 1, fontSize: 13, color: "#2C2C2A", height: 40 }}
+              style={{ flex: 1, fontSize: 15, color: "#2C2C2A", height: 40 }}
             />
             {(isFeedback ? fbSearch : prSearch).length > 0 && (
               <TouchableOpacity onPress={() => isFeedback
@@ -299,7 +299,7 @@ const FeedbackPage: React.FC = () => {
               />
               {fbActiveFilterCount > 0 && (
                 <TouchableOpacity onPress={clearFbFilters}>
-                  <Text className="text-xs font-medium" style={{ color: "#534AB7", paddingBottom: 10 }}>Clear all</Text>
+                  <Text className="text-sm font-medium" style={{ color: "#534AB7", paddingBottom: 10 }}>Clear all</Text>
                 </TouchableOpacity>
               )}
             </HStack>
@@ -329,14 +329,14 @@ const FeedbackPage: React.FC = () => {
               /> */}
               {prActiveFilterCount > 0 && (
                 <TouchableOpacity onPress={clearPrFilters}>
-                  <Text className="text-xs font-medium" style={{ color: "#534AB7", paddingBottom: 10 }}>Clear all</Text>
+                  <Text className="text-sm font-medium" style={{ color: "#534AB7", paddingBottom: 10 }}>Clear all</Text>
                 </TouchableOpacity>
               )}
             </HStack>
           )}
 
           {/* Result count */}
-          <Text className="text-xs text-typography-400">
+          <Text className="text-sm text-typography-400">
             {loading
               ? "Loading..."
               : `${total} result${total !== 1 ? "s" : ""}  ·  Page ${page} of ${totalPages}`
@@ -362,15 +362,15 @@ const FeedbackPage: React.FC = () => {
             <ActivityIndicator color="#534AB7" />
           ) : (isFeedback ? fbError : prError) ? (
             <>
-              <Text className="text-sm text-typography-600">
+              <Text className="text-base text-typography-600">
                 {isFeedback ? fbError : prError}
               </Text>
               <TouchableOpacity onPress={isFeedback ? loadFeedback : loadRequests}>
-                <Text className="text-sm font-medium" style={{ color: "#534AB7" }}>Retry</Text>
+                <Text className="text-base font-medium" style={{ color: "#534AB7" }}>Retry</Text>
               </TouchableOpacity>
             </>
           ) : (
-            <Text className="text-sm text-typography-400">
+            <Text className="text-base text-typography-400">
               {isFeedback
                 ? fbStatus === "new"
                   ? "No unreviewed feedback. All caught up!"

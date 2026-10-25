@@ -55,7 +55,7 @@ const MyOrdersPage: React.FC = () => {
 
   if (!isAuthenticated || !user) {
     return (
-      <VStack className="flex-1 justify-center items-center bg-indigoscale-100 p-6" space="md">
+      <VStack className="flex-1 justify-center items-center bg-[#f2f4f9] p-6" space="md">
         <Text>Please log in to see your orders.</Text>
         <Button className="bg-indigoscale-700" onPress={() => router.push("/login")}>
           <ButtonText className="text-white">Log in</ButtonText>
@@ -69,7 +69,7 @@ const MyOrdersPage: React.FC = () => {
 
   return (
     <ScrollView
-      className="flex-1 bg-indigoscale-100"
+      className="flex-1 bg-[#f2f4f9]"
       contentContainerStyle={{ padding: isMobile ? 12 : 24, alignItems: "center" }}
       refreshControl={
         <RefreshControl

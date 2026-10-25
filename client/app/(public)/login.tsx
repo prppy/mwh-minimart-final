@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useId, useMemo, useState } from "react";
 import {
   Image,
   Pressable,
@@ -18,7 +18,7 @@ import BrandLogo from "@/components/brand-logo";
 import DropdownSelect from "@/components/dropdown-select";
 
 // Layout and copy from "Minimart Login.dc.html"
-const SCENE = require("@/assets/redeem-scene.png");
+const SCENE = require("@/assets/redeem-scene.webp");
 
 const BLUE = "#1f3a93";
 const ORANGE = "#e8502a";
@@ -34,10 +34,10 @@ interface ResidentOption {
   userName: string;
 }
 
-// The scene image is 920×1180. The design uses background-size: cover with
+// The scene image is 1840×2360. The design uses background-size: cover with
 // background-position: 62% 100%, i.e. keep the children at the counter in view.
-const SCENE_WIDTH = 920;
-const SCENE_HEIGHT = 1180;
+const SCENE_WIDTH = 1840;
+const SCENE_HEIGHT = 2360;
 
 const SceneImage: React.FC<{ width: number; height: number }> = ({ width, height }) => {
   const scale = Math.max(width / SCENE_WIDTH, height / SCENE_HEIGHT);
@@ -83,6 +83,17 @@ const Awning: React.FC = () => (
   </View>
 );
 
+const SceneCaption: React.FC<{ inset: number }> = ({ inset }) => (
+  <View style={{ paddingHorizontal: inset, paddingBottom: 36, gap: 10 }}>
+    <Text style={{ color: "#000000", fontSize: 34, lineHeight: 37, fontWeight: "900", letterSpacing: -0.7 }}>
+      Every good deed counts.
+    </Text>
+    <Text style={{ color: INK, fontSize: 16, lineHeight: 24, fontWeight: "600", maxWidth: 360 }}>
+      Earn points by helping out, then redeem them for treats at the minimart counter.
+    </Text>
+  </View>
+);
+
 const LoginPage: React.FC = () => {
   const router = useRouter();
   const { loginResident, loginOfficer } = useAuth();
@@ -100,6 +111,9 @@ const LoginPage: React.FC = () => {
   const [residents, setResidents] = useState<ResidentOption[]>([]);
   const [residentsError, setResidentsError] = useState("");
   const [panelSize, setPanelSize] = useState({ width: 0, height: 0 });
+  // Unique gradient id: an earlier, hidden visit to this page stays mounted, and
+  // url(#id) would otherwise point at its gradient, which never paints
+  const fadeId = `fade${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
 
   const isResident = role === "resident";
 
@@ -179,7 +193,7 @@ const LoginPage: React.FC = () => {
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: "#eef1f7" }}
+      style={{ flex: 1, backgroundColor: "#f2f4f9" }}
       contentContainerStyle={{ flexGrow: 1, alignItems: "center", justifyContent: "center", paddingVertical: 32, paddingHorizontal: 16 }}
       keyboardShouldPersistTaps="handled"
     >
@@ -199,37 +213,41 @@ const LoginPage: React.FC = () => {
         }}
       >
         {/* Illustration panel */}
-        <View
-          onLayout={(e) => setPanelSize(e.nativeEvent.layout)}
-          style={{
-            flex: twoColumns ? 1 : undefined,
-            minHeight: twoColumns ? 560 : 360,
-            backgroundColor: "#f4f6fb",
-            justifyContent: "flex-end",
-            overflow: "hidden",
-          }}
-        >
-          {panelSize.width > 0 && <SceneImage width={panelSize.width} height={panelSize.height} />}
-          <Awning />
-          {/* blue fade behind the text */}
-          <Svg style={{ position: "absolute", left: 0, right: 0, bottom: 0 }} width="100%" height="42%">
-            <Defs>
-              <LinearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0" stopColor={BLUE} stopOpacity={0} />
-                <Stop offset="0.42" stopColor={BLUE} stopOpacity={0.92} />
-                <Stop offset="1" stopColor={BLUE} stopOpacity={1} />
-              </LinearGradient>
-            </Defs>
-            <Rect width="100%" height="100%" fill="url(#fade)" />
-          </Svg>
-          <View style={{ paddingHorizontal: 40, paddingBottom: 36, gap: 10 }}>
-            <Text style={{ color: "#ffffff", fontSize: 34, lineHeight: 37, fontWeight: "900", letterSpacing: -0.7 }}>
-              Every good deed counts.
-            </Text>
-            <Text style={{ color: "#dfe5f7", fontSize: 16, lineHeight: 24, fontWeight: "600", maxWidth: 360 }}>
-              Earn points by helping out, then redeem them for treats at the minimart counter.
-            </Text>
+        <View style={{ flex: twoColumns ? 1 : undefined, backgroundColor: "#f4f6fb" }}>
+          <View
+            onLayout={(e) => setPanelSize(e.nativeEvent.layout)}
+            style={{
+              flex: twoColumns ? 1 : undefined,
+              minHeight: twoColumns ? 560 : 320,
+              justifyContent: "flex-end",
+              overflow: "hidden",
+            }}
+          >
+            {panelSize.width > 0 && <SceneImage width={panelSize.width} height={panelSize.height} />}
+            <Awning />
+            {/* Two columns: black text on a white fade over the picture */}
+            {twoColumns && (
+              <>
+                <Svg style={{ position: "absolute", left: 0, right: 0, bottom: 0 }} width="100%" height="42%">
+                  <Defs>
+                    <LinearGradient id={fadeId} x1="0" y1="0" x2="0" y2="1">
+                      <Stop offset="0" stopColor="#ffffff" stopOpacity={0} />
+                      <Stop offset="0.42" stopColor="#ffffff" stopOpacity={0.92} />
+                      <Stop offset="1" stopColor="#ffffff" stopOpacity={1} />
+                    </LinearGradient>
+                  </Defs>
+                  <Rect width="100%" height="100%" fill={`url(#${fadeId})`} />
+                </Svg>
+                <SceneCaption inset={40} />
+              </>
+            )}
           </View>
+          {/* One column: the text goes under the picture so it never covers the children */}
+          {!twoColumns && (
+            <View style={{ backgroundColor: "#ffffff", paddingTop: 24 }}>
+              <SceneCaption inset={24} />
+            </View>
+          )}
         </View>
 
         {/* Form panel */}
@@ -320,7 +338,7 @@ const LoginPage: React.FC = () => {
                   style={{
                     fontSize: 16,
                     fontWeight: "600",
-                    paddingVertical: 14,
+                    height: 52, // same as the resident dropdown, so switching tabs never resizes the card
                     paddingHorizontal: 16,
                     borderRadius: 12,
                     borderWidth: 1.5,
@@ -361,7 +379,7 @@ const LoginPage: React.FC = () => {
                   style={{
                     fontSize: 16,
                     fontWeight: "600",
-                    paddingVertical: 14,
+                    height: 52,
                     paddingLeft: 16,
                     paddingRight: 72,
                     borderRadius: 12,
@@ -432,7 +450,7 @@ const LoginPage: React.FC = () => {
           </View>
 
           <View style={{ gap: 10 }}>
-            <Text style={{ fontSize: 14, fontWeight: "600", color: MUTED, textAlign: "center" }}>
+            <Text style={{ fontSize: 14, fontWeight: "600", color: MUTED, textAlign: "center", lineHeight: 20, minHeight: 40 }}>
               {isResident
                 ? "New here? Ask a staff member to set up your account."
                 : "Need access? Contact the minimart administrator."}

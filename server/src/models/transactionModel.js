@@ -188,6 +188,11 @@ export const createRedemption = async ({ userId, officerId, products }) => {
 
       const updatedResident = await tx.resident.findUnique({ where: { userId } });
       return { orders, updatedResident };
+    }, {
+      // A checkout makes 10+ queries and each round trip to the database takes
+      // ~250 ms from the host, so Prisma's 5 s default could expire mid-checkout
+      maxWait: 10000,
+      timeout: 30000
     });
 
     return {

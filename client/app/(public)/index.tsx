@@ -1,17 +1,23 @@
-import React, { useState } from "react";
-import { Image, LayoutChangeEvent, ScrollView, Text, useWindowDimensions, View } from "react-native";
+import React, { useId, useState } from "react";
+import { Image, LayoutChangeEvent, Text, useWindowDimensions, View } from "react-native";
+
+import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 
 import BrandLogo from "@/components/brand-logo";
 import Footer from "@/components/layout/Footer";
 
 // Layout from "Minimart Landing.dc.html": the hero illustration has its own
 // title text, which is covered by soft panels with the MWH logo and tagline
-// on top. All positions are fractions of the hero image (1150 × 762).
-const HERO = require("@/assets/hero.png");
-const HERO_ASPECT = 1150 / 762;
-// Cover the screen only while the sides lose at most ~10% each; narrower
-// (portrait) screens show the whole image instead, so the logo is never cut
-const MIN_COVER_ASPECT = 1.2;
+// on top. All positions are fractions of the hero image (2300 × 1524).
+const HERO = require("@/assets/hero.webp");
+const HERO_ASPECT = 2300 / 1524;
+// The page never scrolls: the image is fitted to the space above the footer.
+// It may lose up to ~10% of each side to fill more of the height; the logo and
+// tagline sit in the middle, so they are never cut.
+const MAX_SIDE_CROP = 0.1;
+// Fraction of the image height: the blank space runs from the logo (~0.27) to
+// the children's heads (~0.5); it sits just below the cart bubble on the left (~0.41)
+const TAGLINE_TOP = 0.425;
 
 const BLUE = "#1f3a93";
 const ORANGE = "#e8502a";
@@ -28,21 +34,19 @@ const PublicLandingPage: React.FC = () => {
   const window = useWindowDimensions();
   // The area below the header, measured on layout
   const [viewport, setViewport] = useState({ width: window.width, height: window.height });
+  // Unique gradient id (see login.tsx): a hidden earlier visit would otherwise own "edges"
+  const edgesId = `edges${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
 
   const onLayout = (e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
     if (width !== viewport.width || height !== viewport.height) setViewport({ width, height });
   };
 
-  // Fill the whole viewport: full width, and at least the full height
+  // Largest image that fits the box, allowing the sides to be cropped a little
   const boxWidth = viewport.width;
-  const fitHeight = boxWidth / HERO_ASPECT;
-  const cover = fitHeight < viewport.height && boxWidth / viewport.height >= MIN_COVER_ASPECT;
-  const boxHeight = Math.max(fitHeight, viewport.height);
-
-  // Image size and offset inside the box (centred, cropping the sides when covering)
-  const imageHeight = cover ? boxHeight : fitHeight;
-  const imageWidth = imageHeight * HERO_ASPECT;
+  const boxHeight = viewport.height;
+  const imageWidth = Math.min(boxHeight * HERO_ASPECT, boxWidth / (1 - 2 * MAX_SIDE_CROP));
+  const imageHeight = imageWidth / HERO_ASPECT;
   const imageLeft = (boxWidth - imageWidth) / 2;
   const imageTop = (boxHeight - imageHeight) / 2;
   const cq = imageWidth / 100; // 1 "cqw" from the design
@@ -50,8 +54,36 @@ const PublicLandingPage: React.FC = () => {
   const logoWidth = 0.47 * imageWidth * 0.92;
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: PANEL }} onLayout={onLayout}>
-      <View style={{ width: boxWidth, height: boxHeight, overflow: "hidden", backgroundColor: PANEL }}>
+    <View style={{ flex: 1, backgroundColor: PANEL }}>
+      <View style={{ flex: 1, overflow: "hidden", backgroundColor: PANEL }} onLayout={onLayout}>
+        {/* Wide screens: a blurred copy fills the space beside the illustration */}
+        {imageWidth < boxWidth && (
+          <>
+            <Image
+              source={HERO}
+              blurRadius={40}
+              resizeMode="cover"
+              style={{ position: "absolute", left: 0, top: 0, width: boxWidth, height: boxHeight, opacity: 0.55 }}
+            />
+            {/* Soften the illustration's left and right edges into the blur */}
+            <Svg
+              style={{ position: "absolute", left: imageLeft, top: imageTop, zIndex: 1 }}
+              width={imageWidth}
+              height={imageHeight}
+              pointerEvents="none"
+            >
+              <Defs>
+                <LinearGradient id={edgesId} x1="0" y1="0" x2="1" y2="0">
+                  <Stop offset="0" stopColor={PANEL} stopOpacity={0.9} />
+                  <Stop offset="0.05" stopColor={PANEL} stopOpacity={0} />
+                  <Stop offset="0.95" stopColor={PANEL} stopOpacity={0} />
+                  <Stop offset="1" stopColor={PANEL} stopOpacity={0.9} />
+                </LinearGradient>
+              </Defs>
+              <Rect width="100%" height="100%" fill={`url(#${edgesId})`} />
+            </Svg>
+          </>
+        )}
         <View
           style={{
             position: "absolute",
@@ -101,13 +133,14 @@ const PublicLandingPage: React.FC = () => {
             <BrandLogo width={logoWidth} style={{ marginTop: 2 * cq }} />
           </View>
 
-          {/* Tagline: one line, centred under the logo (white-space: nowrap in the design) */}
+          {/* Tagline: one line, centred under the logo, in the middle of the blank
+              space between the logo and the children */}
           <View
             style={{
               position: "absolute",
               left: 0.245 * imageWidth,
               width: 0.6 * imageWidth,
-              top: 0.075 * imageHeight + 2 * cq + logoWidth / (470 / 120) + 1.4 * cq,
+              top: TAGLINE_TOP * imageHeight,
               alignItems: "center",
             }}
           >
@@ -121,7 +154,7 @@ const PublicLandingPage: React.FC = () => {
       </View>
 
       <Footer />
-    </ScrollView>
+    </View>
   );
 };
 

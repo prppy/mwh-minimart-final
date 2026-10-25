@@ -452,7 +452,7 @@ const VoucherAdminPage: React.FC = () => {
   const tabText = (on: boolean) => (on ? "text-white" : "text-indigoscale-700");
 
   return (
-    <VStack className="flex-1 bg-indigoscale-100" style={{ padding: isMobile ? 12 : 20 }}>
+    <VStack className="flex-1 bg-[#f2f4f9]" style={{ padding: isMobile ? 12 : 20 }}>
       {/* Tabs */}
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12, alignItems: "center" }}>
         <Button variant="outline" className={tabClass(activeTab === "categories")} onPress={() => setActiveTab("categories")}>

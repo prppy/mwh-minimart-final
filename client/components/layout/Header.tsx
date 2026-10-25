@@ -17,21 +17,23 @@ import {
   Settings,
 } from "lucide-react-native";
 import BrandLogo from "../brand-logo";
+import AwningStripe from "./AwningStripe";
 import { HStack } from "../ui/hstack";
 import { VStack } from "../ui/vstack";
 import { Text } from "../ui/text";
-import { Pressable } from "../ui/pressable";
-import { Button, ButtonIcon, ButtonText } from "@/components/button";
-import { Divider } from "../ui/divider";
 import {
   useWindowDimensions,
   Animated,
   Platform,
+  Pressable,
   View,
 } from "react-native";
 import { useState, useRef, useEffect } from "react";
 
 const MOBILE_BREAKPOINT = 768;
+const NAVY = "#1f3a93";
+const INK = "#1c2340";
+const ORANGE = "#e8502a";
 
 const Header: React.FC = () => {
   const router = useRouter();
@@ -115,7 +117,8 @@ const Header: React.FC = () => {
   };
 
   const tabs = getTabs();
-  const isLanding = normalizePath(pathname) === "";
+  // "/" is the public landing page, but for signed-in staff it is the dashboard
+  const isLanding = !user && normalizePath(pathname) === "";
   // Show icon-only tabs when the labels wouldn't fit next to the logo
   const isCompact = width < (tabs.length > 7 ? 1400 : 1100);
   const activeTab = tabs.find((tab) => isActiveTab(tab.route));
@@ -157,7 +160,7 @@ const Header: React.FC = () => {
   const handleTabPress = async (tab: any) => {
     if (tab.action === "logout") {
       await logout();
-      router.replace("/(public)");
+      router.replace("/login");
     } else if (isActiveTab(tab.route)) {
       // Already on this tab, just close menu
     } else {
@@ -176,97 +179,51 @@ const Header: React.FC = () => {
     const isActive = isActiveTab(tab.route);
     const isAuthButton = tab.action === "login" || tab.action === "logout";
 
-    if (isMobileMenu) {
-      return (
-        <Pressable
-          key={tab.name}
-          onPress={() => handleTabPress(tab)}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingVertical: 12,
-            paddingHorizontal: 16,
-            backgroundColor: isActive
-              ? isAuthButton
-                ? "#D5452A"
-                : "#273C73"
-              : "transparent",
-            borderRadius: 8,
-            gap: 12,
-          }}
-        >
-          <IconComponent
-            size={20}
-            color={
-              isActive
-                ? "#FFFFFF"
-                : isAuthButton
-                  ? "#D5452A"
-                  : "#273C73"
-            }
-          />
-          <Text
-            style={{
-              color: isActive
-                ? "#FFFFFF"
-                : isAuthButton
-                  ? "#D5452A"
-                  : "#273C73",
-              fontSize: 15,
-              fontWeight: isActive ? "600" : "500",
-            }}
-          >
-            {tab.name}
-          </Text>
-        </Pressable>
-      );
-    }
+    // Sign In / Sign Out keep black text on a light fill so the label is
+    // always readable; the active page tab is filled navy.
+    const fill = (hovered: boolean) =>
+      isAuthButton
+        ? hovered || isActive
+          ? "#FDE3DB"
+          : "#FFFFFF"
+        : isActive
+          ? NAVY
+          : hovered
+            ? "#EEF1F8"
+            : "transparent";
+    const ink = isAuthButton ? "#000000" : isActive ? "#FFFFFF" : INK;
 
-    // Desktop tab button
     return (
-      <Button
+      <Pressable
         key={tab.name}
         onPress={() => handleTabPress(tab)}
-        className={
-          isAuthButton
-            ? isActive
-              ? "bg-redscale-500 border-redscale-700 data-[hover=true]:border-redscale-700"
-              : "border-redscale-700 data-[hover=true]:border-redscale-700"
-            : isActive
-              ? "bg-indigoscale-700 border-indigoscale-900"
-              : "border-indigoscale-900"
-        }
-        variant="outline"
-        size="sm"
+        accessibilityRole="link"
+        accessibilityLabel={tab.name}
+        accessibilityState={{ selected: isActive }}
       >
-        <ButtonIcon
-          as={IconComponent}
-          className={
-            isAuthButton
-              ? isActive
-                ? "text-white"
-                : "text-redscale-500" // redscale-500
-              : isActive
-                ? "text-white"
-                : "text-indigoscale-700" // indigoscale-700
-          }
-        />
-        {!isCompact && (
-          <ButtonText
-            className={
-              isAuthButton
-                ? isActive
-                  ? "text-white text-md data-[hover=true]:text-redscale-500"
-                  : "text-redscale-500 text-md data-[hover=true]:text-redscale-500"
-                : isActive
-                  ? "text-white text-md data-[hover=true]:text-indigoscale-700"
-                  : "text-indigoscale-700 text-md data-[hover=true]:text-indigoscale-700"
-            }
+        {({ hovered }: any) => (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: isMobileMenu ? 12 : 8,
+              paddingVertical: isMobileMenu ? 12 : 8,
+              paddingHorizontal: isMobileMenu ? 16 : isCompact ? 10 : 14,
+              borderRadius: isMobileMenu ? 10 : 999,
+              backgroundColor: fill(!!hovered),
+              borderWidth: isAuthButton ? 1.5 : 0,
+              borderColor: ORANGE,
+            }}
           >
-            {tab.name}
-          </ButtonText>
+            <IconComponent size={isMobileMenu ? 20 : 17} color={isAuthButton ? ORANGE : ink} />
+            {(isMobileMenu || !isCompact) && (
+              <Text style={{ color: ink, fontSize: 15, fontWeight: isActive || isAuthButton ? "700" : "500" }}>
+                {tab.name}
+              </Text>
+            )}
+          </View>
         )}
-      </Button>
+      </Pressable>
     );
   };
 
@@ -343,7 +300,7 @@ const Header: React.FC = () => {
         </Animated.View>
       )}
 
-      <Divider />
+      <AwningStripe />
     </VStack>
   );
 };

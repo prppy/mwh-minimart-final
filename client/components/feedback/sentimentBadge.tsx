@@ -16,8 +16,8 @@ export function SentimentBadge({ rating }: { rating: 1 | 2 | 3 }) {
       className="items-center gap-1 px-2 py-1 rounded-lg"
       style={{ backgroundColor: s.bg }}
     >
-      <Icon as={s.icon} size="2xs" style={{ color: s.color }} />
-      <Text style={{ fontSize: 11, fontWeight: 600, color: s.color }}>
+      <Icon as={s.icon} size="xs" style={{ color: s.color }} />
+      <Text style={{ fontSize: 13, fontWeight: 600, color: s.color }}>
         {s.label}
       </Text>
     </HStack>

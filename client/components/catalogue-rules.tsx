@@ -6,24 +6,24 @@ import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
 
-// "Points to note" panel under the catalogue's category list
+// "Points to note" panel above the catalogue's category list
 const CatalogueRules: React.FC = () => (
   <VStack className="p-3 bg-indigoscale-100 rounded-lg" space="xs">
     <HStack className="items-center" space="xs">
-      <Icon as={Info} size="sm" className="text-indigoscale-700" />
-      <Text className="text-indigoscale-700 font-semibold">Points to note</Text>
+      <Icon as={Info} size="md" className="text-indigoscale-700" />
+      <Text size="lg" className="text-indigoscale-700 font-semibold">Points to note</Text>
     </HStack>
     {MINIMART_RULES.map((rule) => (
       <HStack key={rule} space="xs">
-        <Text size="sm" className="text-gray-600">
+        <Text className="text-gray-600">
           •
         </Text>
-        <Text size="sm" className="text-gray-600 flex-1">
+        <Text className="text-gray-600 flex-1">
           {rule}
         </Text>
       </HStack>
     ))}
-    <Text size="xs" className="text-gray-500 italic mt-1">
+    <Text size="sm" className="text-gray-500 italic mt-1">
       {MINIMART_DISCLAIMER}
     </Text>
   </VStack>

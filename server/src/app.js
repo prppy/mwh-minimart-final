@@ -1,4 +1,7 @@
 // Server/src/app.js
+// Must be the first import: imports run before the code below them, and some
+// modules (e.g. jwtMiddleware) read process.env when they are loaded
+import "dotenv/config";
 import express, { json, urlencoded } from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -7,8 +10,7 @@ import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
 
-// Load environment variables (try local .env first, then parent directory)
-dotenv.config();
+// Local .env is loaded by the first import; also try the parent directory
 dotenv.config({ path: "../.env" });
 
 import { connectDB } from "./lib/db.js";

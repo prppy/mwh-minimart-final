@@ -85,7 +85,7 @@ const UserManagementPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const [page, setPage] = useState(0);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [itemsPerPage, setItemsPerPage] = useState(10); // 5 left most of the table empty on large screens
   const rowsPerPageOptions = [5, 10, 25, 50];
 
   // Modal state
@@ -505,7 +505,7 @@ const UserManagementPage: React.FC = () => {
   const isMobile = width < 768;
 
   return (
-    <VStack className="flex-1 p-5 bg-indigoscale-500">
+    <VStack className="flex-1 p-5 bg-[#f2f4f9]">
       {/* TOP BAR */}
       <View style={{ width: '100%', gap: isMobile ? 8 : 12 }}>
         <View style={{ flexDirection: 'row', width: '100%' }}>

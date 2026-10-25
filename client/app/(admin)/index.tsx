@@ -64,7 +64,7 @@ const AdminPage: React.FC = () => {
   }, []);
 
   return (
-    <ScrollView className="flex-1 bg-indigoscale-500">
+    <ScrollView className="flex-1 bg-[#f2f4f9]">
       <VStack className={isMobile ? "p-3 gap-4" : "p-5 gap-6"}>
         
         {/* Stat Cards Grid */}
@@ -117,7 +117,7 @@ const AdminPage: React.FC = () => {
                 </Heading>
               </HStack>
               
-              <ScrollView horizontal>
+              <ScrollView horizontal contentContainerStyle={{ flexGrow: 1 }}>
                 <table.Table className="w-full">
                   <table.TableHeader>
                     <table.TableRow className="bg-indigoscale-100">
@@ -162,7 +162,7 @@ const AdminPage: React.FC = () => {
                 </Heading>
               </HStack>
               
-              <ScrollView horizontal showsHorizontalScrollIndicator={isMobile}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={isMobile} contentContainerStyle={{ flexGrow: 1 }}>
               <table.Table className="w-full" style={{ minWidth: 300 }}>
                 <table.TableHeader>
                   <table.TableRow className="bg-greenscale-100">

@@ -320,9 +320,9 @@ const ProductDetailPage: React.FC = () => {
   const hasSizes = groupProducts.length > 1;
 
   const content = (
-    <View style={{ flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 20, padding: isMobile ? 12 : 20, width: "100%", flex: isMobile ? undefined : 1 }} className="bg-indigoscale-100 items-start">
+    <View style={{ flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 20, padding: isMobile ? 12 : 20, width: "100%", flex: isMobile ? undefined : 1 }} className="bg-[#f2f4f9] items-start">
       {/* image */}
-      <Center className={`${isMobile ? "w-full" : "w-1/2"} min-h-64 p-5 bg-white rounded-lg`}>
+      <Center className={`${isMobile ? "w-full" : "w-1/2"} min-h-64 p-5 bg-white border border-[#e1e5ef] rounded-2xl`}>
         {editing ? (
           <>
             {tempProduct?.imageUrl ? (
@@ -353,14 +353,14 @@ const ProductDetailPage: React.FC = () => {
           <Image
             source={product.imageUrl}
             alt={product.productName}
-            className="w-full h-64 rounded-lg"
+            className={`w-full ${isMobile ? "h-64" : "h-96"} rounded-lg`}
             resizeMode="contain"
           />
         )}
       </Center>
       {/* details and actions */}
       {editing ? (
-        <VStack className="flex-1 p-5 bg-white rounded-lg" space="md">
+        <VStack className="flex-1 p-5 bg-white border border-[#e1e5ef] rounded-2xl" space="md">
           <Text>Name</Text>
           <Input>
             <InputField
@@ -612,7 +612,7 @@ const ProductDetailPage: React.FC = () => {
           />
         </VStack>
       ) : (
-        <VStack className="flex-1 p-5 bg-white rounded-lg" space="md">
+        <VStack className="flex-1 p-5 bg-white border border-[#e1e5ef] rounded-2xl" space="md">
           <Heading className="text-2xl text-indigoscale-700">
             {hasSizes ? product.productGroup : product.productName}
           </Heading>
@@ -620,11 +620,11 @@ const ProductDetailPage: React.FC = () => {
           <HStack space="lg">
             {product.available ? (
               <Badge size="lg" className="bg-greenscale-300">
-                <BadgeText>Available</BadgeText>
+                <BadgeText className="text-greenscale-700">Available</BadgeText>
               </Badge>
             ) : (
               <Badge size="lg" className="bg-redscale-300">
-                <BadgeText>Not Available</BadgeText>
+                <BadgeText className="text-redscale-700">Not Available</BadgeText>
               </Badge>
             )}
             <Badge size="lg">
@@ -632,7 +632,7 @@ const ProductDetailPage: React.FC = () => {
             </Badge>
             {!hasSizes && !!product.isPreorder && (
               <Badge size="lg" className="bg-orangescale-300">
-                <BadgeText>Out of stock</BadgeText>
+                <BadgeText className="text-orangescale-700">Out of stock</BadgeText>
               </Badge>
             )}
           </HStack>
@@ -662,10 +662,10 @@ const ProductDetailPage: React.FC = () => {
             </VStack>
           ) : (
             <HStack>
-              <Heading className="text-3xl text-indigoscale-700">
+              <Heading className="text-3xl text-[#e8502a]">
                 {product.points}
               </Heading>
-              <Text className="text-indigoscale-700" bold>
+              <Text className="text-[#e8502a]" bold>
                 pts
               </Text>
             </HStack>
@@ -821,7 +821,7 @@ const ProductDetailPage: React.FC = () => {
   );
 
   return isMobile ? (
-    <ScrollView className="flex-1 bg-indigoscale-100">
+    <ScrollView className="flex-1 bg-[#f2f4f9]">
       {content}
     </ScrollView>
   ) : content;

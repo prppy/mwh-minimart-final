@@ -13,7 +13,7 @@ export function StatCard({ label, value, accent }: StatCardProps) {
       className="flex-1 bg-white rounded-2xl p-3 gap-1"
       style={{ borderWidth: 0.5, borderColor: "#E8E6DF" }}
     >
-      <Text className="text-xs text-typography-400">{label}</Text>
+      <Text className="text-sm text-typography-400">{label}</Text>
       <Text className="text-xl font-bold" style={{ color: accent ?? "#2C2C2A" }}>
         {value}
       </Text>

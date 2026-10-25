@@ -20,7 +20,7 @@ export function FilterChip({ label, active, onPress, danger }: FilterChipProps) 
       }}
     >
       <Text
-        className="text-xs font-medium"
+        className="text-sm font-medium"
         style={{ color: active ? "#FFFFFF" : "#5F5E5A" }}
       >
         {label}

@@ -23,15 +23,15 @@ const FeedbackOption: React.FC<FeedbackOptionProps> = ({ icon: OptionIcon, title
     style={({ hovered, pressed }: any) => {
       const active = hovered || pressed;
       return {
-        width: isMobile ? "100%" : 384,
-        height: isMobile ? 192 : 256,
+        width: isMobile ? "100%" : 560,
+        height: isMobile ? 220 : 380,
         alignItems: "center",
         justifyContent: "center",
-        gap: 8,
+        gap: isMobile ? 10 : 16,
         padding: 20,
         borderWidth: 1,
         borderColor: BLUE,
-        borderRadius: 8,
+        borderRadius: 20,
         backgroundColor: active ? BLUE : "#ffffff",
         transform: [{ scale: pressed ? 0.98 : hovered ? 1.03 : 1 }],
         shadowColor: BLUE,
@@ -47,9 +47,9 @@ const FeedbackOption: React.FC<FeedbackOptionProps> = ({ icon: OptionIcon, title
       const color = hovered || pressed ? "#ffffff" : BLUE;
       return (
         <>
-          <OptionIcon size={32} color={color} />
-          <Text style={{ color, fontSize: isMobile ? 20 : 24, fontWeight: "700" }}>{title}</Text>
-          <Text style={{ color, fontSize: isMobile ? 16 : 20 }}>{subtitle}</Text>
+          <OptionIcon size={isMobile ? 40 : 64} color={color} />
+          <Text style={{ color, fontSize: isMobile ? 24 : 36, fontWeight: "700" }}>{title}</Text>
+          <Text style={{ color, fontSize: isMobile ? 18 : 24 }}>{subtitle}</Text>
         </>
       );
     }}
@@ -66,7 +66,8 @@ const FeedbackPage: React.FC = () => {
       <View
         style={{
           flexDirection: isMobile ? "column" : "row",
-          gap: isMobile ? 16 : 48,
+          flexWrap: "wrap", // the cards stack on tablet-width screens
+          gap: isMobile ? 16 : 56,
           paddingHorizontal: isMobile ? 16 : 0,
           width: "100%",
           alignItems: "center",

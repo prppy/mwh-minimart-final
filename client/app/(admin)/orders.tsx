@@ -109,7 +109,7 @@ const OrdersAdminPage: React.FC = () => {
   const pillText = (active: boolean) => (active ? "text-white" : "text-indigoscale-700");
 
   return (
-    <VStack className="flex-1 bg-indigoscale-100">
+    <VStack className="flex-1 bg-[#f2f4f9]">
       <VStack space="md" style={{ padding: isMobile ? 12 : 20 }}>
         <HStack className="justify-between items-center" style={{ flexWrap: "wrap", gap: 8 }}>
           <Heading size="xl" style={{ color: "#1f3a93" }}>

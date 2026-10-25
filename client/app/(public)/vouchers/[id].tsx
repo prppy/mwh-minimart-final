@@ -198,9 +198,9 @@ const VoucherDetailPage: React.FC = () => {
   if (!voucher) return <Spinner />;
 
   const content = (
-    <View style={{ flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 20, padding: isMobile ? 12 : 20, width: "100%", flex: isMobile ? undefined : 1 }} className="bg-indigoscale-100 items-start">
+    <View style={{ flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 20, padding: isMobile ? 12 : 20, width: "100%", flex: isMobile ? undefined : 1 }} className="bg-[#f2f4f9] items-start">
       {/* image */}
-      <Center className={`${isMobile ? "w-full" : "w-1/2"} min-h-64 p-5 bg-white rounded-lg`}>
+      <Center className={`${isMobile ? "w-full" : "w-1/2"} min-h-64 p-5 bg-white border border-[#e1e5ef] rounded-2xl`}>
         {/* TODO: configure images for vouchers */}
         {/* {editing ? (
           <>
@@ -240,7 +240,7 @@ const VoucherDetailPage: React.FC = () => {
 
       {/* details and actions */}
       {editing ? (
-        <VStack className="flex-1 p-5 bg-white rounded-lg" space="md">
+        <VStack className="flex-1 p-5 bg-white border border-[#e1e5ef] rounded-2xl" space="md">
           <Text>Name</Text>
           <Input>
             <InputField
@@ -371,7 +371,7 @@ const VoucherDetailPage: React.FC = () => {
           />
         </VStack>
       ) : (
-        <VStack className="flex-1 p-5 bg-white rounded-lg" space="md">
+        <VStack className="flex-1 p-5 bg-white border border-[#e1e5ef] rounded-2xl" space="md">
           <Heading className="text-2xl text-indigoscale-700">
             {voucher.taskName}
           </Heading>
@@ -532,7 +532,7 @@ const VoucherDetailPage: React.FC = () => {
   );
 
   return isMobile ? (
-    <ScrollView className="flex-1 bg-indigoscale-100">
+    <ScrollView className="flex-1 bg-[#f2f4f9]">
       {content}
     </ScrollView>
   ) : content;
