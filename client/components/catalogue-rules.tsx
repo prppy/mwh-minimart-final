@@ -10,20 +10,20 @@ import { VStack } from "@/components/ui/vstack";
 const CatalogueRules: React.FC = () => (
   <VStack className="p-3 bg-indigoscale-100 rounded-lg" space="xs">
     <HStack className="items-center" space="xs">
-      <Icon as={Info} size="md" className="text-indigoscale-700" />
-      <Text size="lg" className="text-indigoscale-700 font-semibold">Points to note</Text>
+      <Icon as={Info} size="sm" className="text-indigoscale-700" />
+      <Text size="sm" className="text-indigoscale-700 font-semibold">Points to note</Text>
     </HStack>
     {MINIMART_RULES.map((rule) => (
       <HStack key={rule} space="xs">
-        <Text className="text-gray-600">
+        <Text size="xs" className="text-gray-600">
           •
         </Text>
-        <Text className="text-gray-600 flex-1">
+        <Text size="xs" className="text-gray-600 flex-1">
           {rule}
         </Text>
       </HStack>
     ))}
-    <Text size="sm" className="text-gray-500 italic mt-1">
+    <Text size="2xs" className="text-gray-500 italic mt-1">
       {MINIMART_DISCLAIMER}
     </Text>
   </VStack>

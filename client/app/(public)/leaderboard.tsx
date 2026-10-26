@@ -8,6 +8,7 @@ import { Performer } from "@/utils/types";
 import EmptyAlert from "@/components/custom-empty-alert";
 import LeaderboardCard from "@/components/custom-leaderboard-card";
 import Spinner from "@/components/custom-spinner";
+import { Center } from "@/components/ui/center";
 import { Divider } from "@/components/ui/divider";
 import { Heading } from "@/components/ui/heading";
 import { Text } from "@/components/ui/text";
@@ -24,7 +25,7 @@ const LeaderboardPage: React.FC = () => {
     setLoading(true);
     try {
       const res = await api.get("/leaderboard/month", {
-        params: { period: "month", month: currentMonth + 1, limit: 10 },
+        params: { period: "month", month: currentMonth + 1, limit: 5 },
       });
       if (res.data.success) {
         setPerformers(res.data.data.residents);
@@ -80,10 +81,9 @@ const LeaderboardPage: React.FC = () => {
   });
 
   return (
-    // Starts at the top of the page; the list scrolls when it is taller than the screen
-    <VStack className="w-full flex-1 p-5 bg-white">
+    <Center className="w-full h-full p-5 pb-5 bg-white">
       <VStack
-        className="w-full flex-shrink p-5 border border-gray-300 rounded-lg"
+        className="w-full p-5 border border-gray-300 rounded-lg"
         space="md"
       >
         <Heading className="text-2xl text-indigoscale-700 text-center">
@@ -113,7 +113,7 @@ const LeaderboardPage: React.FC = () => {
           </ScrollView>
         )}
       </VStack>
-    </VStack>
+    </Center>
   );
 };
 

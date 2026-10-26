@@ -357,10 +357,10 @@ const CataloguePage: React.FC = () => {
 
       {/* category filter */}
       <VStack space="xs">
-        <Text className="text-indigoscale-700 font-semibold" size="xl">
+        <Text className="text-indigoscale-700 font-semibold" size="md">
           Category
         </Text>
-        <VStack space="sm">
+        <VStack space="xs">
           {sortedCategories.map((category) => {
             const isSelected = selectedCategories.includes(category.id.toString());
             return (
@@ -387,10 +387,10 @@ const CataloguePage: React.FC = () => {
 
       {/* type filter */}
       <VStack space="xs">
-        <Text className="text-indigoscale-700 font-semibold" size="xl">
+        <Text className="text-indigoscale-700 font-semibold" size="md">
           Type
         </Text>
-        <VStack space="sm">
+        <VStack space="xs">
           <Checkbox
             value="Daily"
             isChecked={selectedTypes.includes("Daily")}
@@ -422,7 +422,7 @@ const CataloguePage: React.FC = () => {
 
       {/* points filter */}
       <VStack space="xs">
-        <Text className="text-indigoscale-700 font-semibold" size="xl">
+        <Text className="text-indigoscale-700 font-semibold" size="md">
           Points (0 - {points.toLocaleString()})
         </Text>
         <slider.Slider
@@ -460,15 +460,15 @@ const CataloguePage: React.FC = () => {
   return (
     <View style={{ flex: 1, flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 12 : 20, padding: isMobile ? 12 : 20, paddingBottom: isMobile ? 12 : 20, backgroundColor: undefined }} className="bg-[#f2f4f9] items-stretch">
       {!isMobile && <VStack
-        className="w-1/4 self-start p-5 bg-white border border-[#e1e5ef] rounded-2xl"
-        space="xl"
+        className="w-1/4 self-start p-4 bg-white border border-[#e1e5ef] rounded-2xl"
+        space="md"
       >
         {isResident && (
-          <HStack className="items-center justify-between p-4 rounded-xl bg-[#FDEEE9]">
-            <Text size="lg" className="text-[#1c2340] font-semibold">
+          <HStack className="items-center justify-between p-3 rounded-xl bg-[#FDEEE9]">
+            <Text size="md" className="text-[#1c2340] font-semibold">
               Your points
             </Text>
-            <Text size="2xl" className="text-[#e8502a] font-bold">
+            <Text size="xl" className="text-[#e8502a] font-bold">
               {myPointsLabel}
             </Text>
           </HStack>
@@ -498,7 +498,7 @@ const CataloguePage: React.FC = () => {
             {/* Per-item breakdown */}
             {cart.map((item) => (
               <HStack key={item.id} className="items-center" space="xs">
-                <Text className="text-base font-semibold text-indigoscale-700 flex-1" numberOfLines={1}>
+                <Text className="text-sm font-semibold text-indigoscale-700 flex-1" numberOfLines={1}>
                   {item.productName}
                 </Text>
                 <Button
@@ -509,7 +509,7 @@ const CataloguePage: React.FC = () => {
                 >
                   <ButtonIcon as={Minus} className="text-indigoscale-700" size="xs" />
                 </Button>
-                <Text className="text-base font-semibold w-4 text-center">
+                <Text className="text-sm font-semibold w-4 text-center">
                   {item.quantity}
                 </Text>
                 <Button
@@ -520,7 +520,7 @@ const CataloguePage: React.FC = () => {
                 >
                   <ButtonIcon as={Plus} className="text-indigoscale-700" size="xs" />
                 </Button>
-                <Text className="text-sm text-gray-500 w-16 text-right">
+                <Text className="text-xs text-gray-500 w-16 text-right">
                   {item.points * item.quantity} pts
                 </Text>
               </HStack>
@@ -528,8 +528,8 @@ const CataloguePage: React.FC = () => {
 
             {/* Total */}
             <HStack className="justify-between border-t border-indigoscale-200 pt-2 mt-1">
-              <Text className="text-base font-semibold">Total:</Text>
-              <Text className="text-base font-semibold text-indigoscale-700">
+              <Text className="text-sm font-semibold">Total:</Text>
+              <Text className="text-sm font-semibold text-indigoscale-700">
                 {totalPoints} pts
               </Text>
             </HStack>
@@ -600,7 +600,7 @@ const CataloguePage: React.FC = () => {
                 }}
                 accessibilityLabel={`Your points: ${myPointsLabel}`}
               >
-                <Text style={{ color: '#e8502a', fontWeight: '700', fontSize: 15 }}>{myPointsLabel}</Text>
+                <Text style={{ color: '#e8502a', fontWeight: '700', fontSize: 14 }}>{myPointsLabel}</Text>
               </View>
             )}
           </HStack>

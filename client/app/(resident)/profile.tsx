@@ -144,13 +144,13 @@ const ProfilePage: React.FC = () => {
       <View style={{
         flex: 1,
         flexDirection: isMobile ? 'column' : 'row',
-        gap: isMobile ? 16 : 80,
-        padding: isMobile ? 16 : 80,
+        gap: isMobile ? 16 : 48,
+        padding: isMobile ? 16 : 40,
         zIndex: 10,
         position: 'relative' as const,
         alignItems: isMobile ? 'center' : 'flex-start',
       }}>
-        <Avatar className={`border-${isMobile ? '4' : '8'} ${isMobile ? 'w-32 h-32' : 'w-96 h-96'} border-${regular} bg-${dark}`}>
+        <Avatar className={`border-${isMobile ? '4' : '8'} ${isMobile ? 'w-32 h-32' : 'w-72 h-72'} border-${regular} bg-${dark}`}>
           <AvatarFallbackText className="text-3xl ">
             {resident.userName}
           </AvatarFallbackText>
@@ -158,16 +158,16 @@ const ProfilePage: React.FC = () => {
         </Avatar>
         <VStack className="flex-1 gap-3">
           <VStack className={`w-full bg-${regular} rounded-lg p-4 gap-1`}>
-            <Heading size={isMobile ? "2xl" : "4xl"} className="text-white">
+            <Heading size={isMobile ? "xl" : "3xl"} className="text-white">
               {resident.userName}
             </Heading>
-            <Heading size={isMobile ? "lg" : "2xl"} className="text-white">
+            <Heading size={isMobile ? "md" : "xl"} className="text-white">
               {rank !== null
                 ? `You are #${rank} on the Leaderboard!`
                 : "Loading rank..."}
             </Heading>
             <Heading
-              size={isMobile ? "lg" : "2xl"}
+              size={isMobile ? "md" : "xl"}
               className="text-white"
             >{`You have ${resident.totalPoints} points`}</Heading>
           </VStack>
@@ -197,8 +197,8 @@ const ProfilePage: React.FC = () => {
             </Selector>
           </View>
           {/* TODO: recent transactions */}
-          <HStack className="w-full gap-2 p-5 justify-between items-center bg-white rounded-lg">
-            <Heading className={darkText}>Your Recent Transactions</Heading>
+          <HStack className="w-full gap-2 p-4 justify-between items-center bg-white rounded-lg">
+            <Heading size="md" className={darkText}>Your Recent Transactions</Heading>
             <Icon as={lucide.ChevronDown} size="xl" className={darkText} />
           </HStack>
         </VStack>

@@ -98,7 +98,7 @@ const VouchersPage: React.FC = () => {
       })}
     >
       <Icon as={icon} size="sm" style={{ color: on ? "#ffffff" : BLUE }} />
-      <Text style={{ fontSize: 16, fontWeight: "600", color: on ? "#ffffff" : INK }}>{label}</Text>
+      <Text style={{ fontWeight: "600", color: on ? "#ffffff" : INK }}>{label}</Text>
     </Pressable>
   );
 
@@ -106,10 +106,10 @@ const VouchersPage: React.FC = () => {
     <ScrollView style={{ flex: 1, backgroundColor: PAGE }} contentContainerStyle={{ padding }}>
       <View style={{ width: "100%", gap: 20 }} onLayout={(e) => setContentWidth(e.nativeEvent.layout.width)}>
         <View style={{ gap: 6, maxWidth: 720 }}>
-          <Text style={{ fontSize: isMobile ? 30 : 38, fontWeight: "800", color: INK, letterSpacing: -0.5 }}>
+          <Text style={{ fontSize: isMobile ? 26 : 32, fontWeight: "800", color: INK, letterSpacing: -0.5 }}>
             Vouchers
           </Text>
-          <Text style={{ fontSize: 17, lineHeight: 26, color: MUTED }}>
+          <Text style={{ fontSize: 15, lineHeight: 23, color: MUTED }}>
             Earn points by completing these tasks. Staff will award your points when you complete
             a task — then redeem them at the minimart.
           </Text>
@@ -152,8 +152,8 @@ const VouchersPage: React.FC = () => {
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
                     <View
                       style={{
-                        width: 52,
-                        height: 52,
+                        width: 44,
+                        height: 44,
                         borderRadius: 14,
                         backgroundColor: "#E6EBF7",
                         alignItems: "center",
@@ -163,13 +163,13 @@ const VouchersPage: React.FC = () => {
                       <Icon as={getVoucherIcon(cat.iconName)} size="lg" style={{ color: BLUE }} />
                     </View>
                     <View style={{ flex: 1, gap: 2 }}>
-                      <Text style={{ fontSize: 22, fontWeight: "700", color: INK }}>{cat.taskCategoryName}</Text>
+                      <Text style={{ fontSize: 18, fontWeight: "700", color: INK }}>{cat.taskCategoryName}</Text>
                       {!!cat.taskCategoryDescription && (
-                        <Text style={{ fontSize: 16, color: MUTED }}>{cat.taskCategoryDescription}</Text>
+                        <Text style={{ fontSize: 14, color: MUTED }}>{cat.taskCategoryDescription}</Text>
                       )}
                     </View>
                     {!isMobile && (
-                      <Text style={{ fontSize: 15, color: MUTED }}>
+                      <Text style={{ fontSize: 13, color: MUTED }}>
                         {tasks.length} {tasks.length === 1 ? "task" : "tasks"}, up to{" "}
                         <Text style={{ color: ORANGE, fontWeight: "700" }}>+{top} pts</Text>
                       </Text>
@@ -191,15 +191,15 @@ const VouchersPage: React.FC = () => {
                         }}
                       >
                         <View style={{ flex: 1, gap: 2 }}>
-                          <Text style={{ fontSize: 17, fontWeight: "600", color: INK }}>{task.taskName}</Text>
+                          <Text style={{ fontWeight: "600", color: INK }}>{task.taskName}</Text>
                           {!!task.taskDescription && (
-                            <Text style={{ fontSize: 15, lineHeight: 21, color: MUTED }}>{task.taskDescription}</Text>
+                            <Text style={{ fontSize: 13, lineHeight: 19, color: MUTED }}>{task.taskDescription}</Text>
                           )}
                         </View>
                         <View
                           style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: "#FDEEE9" }}
                         >
-                          <Text style={{ fontSize: 16, fontWeight: "800", color: ORANGE }}>+{task.points} pts</Text>
+                          <Text style={{ fontSize: 14, fontWeight: "800", color: ORANGE }}>+{task.points} pts</Text>
                         </View>
                       </View>
                     ))}
@@ -223,7 +223,7 @@ const VouchersPage: React.FC = () => {
               >
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                   <Icon as={Info} size="sm" style={{ color: MUTED }} />
-                  <Text style={{ fontSize: 16, color: MUTED, fontWeight: "600" }}>{comingSoon.length === 1 ? "Tasks for this category are coming soon." : "Tasks for these categories are coming soon."}
+                  <Text style={{ color: MUTED, fontWeight: "600" }}>{comingSoon.length === 1 ? "Tasks for this category are coming soon." : "Tasks for these categories are coming soon."}
                   </Text>
                 </View>
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, flex: isMobile ? undefined : 1 }}>
@@ -241,7 +241,7 @@ const VouchersPage: React.FC = () => {
                       }}
                     >
                       <Icon as={getVoucherIcon(cat.iconName)} size="xs" style={{ color: BLUE }} />
-                      <Text style={{ fontSize: 15, color: INK }}>{cat.taskCategoryName}</Text>
+                      <Text style={{ fontSize: 13, color: INK }}>{cat.taskCategoryName}</Text>
                     </View>
                   ))}
                 </View>

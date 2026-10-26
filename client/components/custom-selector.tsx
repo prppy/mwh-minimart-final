@@ -58,8 +58,8 @@ export const Selector: React.FC<SelectorProps> = ({
   children,
   colorTheme,
 }) => (
-  <VStack className="flex-1 gap-2 p-5 bg-white rounded-lg">
-    <Heading className={colorTheme}>{title}</Heading>
+  <VStack className="flex-1 gap-2 p-4 bg-white rounded-lg">
+    <Heading size="md" className={colorTheme}>{title}</Heading>
     <HStack className="justify-between">{children}</HStack>
   </VStack>
 );

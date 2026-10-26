@@ -84,11 +84,11 @@ const Awning: React.FC = () => (
 );
 
 const SceneCaption: React.FC<{ inset: number }> = ({ inset }) => (
-  <View style={{ paddingHorizontal: inset, paddingBottom: 36, gap: 10 }}>
-    <Text style={{ color: "#000000", fontSize: 34, lineHeight: 37, fontWeight: "900", letterSpacing: -0.7 }}>
+  <View style={{ paddingHorizontal: inset, paddingBottom: 28, gap: 8 }}>
+    <Text style={{ color: "#000000", fontSize: 28, lineHeight: 31, fontWeight: "900", letterSpacing: -0.7 }}>
       Every good deed counts.
     </Text>
-    <Text style={{ color: INK, fontSize: 16, lineHeight: 24, fontWeight: "600", maxWidth: 360 }}>
+    <Text style={{ color: INK, fontSize: 14, lineHeight: 21, fontWeight: "600", maxWidth: 360 }}>
       Earn points by helping out, then redeem them for treats at the minimart counter.
     </Text>
   </View>
@@ -194,7 +194,7 @@ const LoginPage: React.FC = () => {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: "#f2f4f9" }}
-      contentContainerStyle={{ flexGrow: 1, alignItems: "center", justifyContent: "center", paddingVertical: 32, paddingHorizontal: 16 }}
+      contentContainerStyle={{ flexGrow: 1, alignItems: "center", justifyContent: "center", paddingVertical: 16, paddingHorizontal: 16 }}
       keyboardShouldPersistTaps="handled"
     >
       <View
@@ -218,7 +218,7 @@ const LoginPage: React.FC = () => {
             onLayout={(e) => setPanelSize(e.nativeEvent.layout)}
             style={{
               flex: twoColumns ? 1 : undefined,
-              minHeight: twoColumns ? 560 : 320,
+              minHeight: twoColumns ? 480 : 320,
               justifyContent: "flex-end",
               overflow: "hidden",
             }}
@@ -254,24 +254,24 @@ const LoginPage: React.FC = () => {
         <View
           style={{
             flex: twoColumns ? 1 : undefined,
-            paddingVertical: 48,
-            paddingHorizontal: twoColumns ? 52 : 24,
+            paddingVertical: 28,
+            paddingHorizontal: twoColumns ? 48 : 24,
             justifyContent: "center",
-            gap: 28,
+            gap: 16,
           }}
         >
-          <View style={{ alignItems: "center", gap: 14 }}>
-            <BrandLogo width={Math.min(360, width - 96)} />
+          <View style={{ alignItems: "center", gap: 8 }}>
+            <BrandLogo width={Math.min(280, width - 96)} />
             <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 6 }}>
-              <Text style={{ color: BLUE, fontSize: 15, fontWeight: "900" }}>Do Good.</Text>
-              <Text style={{ color: ORANGE, fontSize: 15, fontWeight: "900" }}>Earn Points.</Text>
-              <Text style={{ color: BLUE, fontSize: 15, fontWeight: "900" }}>Get Rewarded.</Text>
+              <Text style={{ color: BLUE, fontSize: 13, fontWeight: "900" }}>Do Good.</Text>
+              <Text style={{ color: ORANGE, fontSize: 13, fontWeight: "900" }}>Earn Points.</Text>
+              <Text style={{ color: BLUE, fontSize: 13, fontWeight: "900" }}>Get Rewarded.</Text>
             </View>
           </View>
 
           <View style={{ gap: 6 }}>
-            <Text style={{ fontSize: 30, fontWeight: "900", color: BLUE, letterSpacing: -0.3 }}>Welcome back</Text>
-            <Text style={{ fontSize: 16, fontWeight: "600", color: MUTED }}>
+            <Text style={{ fontSize: 24, fontWeight: "900", color: BLUE, letterSpacing: -0.3 }}>Welcome back</Text>
+            <Text style={{ fontSize: 14, fontWeight: "600", color: MUTED }}>
               Log in to shop, check your points and redeem rewards.
             </Text>
           </View>
@@ -288,7 +288,7 @@ const LoginPage: React.FC = () => {
                   accessibilityState={{ selected: on }}
                   style={{
                     flex: 1,
-                    paddingVertical: 11,
+                    paddingVertical: 8,
                     borderRadius: 10,
                     alignItems: "center",
                     backgroundColor: on ? "#ffffff" : "transparent",
@@ -298,7 +298,7 @@ const LoginPage: React.FC = () => {
                     shadowOffset: { width: 0, height: 2 },
                   }}
                 >
-                  <Text style={{ fontSize: 15, fontWeight: "800", color: on ? BLUE : MUTED }}>
+                  <Text style={{ fontSize: 14, fontWeight: "800", color: on ? BLUE : MUTED }}>
                     {r === "resident" ? "Resident" : "Staff"}
                   </Text>
                 </Pressable>
@@ -306,9 +306,9 @@ const LoginPage: React.FC = () => {
             })}
           </View>
 
-          <View style={{ gap: 18 }}>
+          <View style={{ gap: 12 }}>
             <View style={{ gap: 8 }}>
-              <Text style={{ fontSize: 14, fontWeight: "800", color: INK }}>
+              <Text style={{ fontSize: 13, fontWeight: "800", color: INK }}>
                 {isResident ? "Resident" : "Staff email"}
               </Text>
               {isResident ? (
@@ -336,9 +336,9 @@ const LoginPage: React.FC = () => {
                   autoComplete="email"
                   keyboardType="email-address"
                   style={{
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: "600",
-                    height: 52, // same as the resident dropdown, so switching tabs never resizes the card
+                    height: 46, // same as the resident dropdown, so switching tabs never resizes the card
                     paddingHorizontal: 16,
                     borderRadius: 12,
                     borderWidth: 1.5,
@@ -355,10 +355,10 @@ const LoginPage: React.FC = () => {
 
             <View style={{ gap: 8 }}>
               <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                <Text style={{ fontSize: 14, fontWeight: "800", color: INK }}>Password</Text>
+                <Text style={{ fontSize: 13, fontWeight: "800", color: INK }}>Password</Text>
                 <Pressable onPress={forgot}>
                   {({ hovered }: any) => (
-                    <Text style={{ fontSize: 14, fontWeight: "700", color: hovered ? ORANGE : BLUE }}>
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: hovered ? ORANGE : BLUE }}>
                       Forgot password?
                     </Text>
                   )}
@@ -377,9 +377,9 @@ const LoginPage: React.FC = () => {
                   placeholderTextColor="#9aa1b5"
                   autoComplete="password"
                   style={{
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: "600",
-                    height: 52,
+                    height: 46,
                     paddingLeft: 16,
                     paddingRight: 72,
                     borderRadius: 12,
@@ -394,14 +394,14 @@ const LoginPage: React.FC = () => {
                   style={{ position: "absolute", right: 8, paddingVertical: 8, paddingHorizontal: 10 }}
                   accessibilityLabel={showPw ? "Hide password" : "Show password"}
                 >
-                  <Text style={{ fontSize: 13, fontWeight: "800", color: BLUE }}>{showPw ? "Hide" : "Show"}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: "800", color: BLUE }}>{showPw ? "Hide" : "Show"}</Text>
                 </Pressable>
               </View>
             </View>
 
             {error ? (
               <View style={{ backgroundColor: "#fdeee9", borderRadius: 10, paddingVertical: 10, paddingHorizontal: 14 }}>
-                <Text style={{ fontSize: 14, fontWeight: "700", color: "#c43d1b" }}>{error}</Text>
+                <Text style={{ fontSize: 13, fontWeight: "700", color: "#c43d1b" }}>{error}</Text>
               </View>
             ) : null}
 
@@ -425,7 +425,7 @@ const LoginPage: React.FC = () => {
               >
                 {remember && <Text style={{ color: "#ffffff", fontSize: 12, fontWeight: "900", lineHeight: 14 }}>✓</Text>}
               </View>
-              <Text style={{ fontSize: 14, fontWeight: "700", color: MUTED }}>Keep me logged in</Text>
+              <Text style={{ fontSize: 13, fontWeight: "700", color: MUTED }}>Keep me logged in</Text>
             </Pressable>
 
             <Pressable
@@ -433,7 +433,7 @@ const LoginPage: React.FC = () => {
               disabled={loading}
               style={({ hovered, pressed }: any) => ({
                 backgroundColor: hovered || pressed ? ORANGE : BLUE,
-                paddingVertical: 16,
+                paddingVertical: 12,
                 borderRadius: 14,
                 alignItems: "center",
                 opacity: loading ? 0.8 : 1,
@@ -443,19 +443,19 @@ const LoginPage: React.FC = () => {
                 shadowOffset: { width: 0, height: 8 },
               })}
             >
-              <Text style={{ fontSize: 17, fontWeight: "900", color: "#ffffff" }}>
+              <Text style={{ fontSize: 16, fontWeight: "900", color: "#ffffff" }}>
                 {loading ? "Logging in…" : "Log in"}
               </Text>
             </Pressable>
           </View>
 
-          <View style={{ gap: 10 }}>
-            <Text style={{ fontSize: 14, fontWeight: "600", color: MUTED, textAlign: "center", lineHeight: 20, minHeight: 40 }}>
+          <View style={{ gap: 6 }}>
+            <Text style={{ fontSize: 13, fontWeight: "600", color: MUTED, textAlign: "center", lineHeight: 18, minHeight: 36 }}>
               {isResident
                 ? "New here? Ask a staff member to set up your account."
                 : "Need access? Contact the minimart administrator."}
             </Text>
-            <Text style={{ fontSize: 12, fontWeight: "600", color: "#8a90a4", textAlign: "center" }}>
+            <Text style={{ fontSize: 11, fontWeight: "600", color: "#8a90a4", textAlign: "center" }}>
               {MINIMART_DISCLAIMER}
             </Text>
           </View>

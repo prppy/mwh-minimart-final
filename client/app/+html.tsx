@@ -27,11 +27,11 @@ export default function Root({ children }: PropsWithChildren) {
 
 // The pages are sized in fixed pixels, which look small and spread out on large
 // monitors. Scale the whole page up with the screen width (like the browser's
-// Ctrl +): 100% up to 1500px wide, up to 150% on very wide screens.
+// Ctrl +): 100% up to 1650px wide, up to 140% on very wide screens.
 const screenScale = `
 (function () {
   function scale() {
-    var zoom = Math.min(1.5, Math.max(1, window.innerWidth / 1500));
+    var zoom = Math.min(1.4, Math.max(1, window.innerWidth / 1650));
     document.documentElement.style.zoom = String(zoom);
   }
   scale();
